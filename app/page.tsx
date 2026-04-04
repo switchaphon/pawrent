@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { ProtectedRoute } from "@/components/protected-route";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
@@ -167,9 +166,5 @@ function FeedContent() {
 }
 
 export default function HomePage() {
-  return (
-    <ProtectedRoute>
-      <FeedContent />
-    </ProtectedRoute>
-  );
+  return <FeedContent />;
 }

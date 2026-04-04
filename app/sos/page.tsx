@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
-import { ProtectedRoute } from "@/components/protected-route";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -233,9 +232,5 @@ function SOSFormContent() {
 }
 
 export default function SOSPage() {
-  return (
-    <ProtectedRoute>
-      <SOSFormContent />
-    </ProtectedRoute>
-  );
+  return <SOSFormContent />;
 }

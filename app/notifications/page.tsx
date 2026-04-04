@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { ProtectedRoute } from "@/components/protected-route";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -246,9 +245,5 @@ function NotificationsContent() {
 }
 
 export default function NotificationsPage() {
-  return (
-    <ProtectedRoute>
-      <NotificationsContent />
-    </ProtectedRoute>
-  );
+  return <NotificationsContent />;
 }
