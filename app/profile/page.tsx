@@ -571,7 +571,10 @@ function ProfileContent() {
 
             {/* Sign Out Button - Separated */}
             <button
-              onClick={signOut}
+              onClick={async () => {
+                await signOut();
+                router.push("/");
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-destructive transition-colors"
             >
               <LogOut className="w-4 h-4" />
