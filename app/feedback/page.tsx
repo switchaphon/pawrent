@@ -82,17 +82,6 @@ function FeedbackContent() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-        <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
-        <h2 className="text-lg font-bold text-foreground mb-2">Sign in required</h2>
-        <p className="text-muted-foreground text-center mb-6">Please sign in to submit feedback.</p>
-        <Button onClick={() => router.push("/")} className="bg-primary">Go to Sign In</Button>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
