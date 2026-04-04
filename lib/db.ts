@@ -285,11 +285,11 @@ export async function uploadFeedbackImage(file: File, userId: string | null) {
 }
 
 export async function submitFeedback(feedback: Omit<Feedback, "id" | "created_at">) {
-  const { data, error } = await supabase
-    .from("feedback")
-    .insert(feedback)
-    .select()
-    .single();
+  const { data, error } = await supabase.rpc("submit_anonymous_feedback", {
+    p_message: feedback.message,
+    p_user_id: feedback.user_id || null,
+    p_image_url: feedback.image_url || null,
+  });
   return { data: data as Feedback | null, error };
 }
 
