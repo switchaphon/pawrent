@@ -1,0 +1,18 @@
+{
+  "species": [
+    { "id": "cat", "name": "Cat", "icon": "🐱" },
+    { "id": "dog", "name": "Dog", "icon": "🐕" },
+    { "id": "rabbit", "name": "Rabbit", "icon": "🐰" },
+    { "id": "hamster", "name": "Hamster", "icon": "🐹" },
+    { "id": "guinea_pig", "name": "Guinea Pig", "icon": "🐹" },
+    { "id": "bird", "name": "Bird", "icon": "🐦" },
+    { "id": "fish", "name": "Fish", "icon": "🐟" },
+    { "id": "turtle", "name": "Turtle", "icon": "🐢" },
+    { "id": "snake", "name": "Snake", "icon": "🐍" },
+    { "id": "lizard", "name": "Lizard", "icon": "🦎" },
+    { "id": "ferret", "name": "Ferret", "icon": "🦦" },
+    { "id": "chinchilla", "name": "Chinchilla", "icon": "🐭" },
+    { "id": "hedgehog", "name": "Hedgehog", "icon": "🦔" },
+    { "id": "other", "name": "Other", "icon": "🐾" }
+  ]
+}
