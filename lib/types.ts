@@ -65,6 +65,7 @@ export interface SOSAlert {
   pet_photo_url?: string | null;
   is_active: boolean;
   resolved_at: string | null;
+  resolution_status?: "found" | "given_up" | null;
   created_at: string;
 }
 
