@@ -92,33 +92,13 @@ export async function updatePet(petId: string, updates: Partial<Pet>) {
 }
 
 export async function deletePet(petId: string) {
-  // First verify the pet exists and belongs to user
-  const { data: pet, error: fetchError } = await supabase
-    .from("pets")
-    .select("id")
-    .eq("id", petId)
-    .single();
-
-  if (fetchError || !pet) {
-    console.error("Pet not found or access denied:", fetchError);
-    return { error: fetchError || new Error("Pet not found") };
-  }
-
-  // Delete related records first (cascade)
-  await supabase.from("vaccinations").delete().eq("pet_id", petId);
-  await supabase.from("parasite_logs").delete().eq("pet_id", petId);
-  await supabase.from("health_events").delete().eq("pet_id", petId);
-  await supabase.from("sos_alerts").delete().eq("pet_id", petId);
-  await supabase.from("posts").delete().eq("pet_id", petId);
-
-  // Now delete the pet
   const { error } = await supabase
     .from("pets")
     .delete()
     .eq("id", petId);
 
   if (error) {
-    console.error("Supabase delete error:", error.message, error.code, error.details);
+    console.error("Error deleting pet:", error.message);
   }
 
   return { error };
