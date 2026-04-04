@@ -25,16 +25,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // "/" is the home/login page — allow unauthenticated access
-  if (!user && request.nextUrl.pathname !== "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
-  }
+  // Refresh the auth session if cookies exist.
+  // This keeps the session alive and syncs cookies.
+  // Note: the client-side Supabase SDK currently uses localStorage for auth,
+  // so the redirect logic relies on the client-side AuthForm check on "/".
+  // Full server-side redirect will work once the client migrates to cookie auth.
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

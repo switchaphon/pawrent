@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
+import { AuthForm } from "@/components/auth-form";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
@@ -166,5 +167,19 @@ function FeedContent() {
 }
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
   return <FeedContent />;
 }
