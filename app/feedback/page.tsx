@@ -21,7 +21,7 @@ function FeedbackContent() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Determine user ID - null if anonymous
+  // Feedback requires authentication for RLS
   const userId = user?.id ?? null;
 
   const handleSubmit = async () => {
@@ -78,6 +78,17 @@ function FeedbackContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+        <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-bold text-foreground mb-2">Sign in required</h2>
+        <p className="text-muted-foreground text-center mb-6">Please sign in to submit feedback.</p>
+        <Button onClick={() => router.push("/")} className="bg-primary">Go to Sign In</Button>
       </div>
     );
   }
