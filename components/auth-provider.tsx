@@ -34,6 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Clean up orphaned localStorage entry from pre-cookie migration
+        if (_event === "SIGNED_IN") {
+          const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/\/\/([^.]+)/)?.[1];
+          if (projectRef) {
+            localStorage.removeItem(`sb-${projectRef}-auth-token`);
+          }
+        }
       }
     );
 
