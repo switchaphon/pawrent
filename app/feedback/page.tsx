@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { submitFeedback, uploadFeedbackImage } from "@/lib/db";
+import { feedbackSchema, imageFileSchema } from "@/lib/validations";
 import { MessageSquare, X, ImagePlus, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 function FeedbackContent() {
@@ -25,8 +26,20 @@ function FeedbackContent() {
   const userId = user?.id ?? null;
 
   const handleSubmit = async () => {
-    if (!feedbackText.trim()) return;
-    
+    const feedbackResult = feedbackSchema.safeParse({ message: feedbackText });
+    if (!feedbackResult.success) {
+      alert(feedbackResult.error.issues[0].message);
+      return;
+    }
+
+    if (feedbackImage) {
+      const fileResult = imageFileSchema.safeParse({ size: feedbackImage.size, type: feedbackImage.type });
+      if (!fileResult.success) {
+        alert(fileResult.error.issues[0].message);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let imageUrl: string | null = null;

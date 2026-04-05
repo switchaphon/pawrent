@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/searchable-select";
 import { getVaccinesBySpecies, getVaccineInfo, type VaccineInfo } from "@/data/vaccines";
 import { createVaccination } from "@/lib/db";
+import { vaccinationSchema } from "@/lib/validations";
 import { X, Loader2, Syringe, Calendar, Info } from "lucide-react";
 
 interface AddVaccineFormProps {
@@ -71,9 +72,21 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
       return;
     }
 
+    const status = calculateStatus(nextDueDate);
+    const validationResult = vaccinationSchema.safeParse({
+      pet_id: petId,
+      name: selectedVaccine,
+      status,
+      last_date: injectionDate,
+      next_due_date: nextDueDate,
+    });
+    if (!validationResult.success) {
+      setError(validationResult.error.issues[0].message);
+      return;
+    }
+
     setSaving(true);
     try {
-      const status = calculateStatus(nextDueDate);
       const { error: saveError } = await createVaccination({
         pet_id: petId,
         name: selectedVaccine,

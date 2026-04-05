@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/searchable-select";
 import { getParasitePreventionNames, getParasitePreventionInfo } from "@/data/parasite-prevention";
 import { createParasiteLog } from "@/lib/db";
+import { parasiteLogSchema } from "@/lib/validations";
 import { X, Loader2, PillIcon, Calendar, Info, Plus, Minus } from "lucide-react";
 
 interface AddParasiteLogFormProps {
@@ -58,6 +59,17 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
 
     if (!selectedProduct || !administeredDate) {
       setError("Please fill in all required fields");
+      return;
+    }
+
+    const validationResult = parasiteLogSchema.safeParse({
+      pet_id: petId,
+      medicine_name: selectedProduct || null,
+      administered_date: administeredDate,
+      next_due_date: calculateNextDueDate(),
+    });
+    if (!validationResult.success) {
+      setError(validationResult.error.issues[0].message);
       return;
     }
 

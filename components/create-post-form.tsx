@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Camera, Loader2, X } from "lucide-react";
 import type { Pet } from "@/lib/types";
+import { imageFileSchema } from "@/lib/validations";
 import { useEffect } from "react";
 
 interface CreatePostFormProps {
@@ -48,6 +49,14 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !mediaFile) return;
+
+    if (mediaFile.type.startsWith("image/")) {
+      const fileResult = imageFileSchema.safeParse({ size: mediaFile.size, type: mediaFile.type });
+      if (!fileResult.success) {
+        alert(fileResult.error.issues[0].message);
+        return;
+      }
+    }
 
     setLoading(true);
 

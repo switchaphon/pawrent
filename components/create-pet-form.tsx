@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { ImageCropper } from "@/components/image-cropper";
 import { SearchableSelect } from "@/components/searchable-select";
 import { Camera, Loader2, PawPrint } from "lucide-react";
+import { petSchema } from "@/lib/validations";
 import speciesData from "@/data/species.json";
 import breedsData from "@/data/breeds.json";
 
@@ -73,6 +74,22 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    const result = petSchema.safeParse({
+      ...formData,
+      sex: formData.sex || null,
+      species: formData.species || null,
+      breed: formData.breed || null,
+      color: formData.color || null,
+      weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+      date_of_birth: formData.date_of_birth || null,
+      microchip_number: formData.microchip_number || null,
+      special_notes: formData.special_notes || null,
+    });
+    if (!result.success) {
+      alert(result.error.issues[0].message);
+      return;
+    }
 
     setLoading(true);
 

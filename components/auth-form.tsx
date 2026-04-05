@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { z } from "zod";
 import { Mail, Lock, Loader2, Eye, EyeOff, MessageSquare } from "lucide-react";
+
+const emailSchema = z.string().email("Please enter a valid email");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 export function AuthForm() {
   const { signIn, signUp } = useAuth();
@@ -20,6 +24,18 @@ export function AuthForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) {
+      showToast(emailResult.error.issues[0].message, "error");
+      return;
+    }
+    const passwordResult = passwordSchema.safeParse(password);
+    if (!passwordResult.success) {
+      showToast(passwordResult.error.issues[0].message, "error");
+      return;
+    }
+
     setLoading(true);
 
     if (isLogin) {

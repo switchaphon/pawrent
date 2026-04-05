@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getPets, createSOSAlert, uploadSOSVideo } from "@/lib/db";
 import type { Pet } from "@/lib/types";
+import { sosAlertSchema, videoFileSchema } from "@/lib/validations";
 import { AlertTriangle, MapPin, Video, Send, Loader2, CheckCircle } from "lucide-react";
 
 // Dynamic import for Leaflet (SSR issue)
@@ -61,6 +62,25 @@ function SOSFormContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedPetId || !location) return;
+
+    const validationResult = sosAlertSchema.safeParse({
+      pet_id: selectedPetId,
+      lat: location.lat,
+      lng: location.lng,
+      description: description || null,
+    });
+    if (!validationResult.success) {
+      alert(validationResult.error.issues[0].message);
+      return;
+    }
+
+    if (videoFile) {
+      const videoResult = videoFileSchema.safeParse({ size: videoFile.size, type: videoFile.type });
+      if (!videoResult.success) {
+        alert(videoResult.error.issues[0].message);
+        return;
+      }
+    }
 
     setLoading(true);
 
