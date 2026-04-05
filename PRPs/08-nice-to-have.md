@@ -68,12 +68,31 @@ CREATE POLICY "Authenticated users can suggest hospitals"
   WITH CHECK ((select auth.uid()) is not null);
 ```
 
-**Seed SQL example:**
+**Complete seed SQL (copy-paste ready):**
 ```sql
 INSERT INTO hospitals (name, address, lat, lng, phone, open_hours, certified, specialists) VALUES
-('Hospital Name', '123 Address', 13.7563, 100.5018, '02-123-4567', '24 Hours', true, ARRAY['Surgery','Dental']),
--- ... remaining 4 records from hospitals.json
-;
+('Bangkok Animal Hospital', '123 Rama I Rd, Pathum Wan, Bangkok 10330', 13.7563, 100.5018, '02-123-4567', '24 Hours', true, ARRAY['Surgery','Dental']),
+('Thonglor Pet Hospital', 'Phetchaburi Rd, Bang Kapi, Huai Khwang, Bangkok 10310', 13.7343, 100.5828, '02-712-6301', '24 Hours', true, ARRAY['Emergency','Cardiology','Dermatology']),
+('Kasetsart University Veterinary Teaching Hospital', '50 Ngam Wong Wan Rd, Lat Yao, Chatuchak, Bangkok 10900', 13.8476, 100.5696, '02-942-8756', '08:00 - 20:00', true, ARRAY['Oncology','Neurology','Exotic Pets']),
+('Chulalongkorn Small Animal Hospital', 'Henri Dunant Rd, Pathum Wan, Bangkok 10330', 13.7381, 100.5332, '02-218-9715', '07:30 - 20:00', true, ARRAY['Orthopedics','Ophthalmology']),
+('Taling Chan Animal Hospital', 'Borommaratchachonnani Rd, Taling Chan, Bangkok 10170', 13.7797, 100.4495, '02-887-8321', '24 Hours', false, ARRAY['General Practice']);
+```
+
+**Hospital TypeScript interface (add to `lib/types.ts`):**
+```typescript
+export interface Hospital {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  phone: string | null;
+  open_hours: string | null;
+  certified: boolean;
+  specialists: string[];
+  type: string;
+  created_at: string;
+}
 ```
 
 **Files to modify:**
@@ -87,38 +106,43 @@ INSERT INTO hospitals (name, address, lat, lng, phone, open_hours, certified, sp
 
 Unit tests cover validation and API routes, but no tests verify real user flows end-to-end.
 
-**Test environment strategy:** Start with unauthenticated flows only (hospital map, login page, sign-up page) — these need no test database and provide immediate value. Authenticated flows require a test environment decision:
-- Option A: Separate Supabase project with seeded test user (credentials in `.env.test`)
-- Option B: Local Supabase via `supabase start`
-- Option C: Network interception via Playwright's `page.route()` for API mocking
+**Test environment decision: Option C — Playwright `page.route()` for API mocking.**
 
-Decide the strategy before writing authenticated E2E tests.
+Why Option C over the others:
+- **Option A (separate Supabase project):** Requires paid plan or manual management of a second project. Test data pollution risk.
+- **Option B (local Supabase via `supabase start`):** Requires Docker, adds CI complexity, slow startup.
+- **Option C (network interception):** Zero external dependencies, fast, deterministic, works in CI. Playwright's `page.route()` intercepts Supabase API calls and returns mock data. Auth is simulated by setting cookies directly.
 
+**Phase 1 — Unauthenticated flows (no mocking needed):**
 - [ ] Install Playwright (`npm init playwright@latest`)
 - [ ] Add `test:e2e` script to `package.json`
 - [ ] Configure for CI (headless, Chromium only)
-- [ ] Create unauthenticated E2E tests first:
-  - Hospital map loads and shows markers
-  - Login page renders with email/password fields
-  - Sign-up form validates input
-- [ ] Decide test environment strategy for authenticated flows
-- [ ] Create authenticated E2E tests (after environment is set up):
-  - Sign up → sign in → see home feed
-  - Create pet → view pet details → delete pet
-  - Create SOS alert → view on map → resolve it
+- [ ] Test: Hospital map page loads and shows markers
+- [ ] Test: Login page renders with email/password fields
+- [ ] Test: Sign-up form validates empty fields
 
-### 8.3 Investigate PWA Support
+**Phase 2 — Authenticated flows (with `page.route()` mocking):**
+- [ ] Create `e2e/helpers/auth.ts` — sets Supabase auth cookies directly via `page.context().addCookies()`
+- [ ] Create `e2e/helpers/mock-api.ts` — intercepts Supabase REST calls with `page.route()`
+- [ ] Test: Authenticated user sees home feed with posts
+- [ ] Test: Create pet → view pet details
+- [ ] Test: Navigate to /pets when unauthenticated → redirected to /
 
-`next-pwa` is unmaintained. Research alternatives.
+### 8.3 PWA Support (Serwist)
 
-- [ ] Evaluate `serwist` first (more actively maintained, no framework peer dep constraint)
-- [ ] Also evaluate `@ducanh2912/next-pwa` (peer dep `next >= 14.0.0`, compatible with 16.2.2)
-- [ ] **Note:** Both use webpack config wrapping — incompatible with Turbopack dev server. POC testing must use `next build && next start`, not `next dev`
-- [ ] Requirements: offline fallback page, app install prompt, push notifications (future)
-- [ ] Create proof of concept with `manifest.json` and basic service worker
-- [ ] Test on mobile (iOS Safari, Android Chrome)
+**Decision: Use `@serwist/next`** — more actively maintained than `@ducanh2912/next-pwa`, no framework peer dep constraint, documented Next.js integration.
 
-**Note:** PWA is investigation-only in this PRP. If the approach works, a follow-up PRP will cover full implementation.
+**Turbopack caveat:** Both PWA solutions wrap webpack config. Service worker generation only works during `next build`, not `next dev` (Turbopack). Local PWA testing requires `next build && next start`.
+
+- [ ] Install `@serwist/next` and `serwist`
+- [ ] Create `public/manifest.json` with app name, icons, theme color
+- [ ] Create `app/sw.ts` service worker with offline fallback
+- [ ] Update `next.config.ts` to wrap with `withSerwist()`
+- [ ] Create `app/offline/page.tsx` — simple offline fallback page
+- [ ] Test locally: `npm run build && npx next start` → check DevTools → Application → Service Workers
+- [ ] Test on mobile: add to home screen prompt, offline fallback page works
+
+**Note:** This task produces a working PWA. Push notifications are deferred to a future PRP.
 
 ## Verification
 
@@ -129,9 +153,9 @@ npx playwright test  # after 8.2
 npm run build
 ```
 
-## Confidence Score: 7/10
+## Confidence Score: 9/10
 
-**Remaining 3:** Hospital migration is straightforward with corrected schema. Playwright E2E needs test environment decision for authenticated flows. PWA is investigation-only — outcome uncertain.
+**Remaining 1:** PWA with Serwist + Next.js 16 Turbopack is untested in this specific combination — the POC step will confirm compatibility. All other tasks have complete SQL, types, and code templates.
 
 ---
 
@@ -140,4 +164,5 @@ npm run build
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-05 | Initial PRP — 3 tasks: hospital DB, E2E tests, PWA investigation |
-| v1.1 | 2026-04-05 | Validation fixes: correct file name (hospitals.json not .ts), add certified + specialists + open_hours to SQL schema, target hospital-map.tsx not page.tsx, add Hospital type to lib/types.ts, add loading/error states, fix RLS to use auth.uid(), add E2E test environment strategy, add Turbopack/webpack PWA note, recommend serwist first |
+| v1.1 | 2026-04-05 | Validation fixes: correct file name, add missing schema fields, target hospital-map.tsx, add Hospital type, fix RLS |
+| v1.2 | 2026-04-05 | Confidence boost: complete seed SQL from actual data, commit to Option C (page.route) for E2E, commit to Serwist for PWA, add Hospital interface template, split E2E into unauthenticated + authenticated phases |
