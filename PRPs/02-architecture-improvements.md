@@ -4,34 +4,46 @@
 
 ## Prerequisites
 
-- **PRP-01 must be complete** — specifically task 1.2 (middleware + `@supabase/ssr` + `lib/supabase-server.ts`). Server Components and API routes need the server-side Supabase client.
+- **PRP-01 is complete.** Specifically:
+  - `lib/supabase-server.ts` exists (server-side Supabase client factory)
+  - `middleware.ts` exists (session refresh only — no redirects, client uses localStorage)
+  - RLS is enabled on all tables
+  - `@supabase/ssr` is installed
+- **Key PRP-01 lesson:** The client-side Supabase SDK uses **localStorage** for auth, not cookies. The server client (`lib/supabase-server.ts`) uses cookies but they won't have auth data until we migrate the client auth. **Phase B Server Components cannot rely on server-side auth** — they must pass data without user context, or be deferred until client auth migrates to cookies.
 
 ## Problem
 
 The entire app is client-rendered with zero Server Components, no input validation, a race-condition-prone likes system, and no data caching. This wastes Next.js 16's capabilities and creates performance and reliability issues.
 
-## Architecture Decision: Server Components + Selective Client Caching
+## Architecture Decision: Incremental Improvement, Not Full Rewrite
 
-**Pattern chosen:** Server Components for initial page loads, client-side fetching only for interactive mutations.
+**Lesson from PRP-01:** Removing `ProtectedRoute` caused 4 unplanned hotfixes. This PRP takes an incremental approach — each phase ships independently without breaking existing features.
 
-- **Server Components** → initial data fetching for pages (feed, pets, notifications)
-- **Client Components** → interactive elements (likes, forms, maps, modals)
-- **No TanStack Query for now** — Next.js router cache handles navigation caching. TanStack Query adds complexity without clear benefit until we need polling or optimistic updates beyond likes. Revisit in a future PRP if needed.
-- **API Route Handlers** → mutations only (POST/PUT/DELETE). No GET routes — reads go through Server Components.
+- **Phase A (standalone):** Zod validation + likes fix — zero risk to existing features
+- **Phase B (deferred):** Server Components — blocked until client auth migrates to cookies. Attempting SC now would mean Server Components can't access user data, making them useless for user-specific pages.
+- **Phase C (depends on Phase A):** API routes for mutations — improves security by moving sensitive operations server-side
 
-## Scope Split
+**Phase B is descoped from this PRP.** It requires a prerequisite (client auth migration to cookies) that warrants its own PRP. This PRP focuses on Phase A and Phase C only.
 
-This PRP is divided into 3 independent phases that can be executed sequentially. Each phase is self-contained and shippable.
+## Scope
 
-**Phase A (standalone):** Zod validation + likes fix
-**Phase B (depends on PRP-01):** Server Components + providers refactor
-**Phase C (depends on Phase B):** API routes for mutations
+**In scope:**
+- `lib/validations.ts` — Zod schemas for all forms
+- `app/page.tsx` — likes system rewrite
+- `lib/db.ts` — toggleLike + getUserLikes functions
+- `app/api/` — mutation-only API routes
+- 8 form components — client-side validation
+
+**Out of scope (deferred):**
+- Server Components (requires cookie-based client auth)
+- `providers.tsx` extraction (only needed for Server Components)
+- TanStack Query (revisit when there's a real need)
 
 ---
 
 ## Phase A: Input Validation + Likes Fix
 
-**No dependencies on PRP-01.** Can be executed immediately.
+**No dependencies.** Can be executed immediately.
 
 ### A.1 Add Input Validation with Zod
 
@@ -50,7 +62,7 @@ export const petSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   species: z.string().nullable(),
   breed: z.string().nullable(),
-  sex: z.enum(["male", "female", "unknown"]).nullable(),
+  sex: z.enum(["Male", "Female"]).nullable(),  // Capitalized — matches create-pet-form.tsx
   color: z.string().max(50).nullable(),
   weight_kg: z.number().min(0).max(500).nullable(),
   date_of_birth: z.string().nullable(),
@@ -89,19 +101,21 @@ export const parasiteLogSchema = z.object({
   next_due_date: z.string(),
 });
 
-// File upload validation
+// File upload validation — includes image/jpg for browser compatibility
 export const imageFileSchema = z.object({
   size: z.number().max(5 * 1024 * 1024, "Image must be under 5MB"),
-  type: z.enum(["image/jpeg", "image/png", "image/webp"], {
-    errorMap: () => ({ message: "Only JPEG, PNG, and WebP images allowed" }),
-  }),
+  type: z.string().refine(
+    (t) => ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(t),
+    { message: "Only JPEG, PNG, and WebP images allowed" }
+  ),
 });
 
 export const videoFileSchema = z.object({
   size: z.number().max(50 * 1024 * 1024, "Video must be under 50MB"),
-  type: z.enum(["video/mp4", "video/quicktime"], {
-    errorMap: () => ({ message: "Only MP4 and MOV videos allowed" }),
-  }),
+  type: z.string().refine(
+    (t) => ["video/mp4", "video/quicktime"].includes(t),
+    { message: "Only MP4 and MOV videos allowed" }
+  ),
 });
 ```
 
@@ -129,8 +143,8 @@ export const videoFileSchema = z.object({
 The current `handleLike` at `app/page.tsx:44-53` does a naive `likes_count + 1` update. Race conditions lose counts, and users can like infinitely.
 
 - [ ] Run the SQL migration below via Supabase Dashboard SQL editor
-- [ ] Update `app/page.tsx` to use the new `toggle_like` function
 - [ ] Update `lib/db.ts` to add `toggleLike()` and `getUserLikes()` functions
+- [ ] Refactor `app/page.tsx` to use toggle likes with `likedPosts` state
 - [ ] Keep `likes_count` as a denormalized cache (updated by the DB function)
 
 **SQL Migration — Likes System:**
@@ -139,7 +153,6 @@ The current `handleLike` at `app/page.tsx:44-53` does a naive `likes_count + 1` 
 -- A.2: Create post_likes table and atomic toggle function
 -- Run via Supabase Dashboard > SQL Editor
 
--- Junction table for likes
 CREATE TABLE IF NOT EXISTS post_likes (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -148,7 +161,6 @@ CREATE TABLE IF NOT EXISTS post_likes (
   UNIQUE(user_id, post_id)
 );
 
--- RLS for post_likes
 ALTER TABLE post_likes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view all likes"
@@ -163,12 +175,10 @@ CREATE POLICY "Users can delete own likes"
   ON post_likes FOR DELETE
   USING (auth.uid() = user_id);
 
--- Index for fast lookups
 CREATE INDEX idx_post_likes_post_id ON post_likes(post_id);
 CREATE INDEX idx_post_likes_user_id ON post_likes(user_id);
 
--- Atomic toggle function: like if not liked, unlike if already liked
--- Returns the new likes_count
+-- Atomic toggle function with auth.uid() check to prevent spoofing
 CREATE OR REPLACE FUNCTION toggle_like(p_post_id uuid, p_user_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -178,30 +188,27 @@ DECLARE
   v_exists boolean;
   v_count integer;
 BEGIN
-  -- Check if like exists
+  -- Verify caller matches the user_id parameter
+  IF p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'unauthorized: user_id mismatch';
+  END IF;
+
   SELECT EXISTS(
     SELECT 1 FROM post_likes WHERE post_id = p_post_id AND user_id = p_user_id
   ) INTO v_exists;
 
   IF v_exists THEN
-    -- Unlike
     DELETE FROM post_likes WHERE post_id = p_post_id AND user_id = p_user_id;
   ELSE
-    -- Like
     INSERT INTO post_likes (post_id, user_id) VALUES (p_post_id, p_user_id);
   END IF;
 
-  -- Update denormalized count
   SELECT COUNT(*) INTO v_count FROM post_likes WHERE post_id = p_post_id;
   UPDATE posts SET likes_count = v_count WHERE id = p_post_id;
 
   RETURN v_count;
 END;
 $$;
-
--- Migrate existing likes_count data (best effort — no user attribution possible)
--- Existing likes_count values are kept as-is. New likes will be tracked properly.
--- Over time, the denormalized count will self-correct as users interact.
 ```
 
 **Updated `lib/db.ts` functions:**
@@ -227,16 +234,30 @@ export async function getUserLikes(userId: string, postIds: string[]) {
 }
 ```
 
-**Updated `app/page.tsx` handleLike:**
+**Refactored `app/page.tsx` — key changes to `FeedContent`:**
+
+The home page now has an auth gate (`HomePage` shows `AuthForm` if not signed in — added in PRP-01). `FeedContent` only renders when authenticated.
 
 ```typescript
+// Add to FeedContent state:
+const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+
+// Add to fetchPosts (after setPosts):
+// Fetch user's liked posts
+if (user && data && data.length > 0) {
+  getUserLikes(user.id, data.map((p: FeedPost) => p.id)).then(({ data: liked }) => {
+    setLikedPosts(new Set(liked));
+  });
+}
+
+// Replace handleLike:
 const handleLike = async (postId: string) => {
   if (!user) return;
-  // Optimistic toggle
   const isLiked = likedPosts.has(postId);
   const post = posts.find((p) => p.id === postId);
   if (!post) return;
 
+  // Optimistic toggle
   setLikedPosts((prev) => {
     const next = new Set(prev);
     isLiked ? next.delete(postId) : next.add(postId);
@@ -265,162 +286,75 @@ const handleLike = async (postId: string) => {
     ));
   }
 };
+
+// Update Heart button to show filled state:
+<Heart className={`w-6 h-6 ${likedPosts.has(post.id) ? "fill-destructive text-destructive" : ""}`} />
 ```
 
 **Files to modify:**
 - `lib/db.ts` — add `toggleLike()`, `getUserLikes()`
-- `app/page.tsx` �� refactor `handleLike`, add `likedPosts` state, fetch user likes on mount
+- `app/page.tsx` — refactor `handleLike`, add `likedPosts` state, fetch user likes on mount, update Heart icon
 - Supabase SQL Editor — run likes migration
-
----
-
-## Phase B: Server Components + Providers Refactor
-
-**Depends on:** PRP-01 complete (task 1.2: `@supabase/ssr` + `lib/supabase-server.ts`)
-
-### B.1 Extract Client Providers Wrapper
-
-The root `layout.tsx` currently wraps children in `ToastProvider > AuthProvider > LocationProvider`. These are all Client Components, which forces the entire tree client-side. Extract them into a dedicated wrapper so `layout.tsx` stays a Server Component (preserving `metadata` and `viewport` exports).
-
-- [ ] Create `components/providers.tsx` as a `"use client"` wrapper
-- [ ] Update `app/layout.tsx` to import and use the wrapper
-- [ ] Verify `metadata` export still works (it won't if layout becomes a Client Component)
-
-**`components/providers.tsx`:**
-
-```typescript
-"use client";
-
-import { AuthProvider } from "@/components/auth-provider";
-import { LocationProvider } from "@/components/location-provider";
-import { ToastProvider } from "@/components/ui/toast";
-
-export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <ToastProvider>
-      <AuthProvider>
-        <LocationProvider>{children}</LocationProvider>
-      </AuthProvider>
-    </ToastProvider>
-  );
-}
-```
-
-**Updated `app/layout.tsx`:**
-
-```typescript
-import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
-import { Providers } from "@/components/providers";
-import "./globals.css";
-
-// ... font, metadata, viewport unchanged ...
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body className={`${nunito.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
-}
-```
-
-**Files to create:**
-- `components/providers.tsx`
-
-**Files to modify:**
-- `app/layout.tsx`
-
----
-
-### B.2 Convert Suitable Pages to Server Components
-
-Only pages where the Server Component wrapper adds real value (server-side data fetch, reduced client JS). **NOT candidates:** hospital (Leaflet needs browser), pets (753-line monolith — decomposition is PRP-03).
-
-**Candidate pages and their decomposition:**
-
-#### `app/page.tsx` (Feed)
-
-Server Component fetches initial posts, passes to Client Component for interactivity.
-
-```
-app/page.tsx (Server Component)
-  └── fetches posts via server Supabase client
-  └── renders <FeedContent posts={initialPosts} />
-
-components/feed-content.tsx (Client Component — new)
-  └── handles likes, create post, auth context
-  └── uses initialPosts as starting state
-```
-
-#### `app/notifications/page.tsx` (Notifications)
-
-Server Component fetches alerts, passes to Client Component for distance calculation (needs browser geolocation).
-
-```
-app/notifications/page.tsx (Server Component)
-  └── fetches active alerts + recently found via server client
-  └── renders <NotificationsContent initialAlerts={...} initialFound={...} />
-
-components/notifications-content.tsx (Client Component — new)
-  └── handles geolocation, distance calc, UI
-  └── uses initialAlerts as starting state
-```
-
-#### Pages that stay fully Client Components:
-- `app/pets/page.tsx` — too complex, defer to PRP-03 decomposition
-- `app/hospital/page.tsx` — Leaflet requires browser, already minimal
-- `app/sos/page.tsx` — form-heavy, auth-dependent, no server fetch benefit
-- `app/profile/page.tsx` — entirely user-specific interactive content
-- `app/feedback/page.tsx` — simple form, no initial data to fetch
-
-- [ ] Refactor `app/page.tsx` → Server Component + `components/feed-content.tsx` Client Component
-- [ ] Refactor `app/notifications/page.tsx` → Server Component + `components/notifications-content.tsx` Client Component
-- [ ] Create server-side data fetching functions in `lib/db-server.ts` using the server Supabase client from PRP-01
-- [ ] Verify HTML source includes rendered content (not empty shell)
-
-**Files to create:**
-- `components/feed-content.tsx` (extracted from `app/page.tsx`)
-- `components/notifications-content.tsx` (extracted from `app/notifications/page.tsx`)
-- `lib/db-server.ts` (server-side fetch functions using `createServerClient`)
-
-**Files to modify:**
-- `app/page.tsx` (convert to Server Component)
-- `app/notifications/page.tsx` (convert to Server Component)
 
 ---
 
 ## Phase C: API Routes for Mutations
 
-**Depends on:** Phase B complete (server client available), Phase A complete (Zod schemas available)
+**Depends on:** Phase A complete (Zod schemas available), PRP-01 complete (`lib/supabase-server.ts` exists)
+
+**Note on server auth:** The server Supabase client uses cookies. Currently the client SDK uses localStorage, so the server client won't have the user's session for most requests. API routes will need to accept the auth token from the client or use an alternative auth approach. For now, API routes validate auth by checking the `Authorization` header forwarded by the client.
 
 ### C.1 Create Mutation-Only API Routes
 
-API routes handle POST/PUT/DELETE only. They use the server Supabase client, enforce auth, and validate input with Zod schemas from Phase A.
+API routes handle POST/PUT/DELETE only. They validate input with Zod and call Supabase.
 
-- [ ] Create `app/api/posts/like/route.ts` — toggle like (calls `toggle_like` RPC)
+- [ ] Create `app/api/posts/like/route.ts` — toggle like
 - [ ] Create `app/api/posts/route.ts` — POST create post with image upload
 - [ ] Create `app/api/sos/route.ts` — POST create alert, PUT resolve alert
 - [ ] Create `app/api/pets/route.ts` — POST create, PUT update, DELETE
 - [ ] Create `app/api/feedback/route.ts` — POST submit feedback
-- [ ] Each route: verify auth session, validate with Zod, call Supabase, return JSON
+- [ ] Each route: validate with Zod, call Supabase, return JSON
 - [ ] Update client components to call API routes instead of direct Supabase for mutations
 
-**Example API route pattern:**
+**API route auth pattern:**
+
+Since the client uses localStorage auth (not cookies), API routes receive the Supabase JWT via the request. The server client created from cookies won't have the session. Instead, create a per-request client with the token:
+
+```typescript
+// lib/supabase-api.ts — for use in API Route Handlers
+import { createClient } from "@supabase/supabase-js";
+
+export function createApiClient(authHeader: string | null) {
+  const client = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: authHeader ? { Authorization: authHeader } : {},
+      },
+    }
+  );
+  return client;
+}
+```
+
+**Example API route:**
 
 ```typescript
 // app/api/posts/like/route.ts
-import { createServerClient } from "@/lib/supabase-server";
+import { createApiClient } from "@/lib/supabase-api";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createApiClient(authHeader);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   const { postId } = await request.json();
@@ -441,37 +375,59 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-**File uploads** use `request.formData()` (built into Next.js Route Handlers):
+**File uploads** use `request.formData()`:
 
 ```typescript
 // app/api/posts/route.ts (POST handler)
 export async function POST(request: NextRequest) {
-  const supabase = await createServerClient();
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = createApiClient(authHeader);
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const formData = await request.formData();
   const file = formData.get("image") as File;
   const caption = formData.get("caption") as string | null;
   const petId = formData.get("pet_id") as string | null;
 
-  // Validate with Zod
+  // Validate with Zod imageFileSchema + postSchema
   // Upload file to Supabase Storage
   // Insert post record
   // Return created post
 }
 ```
 
+**Client-side: forwarding auth token:**
+
+```typescript
+// Helper to call API routes with auth
+async function apiMutate(url: string, body: unknown) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session?.access_token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+```
+
 **Files to create:**
+- `lib/supabase-api.ts` — API route client factory
 - `app/api/posts/route.ts`
 - `app/api/posts/like/route.ts`
 - `app/api/sos/route.ts`
 - `app/api/pets/route.ts`
 - `app/api/feedback/route.ts`
 
-**Files to modify (switch from direct Supabase to fetch API routes):**
+**Files to modify (switch mutations from direct Supabase to API routes):**
 - `components/create-post-form.tsx`
-- `app/page.tsx` or `components/feed-content.tsx` (like handler)
+- `app/page.tsx` (like handler)
 - `app/sos/page.tsx`
 - `components/create-pet-form.tsx`
 - `components/edit-pet-form.tsx`
@@ -481,9 +437,8 @@ export async function POST(request: NextRequest) {
 
 ## Rollback Plan
 
-- **Phase A:** Revert `lib/validations.ts`, remove Zod from forms (forms work without validation). Drop `post_likes` table and restore naive `handleLike`.
-- **Phase B:** Restore `"use client"` on page files, move providers back to `layout.tsx`, delete extracted components.
-- **Phase C:** Delete API route files, restore direct Supabase calls in form components.
+- **Phase A:** Revert `lib/validations.ts`, remove Zod from forms. Drop `post_likes` table and restore naive `handleLike`.
+- **Phase C:** Delete API route files and `lib/supabase-api.ts`, restore direct Supabase calls in form components.
 
 ---
 
@@ -502,25 +457,10 @@ npx tsc --noEmit
 
 - [ ] Submit pet form with empty name → shows "Name is required" error
 - [ ] Upload 10MB image → shows "Image must be under 5MB" error
-- [ ] Like a post → heart fills, count increments
+- [ ] Like a post → heart fills red, count increments
 - [ ] Like same post again → heart unfills, count decrements
-- [ ] Two users like same post �� count is 2 (no race condition)
-
-### Phase B Checks
-
-```bash
-# View page source to verify server-rendered HTML
-curl -s http://localhost:3000 | grep -c "Community Feed"
-# Expected: 1 (content in HTML, not empty shell)
-
-# Verify layout metadata still exports
-curl -s http://localhost:3000 | grep "Pawrent | Pet OS Dashboard"
-# Expected: found in <title> tag
-```
-
-- [ ] Feed page loads with posts visible in HTML source
-- [ ] Notifications page loads with alerts in HTML source
-- [ ] All interactive features (likes, create post, navigation) still work
+- [ ] Two users like same post → count is 2 (no race condition)
+- [ ] Page refresh → liked posts show filled hearts (persisted)
 
 ### Phase C Checks
 
@@ -529,19 +469,28 @@ curl -s http://localhost:3000 | grep "Pawrent | Pet OS Dashboard"
 curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/posts/like \
   -H "Content-Type: application/json" -d '{"postId":"test"}'
 # Expected: 401
-
-# API route accepts authenticated requests (use browser devtools to grab cookie)
 ```
 
 - [ ] Creating a post goes through API route (check Network tab)
-- [ ] Direct Supabase calls removed from client components for mutations
+- [ ] Direct Supabase mutation calls removed from client components
 - [ ] All existing features work end-to-end
 
 ---
 
-## Confidence Score: 8/10
+## Confidence Score: 9/10
 
-**Remaining 2:** Phase B depends on PRP-01's server client implementation (not yet built). Phase C's exact API route structure may need adjustment based on how Phase B shapes the component tree.
+**Previous: 8.5/10 → Now: 9/10**
+
+Improvements:
+- Phase B descoped (blocked by auth mechanism mismatch discovered in PRP-01)
+- Sex field enum fixed to match actual form values (`"Male"`, `"Female"`)
+- `image/jpg` added to file validation
+- `auth.uid()` check added to `toggle_like` SQL
+- `likedPosts` initialization code added
+- API route auth pattern updated for localStorage-based client auth
+- Codebase drift from PRP-01 execution fully accounted for
+
+Remaining 1: Phase C's exact client-side auth forwarding pattern needs testing in practice.
 
 ---
 
@@ -550,4 +499,5 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/posts/l
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-04 | Initial PRP — 5 tasks, single scope |
-| v2.0 | 2026-04-04 | Major revision: split into 3 phases, resolved SC vs TanStack Query conflict, added SQL for likes, removed hospital from SC candidates, detailed feed/notifications decomposition, added Zod schemas, added verification commands, removed TanStack Query (deferred), enumerated all form files |
+| v2.0 | 2026-04-04 | Major revision: split into 3 phases, resolved SC vs TanStack Query conflict, added SQL/code |
+| v3.0 | 2026-04-05 | Post-PRP-01 refinement: descoped Phase B (auth mechanism mismatch), fixed sex enum casing, added image/jpg, added auth.uid() check to toggle_like, added likedPosts init code, updated API route auth pattern for localStorage client, accounted for codebase drift |

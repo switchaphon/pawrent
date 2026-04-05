@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { getPets } from "@/lib/db";
-import { supabase } from "@/lib/supabase";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,32 +61,15 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
     setLoading(true);
 
     try {
-      // Upload media to storage
-      const fileExt = mediaFile.name.split(".").pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from("pet-photos")
-        .upload(`posts/${fileName}`, mediaFile);
+      const formData = new FormData();
+      formData.append("image", mediaFile);
+      if (caption) formData.append("caption", caption);
+      if (selectedPetId) formData.append("pet_id", selectedPetId);
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("pet-photos")
-        .getPublicUrl(`posts/${fileName}`);
-
-      // Create post in database
-      const { error: insertError } = await supabase
-        .from("posts")
-        .insert({
-          owner_id: user.id,
-          pet_id: selectedPetId || null,
-          image_url: urlData.publicUrl,
-          caption: caption || null,
-          likes_count: 0,
-        });
-
-      if (insertError) throw insertError;
+      await apiFetch("/api/posts", {
+        method: "POST",
+        body: formData,
+      });
 
       onSuccess?.();
     } catch (error) {

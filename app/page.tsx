@@ -6,7 +6,8 @@ import { AuthForm } from "@/components/auth-form";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
-import { toggleLike, getUserLikes } from "@/lib/db";
+import { getUserLikes } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { Heart, Loader2, Plus } from "lucide-react";
 import { CreatePostForm } from "@/components/create-post-form";
 
@@ -55,6 +56,7 @@ function FeedContent() {
     const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
+    // Optimistic toggle
     setLikedPosts((prev) => {
       const next = new Set(prev);
       isLiked ? next.delete(postId) : next.add(postId);
@@ -66,8 +68,18 @@ function FeedContent() {
         : p
     ));
 
-    const { newCount, error } = await toggleLike(postId, user.id);
-    if (error) {
+    try {
+      const { likes_count: newCount } = await apiFetch("/api/posts/like", {
+        method: "POST",
+        body: JSON.stringify({ postId }),
+      });
+      if (newCount !== undefined) {
+        setPosts(posts.map((p) =>
+          p.id === postId ? { ...p, likes_count: newCount } : p
+        ));
+      }
+    } catch {
+      // Revert on error
       setLikedPosts((prev) => {
         const next = new Set(prev);
         isLiked ? next.add(postId) : next.delete(postId);
@@ -75,10 +87,6 @@ function FeedContent() {
       });
       setPosts(posts.map((p) =>
         p.id === postId ? { ...p, likes_count: post.likes_count } : p
-      ));
-    } else if (newCount !== null) {
-      setPosts(posts.map((p) =>
-        p.id === postId ? { ...p, likes_count: newCount } : p
       ));
     }
   };

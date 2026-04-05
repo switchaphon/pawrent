@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { updatePet, uploadPetPhoto } from "@/lib/db";
+import { uploadPetPhoto } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,19 +109,24 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
         }
       }
 
-      // Update pet
-      const { error: updateError } = await updatePet(pet.id, {
-        name: formData.name,
-        species: formData.species || null,
-        breed: formData.breed || null,
-        sex: formData.sex || null,
-        color: formData.color || null,
-        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-        date_of_birth: formData.date_of_birth || null,
-        microchip_number: formData.microchip_number || null,
-        special_notes: formData.special_notes || null,
-        photo_url: newPhotoUrl,
+      // Update pet via API
+      await apiFetch("/api/pets", {
+        method: "PUT",
+        body: JSON.stringify({
+          petId: pet.id,
+          name: formData.name,
+          species: formData.species || null,
+          breed: formData.breed || null,
+          sex: formData.sex || null,
+          color: formData.color || null,
+          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+          date_of_birth: formData.date_of_birth || null,
+          microchip_number: formData.microchip_number || null,
+          special_notes: formData.special_notes || null,
+          photo_url: newPhotoUrl,
+        }),
       });
+      const updateError = null;
 
       if (updateError) {
         console.error("Update error:", updateError);

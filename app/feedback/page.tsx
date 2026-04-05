@@ -6,7 +6,8 @@ import { useAuth } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { submitFeedback, uploadFeedbackImage } from "@/lib/db";
+import { uploadFeedbackImage } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { feedbackSchema, imageFileSchema } from "@/lib/validations";
 import { MessageSquare, X, ImagePlus, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 
@@ -54,22 +55,25 @@ function FeedbackContent() {
         }
       }
       
-      // Submit feedback
-      const { error } = await submitFeedback({
-        user_id: userId,
-        message: feedbackText,
-        image_url: imageUrl,
-      });
-      
-      if (error) {
-        console.error("Feedback error:", error);
-        alert(`Failed to submit feedback: ${error.message || "Unknown error"}`);
-      } else {
-        setSuccess(true);
-        setFeedbackText("");
-        setFeedbackImage(null);
-        setFeedbackImagePreview(null);
+      // Submit feedback via API route
+      try {
+        await apiFetch("/api/feedback", {
+          method: "POST",
+          body: JSON.stringify({
+            message: feedbackText,
+            image_url: imageUrl,
+          }),
+        });
+      } catch (apiError: unknown) {
+        const msg = apiError instanceof Error ? apiError.message : "Unknown error";
+        console.error("Feedback error:", apiError);
+        alert(`Failed to submit feedback: ${msg}`);
+        return;
       }
+      setSuccess(true);
+      setFeedbackText("");
+      setFeedbackImage(null);
+      setFeedbackImagePreview(null);
     } catch (err) {
       console.error("Unexpected error:", err);
       alert("An unexpected error occurred.");

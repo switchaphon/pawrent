@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { createPet, uploadPetPhoto } from "@/lib/db";
+import { uploadPetPhoto } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,32 +95,21 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
     setLoading(true);
 
     try {
-      // Ensure profile exists first (required for foreign key)
-      const { upsertProfile } = await import("@/lib/db");
-      await upsertProfile({
-        id: user.id,
-        email: user.email || null,
+      // Create pet via API route (handles profile upsert server-side)
+      const pet = await apiFetch("/api/pets", {
+        method: "POST",
+        body: JSON.stringify({
+          name: formData.name,
+          species: formData.species || null,
+          breed: formData.breed || null,
+          sex: formData.sex || null,
+          color: formData.color || null,
+          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+          date_of_birth: formData.date_of_birth || null,
+          microchip_number: formData.microchip_number || null,
+          special_notes: formData.special_notes || null,
+        }),
       });
-
-      // Create pet
-      const { data: pet, error: petError } = await createPet({
-        owner_id: user.id,
-        name: formData.name,
-        species: formData.species || null,
-        breed: formData.breed || null,
-        sex: formData.sex || null,
-        color: formData.color || null,
-        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-        date_of_birth: formData.date_of_birth || null,
-        microchip_number: formData.microchip_number || null,
-        special_notes: formData.special_notes || null,
-        photo_url: null,
-      });
-
-      if (petError) {
-        console.error("Supabase error:", petError.message, petError.details, petError.hint);
-        throw petError;
-      }
 
       // Upload photo if exists
       if (photoFile && pet) {
@@ -131,15 +121,11 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
         } else if (url) {
           console.log("✅ Photo uploaded, URL:", url);
           
-          // Update pet with photo URL
-          const { updatePet } = await import("@/lib/db");
-          const { data: updated, error: updateError } = await updatePet(pet.id, { photo_url: url });
-          
-          if (updateError) {
-            console.error("❌ Failed to update pet with photo URL:", updateError);
-          } else {
-            console.log("✅ Pet updated with photo URL:", updated);
-          }
+          // Update pet with photo URL via API
+          await apiFetch("/api/pets", {
+            method: "PUT",
+            body: JSON.stringify({ petId: pet.id, photo_url: url }),
+          });
         }
       }
 

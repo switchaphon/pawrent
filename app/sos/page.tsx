@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getPets, createSOSAlert, uploadSOSVideo } from "@/lib/db";
+import { getPets, uploadSOSVideo } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import type { Pet } from "@/lib/types";
 import { sosAlertSchema, videoFileSchema } from "@/lib/validations";
 import { AlertTriangle, MapPin, Video, Send, Loader2, CheckCircle } from "lucide-react";
@@ -85,17 +86,16 @@ function SOSFormContent() {
     setLoading(true);
 
     try {
-      // Create SOS alert (pet photo is attached via pet_id relationship)
-      const { data: alert, error } = await createSOSAlert({
-        pet_id: selectedPetId,
-        owner_id: user.id,
-        lat: location.lat,
-        lng: location.lng,
-        description: description || null,
-        video_url: null,
+      // Create SOS alert via API route
+      const alert = await apiFetch("/api/sos", {
+        method: "POST",
+        body: JSON.stringify({
+          pet_id: selectedPetId,
+          lat: location.lat,
+          lng: location.lng,
+          description: description || null,
+        }),
       });
-
-      if (error) throw error;
 
       // Upload video if exists
       if (videoFile && alert) {
