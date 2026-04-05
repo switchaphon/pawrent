@@ -1,91 +1,82 @@
-# PRP-04: Nice-to-Have Improvements
+# PRP-04: Nice-to-Have — Quick Cleanup
 
 ## Priority: LOW
 
+## Prerequisites
+
+- PRPs 01-03 complete
+
 ## Problem
 
-Several non-critical issues reduce polish: hardcoded hospital data, dead code, unused dark mode CSS, zero test coverage, and no offline support.
+A dead route, external CDN dependency for map icons, and zero test infrastructure reduce code hygiene and confidence.
 
-## Scope
+## Scope — 3 Quick Tasks Only
 
-- `data/hospitals.json` — static data
-- `app/feed/page.tsx` — dead route
-- `app/globals.css` — unused `.dark` selectors
-- Test infrastructure
-- PWA support
+**In scope:**
+- Delete dead `app/feed/page.tsx` (mock data, no links point to it)
+- Bundle Leaflet icons locally (remove unpkg.com CDN dependency)
+- Install Vitest + 1 smoke test (prove test tooling works)
+
+**Deferred to future PRPs:**
+- Hospital DB migration (high-risk, needs own PRP)
+- Full test suite (massive effort, needs own PRP)
+- PWA support (needs research, `next-pwa` unmaintained)
+- Lazy LocationProvider (minimal benefit, complex refactor)
+- Dark mode CSS removal (keep it — zero cost, preserves optionality)
+
+## Task Ordering
+
+**4.1 (delete dead route) → 4.2 (bundle Leaflet icons) → 4.3 (Vitest setup)**
+
+---
 
 ## Tasks
 
-### 4.1 Migrate Hospital Data to Database
+### 4.1 Remove Dead Feed Route
 
-- [ ] Create `hospitals` table in Supabase with fields from `hospitals.json`
-- [ ] Seed table with existing 4 Bangkok hospitals
-- [ ] Update `lib/db.ts` to fetch from database instead of JSON import
-- [ ] Remove `data/hospitals.json`
-- [ ] Add admin capability to manage hospitals (future consideration)
+`app/feed/page.tsx` contains hardcoded mock data and is unreachable — the bottom nav links to `/` (the real feed), not `/feed`. No other files link to `/feed`.
 
-**Files to modify:**
-- `lib/db.ts`
-- `app/hospital/page.tsx`
-- `components/hospital-map.tsx`
+- [ ] Delete `app/feed/page.tsx`
+- [ ] Verify no broken links
 
-**Files to delete:**
-- `data/hospitals.json`
+**Verification:**
+```bash
+grep -r '"/feed"' app/ components/ --include="*.tsx"
+# Expected: only /feedback references, no /feed
+```
 
-### 4.2 Remove Dead Code
+---
 
-- [ ] Remove or repurpose `app/feed/page.tsx` (hardcoded mock data, unreachable)
-- [ ] Remove unused `.dark` CSS selectors from `app/globals.css` if dark mode is not planned
-- [ ] Audit for unused imports and components
-- [ ] Make `LocationProvider` lazy — only activate on pages that need it (hospital, sos, notifications)
+### 4.2 Bundle Leaflet Icons Locally
 
-**Files to modify:**
-- `app/feed/page.tsx` (remove or redirect)
-- `app/globals.css`
-- `app/layout.tsx` (lazy location provider)
-- `components/location-provider.tsx`
+`components/hospital-map.tsx` loads marker icons from `unpkg.com` at runtime (lines 14-15). If unpkg is down, the map shows broken icons.
 
-### 4.3 Add Test Infrastructure
+- [ ] Download the 3 icon files to `public/leaflet/`
+- [ ] Update `hospital-map.tsx` to use local paths
 
-- [ ] Install Vitest + React Testing Library
-- [ ] Configure test setup with Supabase mocks
-- [ ] Write unit tests for:
-  - `lib/db.ts` functions
-  - Validation schemas (from PRP-02)
-  - Auth provider state transitions
-- [ ] Write component tests for:
-  - `auth-form.tsx` — login/signup flows
-  - `create-pet-form.tsx` — form validation
-  - `pet-profile-card.tsx` — rendering
-- [ ] Write integration tests for:
-  - Full auth flow (signup -> login -> protected route)
-  - Pet CRUD lifecycle
-  - SOS alert creation and resolution
+**Current code (hospital-map.tsx:13-16):**
+```typescript
+const defaultIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+```
 
-**Files to create:**
-- `vitest.config.ts`
-- `__tests__/` directory with test files
+**After:**
+```typescript
+const defaultIcon = L.icon({
+  iconUrl: "/leaflet/marker-icon.png",
+  shadowUrl: "/leaflet/marker-shadow.png",
+```
 
-**Files to modify:**
-- `package.json` (add test dependencies and scripts)
+**Download commands:**
+```bash
+mkdir -p public/leaflet
+curl -o public/leaflet/marker-icon.png "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
+curl -o public/leaflet/marker-icon-2x.png "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png"
+curl -o public/leaflet/marker-shadow.png "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
+```
 
-### 4.4 Add PWA Support
-
-- [ ] Create `public/manifest.json` with app metadata
-- [ ] Add service worker for offline caching of static assets
-- [ ] Cache pet data locally for offline viewing
-- [ ] Add install prompt for mobile users
-- [ ] Configure `next.config.ts` for PWA headers
-
-**Files to create:**
-- `public/manifest.json`
-- `public/sw.js` or use `next-pwa` package
-
-### 4.5 Bundle Leaflet Icons Locally
-
-- [ ] Download Leaflet marker icons to `public/leaflet/`
-- [ ] Update `hospital-map.tsx` icon config to use local paths
-- [ ] Remove runtime dependency on `unpkg.com` CDN
+Note: Download from `leaflet@1.9.4` (matching the installed version), not `1.7.1` (the outdated URL in the code).
 
 **Files to modify:**
 - `components/hospital-map.tsx`
@@ -95,10 +86,128 @@ Several non-critical issues reduce polish: hardcoded hospital data, dead code, u
 - `public/leaflet/marker-icon-2x.png`
 - `public/leaflet/marker-shadow.png`
 
+---
+
+### 4.3 Install Vitest + 1 Smoke Test
+
+Set up test infrastructure and prove it works with a single test. Actual test writing is a future effort.
+
+- [ ] Install `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `jsdom`
+- [ ] Create `vitest.config.ts`
+- [ ] Create `__tests__/validations.test.ts` — test Zod schemas from `lib/validations.ts`
+- [ ] Add `"test"` script to `package.json`
+- [ ] Verify `npm test` passes
+
+**vitest.config.ts:**
+```typescript
+import { defineConfig } from "vitest/config";
+import path from "path";
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+    globals: true,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "."),
+    },
+  },
+});
+```
+
+**__tests__/validations.test.ts:**
+```typescript
+import { describe, it, expect } from "vitest";
+import { petSchema, imageFileSchema, feedbackSchema } from "@/lib/validations";
+
+describe("petSchema", () => {
+  it("rejects empty name", () => {
+    const result = petSchema.safeParse({ name: "", species: null, breed: null, sex: null, color: null, weight_kg: null, date_of_birth: null, microchip_number: null, special_notes: null });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid pet", () => {
+    const result = petSchema.safeParse({ name: "Luna", species: "Dog", breed: "Golden", sex: "Female", color: "Gold", weight_kg: 25, date_of_birth: "2020-01-01", microchip_number: null, special_notes: null });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("imageFileSchema", () => {
+  it("rejects files over 5MB", () => {
+    const result = imageFileSchema.safeParse({ size: 10 * 1024 * 1024, type: "image/jpeg" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects invalid type", () => {
+    const result = imageFileSchema.safeParse({ size: 1024, type: "application/pdf" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid image", () => {
+    const result = imageFileSchema.safeParse({ size: 1024, type: "image/png" });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("feedbackSchema", () => {
+  it("rejects empty message", () => {
+    const result = feedbackSchema.safeParse({ message: "" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts valid feedback", () => {
+    const result = feedbackSchema.safeParse({ message: "Great app!" });
+    expect(result.success).toBe(true);
+  });
+});
+```
+
+**Files to create:**
+- `vitest.config.ts`
+- `__tests__/validations.test.ts`
+
+**Files to modify:**
+- `package.json` — add test deps + script
+
+---
+
+## Rollback Plan
+
+- **4.1:** Restore `app/feed/page.tsx` from git
+- **4.2:** Revert `hospital-map.tsx` to CDN URLs, delete `public/leaflet/`
+- **4.3:** Remove vitest config, test files, and test deps from package.json
+
+---
+
 ## Verification
 
-- [ ] Hospital data loads from database, not JSON file
-- [ ] No dead routes or unused CSS in production build
-- [ ] `npm test` runs and passes all test suites
-- [ ] App installs as PWA on mobile device
-- [ ] Hospital map loads markers without external CDN dependency
+```bash
+# No broken /feed links
+grep -r '"/feed"' app/ components/ --include="*.tsx"
+# Expected: only /feedback
+
+# Leaflet icons load locally (no unpkg.com in source)
+grep "unpkg.com" components/hospital-map.tsx
+# Expected: no output
+
+# Tests pass
+npm test
+# Expected: all green
+
+# TypeScript clean
+npx tsc --noEmit
+```
+
+## Confidence Score: 9/10
+
+**Remaining 1:** Leaflet icon download depends on network availability during execution. If curl fails, use browser to download manually.
+
+---
+
+## Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| v1.0 | 2026-04-04 | Initial PRP — 5 tasks covering hospital migration, dead code, tests, PWA, Leaflet icons |
+| v2.0 | 2026-04-05 | Major revision: reduced to 3 quick tasks. Deferred hospital migration, full tests, PWA, lazy LocationProvider. Kept dark mode CSS. Added code templates, download commands, smoke test, verification commands |
