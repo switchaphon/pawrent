@@ -226,6 +226,24 @@ function toRad(deg: number): number {
   return deg * (Math.PI / 180);
 }
 
+// Like Operations
+export async function toggleLike(postId: string, userId: string) {
+  const { data, error } = await supabase.rpc("toggle_like", {
+    p_post_id: postId,
+    p_user_id: userId,
+  });
+  return { newCount: data as number | null, error };
+}
+
+export async function getUserLikes(userId: string, postIds: string[]) {
+  const { data, error } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .eq("user_id", userId)
+    .in("post_id", postIds);
+  return { data: data?.map((d) => d.post_id) || [], error };
+}
+
 // Vaccination Operations
 export async function createVaccination(vaccination: Omit<Vaccination, "id" | "created_at">) {
   const { data, error } = await supabase

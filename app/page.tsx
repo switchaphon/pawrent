@@ -6,6 +6,7 @@ import { AuthForm } from "@/components/auth-form";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { toggleLike, getUserLikes } from "@/lib/db";
 import { Heart, Loader2, Plus } from "lucide-react";
 import { CreatePostForm } from "@/components/create-post-form";
 
@@ -29,6 +30,7 @@ function FeedContent() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -39,18 +41,46 @@ function FeedContent() {
       .limit(20);
     setPosts(data || []);
     setLoading(false);
+
+    if (user && data && data.length > 0) {
+      getUserLikes(user.id, data.map((p: FeedPost) => p.id)).then(({ data: liked }) => {
+        setLikedPosts(new Set(liked));
+      });
+    }
   };
 
-  const handleLike = async (postId: string, currentLikes: number) => {
-    // Optimistic update
-    setPosts(posts.map(p => 
-      p.id === postId ? { ...p, likes_count: currentLikes + 1 } : p
+  const handleLike = async (postId: string) => {
+    if (!user) return;
+    const isLiked = likedPosts.has(postId);
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+
+    setLikedPosts((prev) => {
+      const next = new Set(prev);
+      isLiked ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+    setPosts(posts.map((p) =>
+      p.id === postId
+        ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) }
+        : p
     ));
 
-    await supabase
-      .from("posts")
-      .update({ likes_count: currentLikes + 1 })
-      .eq("id", postId);
+    const { newCount, error } = await toggleLike(postId, user.id);
+    if (error) {
+      setLikedPosts((prev) => {
+        const next = new Set(prev);
+        isLiked ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+      setPosts(posts.map((p) =>
+        p.id === postId ? { ...p, likes_count: post.likes_count } : p
+      ));
+    } else if (newCount !== null) {
+      setPosts(posts.map((p) =>
+        p.id === postId ? { ...p, likes_count: newCount } : p
+      ));
+    }
   };
 
   useEffect(() => {
@@ -133,10 +163,10 @@ function FeedContent() {
               {/* Post Actions */}
               <div className="p-4">
                 <button
-                  onClick={() => handleLike(post.id, post.likes_count)}
+                  onClick={() => handleLike(post.id)}
                   className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  <Heart className="w-6 h-6" />
+                  <Heart className={`w-6 h-6 ${likedPosts.has(post.id) ? "fill-destructive text-destructive" : ""}`} />
                   <span className="font-semibold">{post.likes_count}</span>
                 </button>
                 {post.caption && (
