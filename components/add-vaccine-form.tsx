@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/searchable-select";
 import { getVaccinesBySpecies, getVaccineInfo, type VaccineInfo } from "@/data/vaccines";
-import { createVaccination } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { vaccinationSchema } from "@/lib/validations";
 import { X, Loader2, Syringe, Calendar, Info } from "lucide-react";
 
@@ -87,19 +87,16 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
 
     setSaving(true);
     try {
-      const { error: saveError } = await createVaccination({
-        pet_id: petId,
-        name: selectedVaccine,
-        status,
-        last_date: injectionDate,
-        next_due_date: nextDueDate,
+      await apiFetch("/api/vaccinations", {
+        method: "POST",
+        body: JSON.stringify({
+          pet_id: petId,
+          name: selectedVaccine,
+          status,
+          last_date: injectionDate,
+          next_due_date: nextDueDate,
+        }),
       });
-
-      if (saveError) {
-        setError("Failed to save vaccination record");
-        console.error("Save error:", saveError);
-        return;
-      }
 
       onSuccess();
     } catch (err) {

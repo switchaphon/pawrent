@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/searchable-select";
 import { getParasitePreventionNames, getParasitePreventionInfo } from "@/data/parasite-prevention";
-import { createParasiteLog } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { parasiteLogSchema } from "@/lib/validations";
 import { X, Loader2, PillIcon, Calendar, Info, Plus, Minus } from "lucide-react";
 
@@ -76,18 +76,15 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
     setSaving(true);
     try {
       const nextDueDate = calculateNextDueDate();
-      const { error: saveError } = await createParasiteLog({
-        pet_id: petId,
-        medicine_name: selectedProduct,
-        administered_date: administeredDate,
-        next_due_date: nextDueDate,
+      await apiFetch("/api/parasite-logs", {
+        method: "POST",
+        body: JSON.stringify({
+          pet_id: petId,
+          medicine_name: selectedProduct,
+          administered_date: administeredDate,
+          next_due_date: nextDueDate,
+        }),
       });
-
-      if (saveError) {
-        setError("Failed to save parasite prevention log");
-        console.error("Save error:", saveError);
-        return;
-      }
 
       onSuccess();
     } catch (err) {

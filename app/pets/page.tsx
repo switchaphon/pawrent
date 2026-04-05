@@ -15,7 +15,7 @@ import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
 import { getCoreVaccineTypesBySpecies, matchesVaccineType, isOptionalVaccine } from "@/data/vaccines";
 import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
-import { getPets, getPetWithDetails, getActiveSOSAlertForPet, getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto } from "@/lib/db";
+import { getPets, getPetWithDetails, getActiveSOSAlertForPet, getPetPhotos, uploadPetGalleryImage } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
@@ -419,10 +419,17 @@ function PetsContent() {
                     document.getElementById('photo-upload-input')?.click();
                   }}
                   onDeletePhoto={async (photoId) => {
-                    const { error } = await deletePetPhoto(photoId);
-                    if (!error && selectedPet) {
-                      const { data } = await getPetPhotos(selectedPet.id);
-                      setPetPhotos(data || []);
+                    try {
+                      await apiFetch("/api/pet-photos", {
+                        method: "DELETE",
+                        body: JSON.stringify({ photoId }),
+                      });
+                      if (selectedPet) {
+                        const { data } = await getPetPhotos(selectedPet.id);
+                        setPetPhotos(data || []);
+                      }
+                    } catch (e) {
+                      console.error("Error deleting photo:", e);
                     }
                   }}
                 />
@@ -468,13 +475,15 @@ function PetsContent() {
                         
                         if (photoUrl) {
                           const currentCount = petPhotos.length;
-                          const { error: dbError } = await addPetPhoto(selectedPet.id, photoUrl, currentCount);
-                          
-                          if (dbError) {
-                            console.error("Database insert error:", dbError);
-                            return;
-                          }
-                          
+                          await apiFetch("/api/pet-photos", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              pet_id: selectedPet.id,
+                              photo_url: photoUrl,
+                              display_order: currentCount,
+                            }),
+                          });
+
                           const { data } = await getPetPhotos(selectedPet.id);
                           setPetPhotos(data || []);
                         }

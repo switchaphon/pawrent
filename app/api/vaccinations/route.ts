@@ -1,0 +1,41 @@
+import { createApiClient } from "@/lib/supabase-api";
+import { vaccinationSchema } from "@/lib/validations";
+import { NextRequest, NextResponse } from "next/server";
+
+async function getAuthUser(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader) return null;
+  const supabase = createApiClient(authHeader);
+  const { data: { user } } = await supabase.auth.getUser();
+  return user ? { user, supabase } : null;
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await getAuthUser(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await request.json();
+  const result = vaccinationSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
+  }
+
+  // Verify the pet belongs to the authenticated user
+  const { data: pet } = await auth.supabase
+    .from("pets")
+    .select("id")
+    .eq("id", result.data.pet_id)
+    .eq("owner_id", auth.user.id)
+    .maybeSingle();
+
+  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+
+  const { data, error } = await auth.supabase
+    .from("vaccinations")
+    .insert(result.data)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}

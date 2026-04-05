@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreatePetForm } from "@/components/create-pet-form";
 import { ImageCropper } from "@/components/image-cropper";
-import { getPets, submitFeedback, uploadFeedbackImage, getProfile, upsertProfile, uploadProfileAvatar } from "@/lib/db";
+import { getPets, uploadFeedbackImage, getProfile, uploadProfileAvatar } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Profile } from "@/lib/types";
 import { AuthForm } from "@/components/auth-form";
@@ -198,28 +199,25 @@ function ProfileContent() {
                       }
                     }
                     
-                    // Submit feedback
-                    const { error } = await submitFeedback({
-                      user_id: user.id,
-                      message: feedbackText,
-                      image_url: imageUrl,
+                    // Submit feedback via API route
+                    await apiFetch("/api/feedback", {
+                      method: "POST",
+                      body: JSON.stringify({
+                        message: feedbackText,
+                        image_url: imageUrl,
+                      }),
                     });
-                    
-                    if (error) {
-                      alert("Failed to submit feedback. Please try again.");
-                      console.error("Feedback error:", error);
-                    } else {
-                      // Show success state
-                      setFeedbackSuccess(true);
-                      setFeedbackText("");
-                      setFeedbackImage(null);
-                      setFeedbackImagePreview(null);
-                      // Auto close after 1.5 seconds
-                      setTimeout(() => {
-                        setShowFeedback(false);
-                        setFeedbackSuccess(false);
-                      }, 1500);
-                    }
+
+                    // Show success state
+                    setFeedbackSuccess(true);
+                    setFeedbackText("");
+                    setFeedbackImage(null);
+                    setFeedbackImagePreview(null);
+                    // Auto close after 1.5 seconds
+                    setTimeout(() => {
+                      setShowFeedback(false);
+                      setFeedbackSuccess(false);
+                    }, 1500);
                   } catch (err) {
                     console.error("Unexpected error:", err);
                     alert("An unexpected error occurred.");
@@ -440,11 +438,13 @@ function ProfileContent() {
                       }
                     }
                     
-                    // Update profile
-                    await upsertProfile({
-                      id: user.id,
-                      full_name: editName || null,
-                      avatar_url: avatarUrl,
+                    // Update profile via API route
+                    await apiFetch("/api/profile", {
+                      method: "PUT",
+                      body: JSON.stringify({
+                        full_name: editName || null,
+                        avatar_url: avatarUrl,
+                      }),
                     });
                     
                     // Refresh profile and close
