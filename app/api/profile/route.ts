@@ -1,6 +1,9 @@
 import { createApiClient } from "@/lib/supabase-api";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+const limiter = createRateLimiter(10, "1 m");
 
 const profileSchema = z.object({
   full_name: z.string().max(200).nullable().optional(),
@@ -18,6 +21,9 @@ async function getAuthUser(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const result = profileSchema.safeParse(body);

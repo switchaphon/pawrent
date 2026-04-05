@@ -1,6 +1,11 @@
 import { createApiClient } from "@/lib/supabase-api";
 import { petSchema } from "@/lib/validations";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+
+const postLimiter = createRateLimiter(10, "1 m");
+const putLimiter = createRateLimiter(20, "1 m");
+const deleteLimiter = createRateLimiter(10, "1 m");
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -13,6 +18,9 @@ async function getAuthUser(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(postLimiter, auth.user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const result = petSchema.safeParse(body);
@@ -39,6 +47,9 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(putLimiter, auth.user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const { petId, ...updates } = body;
@@ -67,6 +78,9 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(deleteLimiter, auth.user.id);
+  if (rateLimited) return rateLimited;
 
   const { petId } = await request.json();
   if (!petId) return NextResponse.json({ error: "petId required" }, { status: 400 });

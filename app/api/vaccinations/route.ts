@@ -1,6 +1,9 @@
 import { createApiClient } from "@/lib/supabase-api";
 import { vaccinationSchema } from "@/lib/validations";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+
+const limiter = createRateLimiter(20, "1 m");
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -13,6 +16,9 @@ async function getAuthUser(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const result = vaccinationSchema.safeParse(body);
