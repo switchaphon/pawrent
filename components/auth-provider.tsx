@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; needsEmailVerification?: boolean; emailAlreadyExists?: boolean }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; isUserNotFound?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -58,9 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    // Detect if the error is because the user doesn't exist
-    const isUserNotFound = error?.message?.includes("Invalid login credentials") ?? false;
-    return { error: error as Error | null, isUserNotFound };
+    return { error: error as Error | null };
   };
 
   const signOut = async () => {

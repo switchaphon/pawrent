@@ -39,21 +39,9 @@ export function AuthForm() {
     setLoading(true);
 
     if (isLogin) {
-      const { error, isUserNotFound } = await signIn(email, password);
-      
-      if (isUserNotFound) {
-        // Auto-redirect to signup flow with the email preserved
-        setIsLogin(false);
-        showToast(
-          "No account found with this email. Let's create one for you!",
-          "info"
-        );
-        setLoading(false);
-        return;
-      }
-      
+      const { error } = await signIn(email, password);
       if (error) {
-        showToast(error.message, "error");
+        showToast("Invalid email or password", "error");
       }
     } else {
       const { error, needsEmailVerification, emailAlreadyExists } = await signUp(email, password);

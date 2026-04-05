@@ -15,7 +15,8 @@ import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
 import { getCoreVaccineTypesBySpecies, matchesVaccineType, isOptionalVaccine } from "@/data/vaccines";
 import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
-import { getPets, getPetWithDetails, getActiveSOSAlertForPet, resolveSOSAlert, getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto } from "@/lib/db";
+import { getPets, getPetWithDetails, getActiveSOSAlertForPet, getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto } from "@/lib/db";
+import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
 import { ImageCropper } from "@/components/image-cropper";
@@ -34,7 +35,6 @@ import {
   Trash2,
   ShieldCheck,
 } from "lucide-react";
-import { deletePet } from "@/lib/db";
 
 function PetsContent() {
   const { user } = useAuth();
@@ -131,12 +131,10 @@ function PetsContent() {
     if (!selectedPet) return;
     setDeleting(true);
     try {
-      const { error } = await deletePet(selectedPet.id);
-      if (error) {
-        console.error("Delete error:", error);
-        alert("Failed to delete pet profile");
-        return;
-      }
+      await apiFetch("/api/pets", {
+        method: "DELETE",
+        body: JSON.stringify({ petId: selectedPet.id }),
+      });
       setShowDeleteConfirm(false);
       setSelectedPet(null);
       fetchPets();
@@ -149,11 +147,12 @@ function PetsContent() {
   };
 
   const handlePetFound = async (alertId: string) => {
-    console.log("handlePetFound called with alertId:", alertId);
     try {
-      const { data, error } = await resolveSOSAlert(alertId, "found");
-      console.log("resolveSOSAlert result:", { data, error });
-      if (!error && selectedPet) {
+      await apiFetch("/api/sos", {
+        method: "PUT",
+        body: JSON.stringify({ alertId, resolution: "found" }),
+      });
+      if (selectedPet) {
         await fetchPetDetails(selectedPet.id);
       }
     } catch (e) {
@@ -162,11 +161,12 @@ function PetsContent() {
   };
 
   const handleGiveUp = async (alertId: string) => {
-    console.log("handleGiveUp called with alertId:", alertId);
     try {
-      const { data, error } = await resolveSOSAlert(alertId, "given_up");
-      console.log("resolveSOSAlert result:", { data, error });
-      if (!error && selectedPet) {
+      await apiFetch("/api/sos", {
+        method: "PUT",
+        body: JSON.stringify({ alertId, resolution: "given_up" }),
+      });
+      if (selectedPet) {
         await fetchPetDetails(selectedPet.id);
       }
     } catch (e) {

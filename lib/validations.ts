@@ -10,6 +10,7 @@ export const petSchema = z.object({
   date_of_birth: z.string().nullable(),
   microchip_number: z.string().max(50).nullable(),
   special_notes: z.string().max(1000).nullable(),
+  photo_url: z.string().url().max(2048).nullable().optional(),
 });
 
 export const sosAlertSchema = z.object({
@@ -26,6 +27,14 @@ export const postSchema = z.object({
 
 export const feedbackSchema = z.object({
   message: z.string().min(1, "Message is required").max(5000),
+  image_url: z.string().url("Invalid image URL").max(2048).nullable().optional(),
+});
+
+export const resolveAlertSchema = z.object({
+  alertId: z.string().uuid("Invalid alert ID"),
+  resolution: z.enum(["found", "given_up"], {
+    message: "Resolution must be 'found' or 'given_up'",
+  }),
 });
 
 export const vaccinationSchema = z.object({
@@ -39,9 +48,16 @@ export const vaccinationSchema = z.object({
 export const parasiteLogSchema = z.object({
   pet_id: z.string().uuid(),
   medicine_name: z.string().max(200).nullable(),
-  administered_date: z.string(),
-  next_due_date: z.string(),
-});
+  administered_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  next_due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+}).refine(
+  (data) => data.next_due_date >= data.administered_date,
+  { message: "Next due date must be after administered date", path: ["next_due_date"] }
+);
 
 export const imageFileSchema = z.object({
   size: z.number().max(5 * 1024 * 1024, "Image must be under 5MB"),

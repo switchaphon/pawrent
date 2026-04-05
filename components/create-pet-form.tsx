@@ -113,13 +113,11 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
 
       // Upload photo if exists
       if (photoFile && pet) {
-        console.log("📸 Uploading photo for pet:", pet.id);
         const { url, error: uploadError } = await uploadPetPhoto(photoFile, pet.id);
-        
+
         if (uploadError) {
-          console.error("❌ Photo upload error:", uploadError);
+          console.error("Photo upload error:", uploadError);
         } else if (url) {
-          console.log("✅ Photo uploaded, URL:", url);
           
           // Update pet with photo URL via API
           await apiFetch("/api/pets", {

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.rpc("submit_anonymous_feedback", {
     p_message: result.data.message,
     p_user_id: userId,
-    p_image_url: body.image_url || null,
+    p_image_url: result.data.image_url ?? null,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

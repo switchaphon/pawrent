@@ -183,7 +183,6 @@ export async function getActiveSOSAlertForPet(petId: string) {
 
 // Resolve an SOS alert (pet found or give up)
 export async function resolveSOSAlert(alertId: string, resolution: "found" | "given_up") {
-  console.log("Resolving SOS alert:", alertId, "with resolution:", resolution);
   const { data, error } = await supabase
     .from("sos_alerts")
     .update({
@@ -197,8 +196,6 @@ export async function resolveSOSAlert(alertId: string, resolution: "found" | "gi
   
   if (error) {
     console.error("Error resolving SOS alert:", error);
-  } else {
-    console.log("SOS alert resolved successfully:", data);
   }
   
   return { data: data as SOSAlert | null, error };

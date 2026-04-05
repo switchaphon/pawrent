@@ -12,6 +12,7 @@ import { ImageCropper } from "@/components/image-cropper";
 import { getPets, submitFeedback, uploadFeedbackImage, getProfile, upsertProfile, uploadProfileAvatar } from "@/lib/db";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Profile } from "@/lib/types";
+import { AuthForm } from "@/components/auth-form";
 import { Bell, Shield, LogOut, Plus, PawPrint, Loader2, MessageSquare, X, ImagePlus, CheckCircle, Pencil, Camera } from "lucide-react";
 
 function ProfileContent() {
@@ -63,6 +64,8 @@ function ProfileContent() {
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
+
+  if (!user) return <AuthForm />;
 
   if (loading) {
     return (

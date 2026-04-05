@@ -53,9 +53,13 @@ export async function PUT(request: NextRequest) {
     .from("pets")
     .update(result.data)
     .eq("id", petId)
+    .eq("owner_id", auth.user.id)
     .select()
     .single();
 
+  if (error?.code === "PGRST116") {
+    return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
@@ -67,11 +71,15 @@ export async function DELETE(request: NextRequest) {
   const { petId } = await request.json();
   if (!petId) return NextResponse.json({ error: "petId required" }, { status: 400 });
 
-  const { error } = await auth.supabase
+  const { data, error } = await auth.supabase
     .from("pets")
     .delete()
-    .eq("id", petId);
+    .eq("id", petId)
+    .eq("owner_id", auth.user.id)
+    .select()
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
   return NextResponse.json({ success: true });
 }

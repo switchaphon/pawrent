@@ -126,13 +126,6 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
           photo_url: newPhotoUrl,
         }),
       });
-      const updateError = null;
-
-      if (updateError) {
-        console.error("Update error:", updateError);
-        alert("Failed to update pet profile");
-        return;
-      }
 
       onSuccess?.();
     } catch (error) {

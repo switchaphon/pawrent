@@ -1,5 +1,5 @@
 import { createApiClient } from "@/lib/supabase-api";
-import { sosAlertSchema } from "@/lib/validations";
+import { sosAlertSchema, resolveAlertSchema } from "@/lib/validations";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -39,9 +39,10 @@ export async function PUT(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
-  const { alertId, resolution } = await request.json();
-  if (!alertId || !resolution) {
-    return NextResponse.json({ error: "alertId and resolution required" }, { status: 400 });
+  const body = await request.json();
+  const result = resolveAlertSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -49,12 +50,14 @@ export async function PUT(request: NextRequest) {
     .update({
       is_active: false,
       resolved_at: new Date().toISOString(),
-      resolution_status: resolution,
+      resolution_status: result.data.resolution,
     })
-    .eq("id", alertId)
+    .eq("id", result.data.alertId)
+    .eq("owner_id", user.id)
     .select()
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Alert not found" }, { status: 404 });
   return NextResponse.json(data);
 }
