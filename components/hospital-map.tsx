@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Phone, Clock, Navigation, Cross, BadgeCheck, Stethoscope } from "lucide-react";
-import hospitalsData from "@/data/hospitals.json";
-import { Card } from "@/components/ui/card";
+import { MapPin, Phone, Clock, Navigation, Cross, BadgeCheck, Stethoscope, Loader2 } from "lucide-react";
+import type { Hospital } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
 // Fix Leaflet default icon issue in Next.js
@@ -51,7 +50,7 @@ function LocationMarker() {
 }
 
 // Marker component with click handler
-function HospitalMarker({ hospital }: { hospital: any }) {
+function HospitalMarker({ hospital }: { hospital: Hospital }) {
   const map = useMap();
 
   return (
@@ -151,6 +150,20 @@ function HospitalMarker({ hospital }: { hospital: any }) {
 
 export default function HospitalMap() {
   const defaultCenter: [number, number] = [13.7563, 100.5018]; // Bangkok default
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/hospitals")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load hospitals");
+        return res.json();
+      })
+      .then((data) => setHospitals(data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="h-[calc(100vh-64px)] w-full relative z-0">
@@ -164,22 +177,38 @@ export default function HospitalMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         {/* User Location */}
         <LocationMarker />
 
         {/* Hospital Markers */}
-        {hospitalsData.map((hospital) => (
+        {hospitals.map((hospital) => (
           <HospitalMarker key={hospital.id} hospital={hospital} />
         ))}
       </MapContainer>
-      
+
       {/* Overlay Title - Compact Rectangular */}
       <div className="absolute top-4 left-4 right-4 z-[400] flex justify-center">
         <div className="bg-white/95 backdrop-blur-md shadow-lg rounded-lg px-6 py-2">
           <h1 className="font-bold text-sm text-foreground text-center">Nearby Hospital</h1>
         </div>
       </div>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-white/60">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Error overlay */}
+      {error && (
+        <div className="absolute bottom-20 left-4 right-4 z-[500] flex justify-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2">
+            Failed to load hospitals. Please try again later.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
