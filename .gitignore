@@ -1,3 +1,6 @@
 node_modules/
 .next/
 .env.local
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
