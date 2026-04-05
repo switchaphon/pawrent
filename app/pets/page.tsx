@@ -13,6 +13,8 @@ import { PetProfileCard } from "@/components/pet-profile-card";
 import { AddVaccineForm } from "@/components/add-vaccine-form";
 import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
 import { getCoreVaccineTypesBySpecies, matchesVaccineType, isOptionalVaccine } from "@/data/vaccines";
+import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
+import { VaccineStatusBar } from "@/components/vaccine-status-bar";
 import { getPets, getPetWithDetails, getActiveSOSAlertForPet, resolveSOSAlert, getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto } from "@/lib/db";
 import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
 import { ImageCropper } from "@/components/image-cropper";
@@ -32,117 +34,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { deletePet } from "@/lib/db";
-
-// Helper to calculate age
-function calculateAge(dob: string | null): string {
-  if (!dob) return "Age unknown";
-  const birthDate = new Date(dob);
-  const now = new Date();
-  const years = now.getFullYear() - birthDate.getFullYear();
-  const months = now.getMonth() - birthDate.getMonth();
-  const adjustedMonths = months < 0 ? 12 + months : months;
-  const adjustedYears = months < 0 ? years - 1 : years;
-  if (adjustedYears === 0) return `${adjustedMonths} months`;
-  if (adjustedMonths === 0) return `${adjustedYears} years`;
-  return `${adjustedYears} years ${adjustedMonths} months`;
-}
-
-// Helper to calculate days left
-function calculateDaysLeft(nextDueDate: string | null): number | undefined {
-  if (!nextDueDate) return undefined;
-  const due = new Date(nextDueDate);
-  const now = new Date();
-  const diffTime = due.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return Math.max(0, diffDays);
-}
-
-// Helper to format date as DD MMM YYYY
-function formatDate(dateString: string): string {
-  if (!dateString) return "";
-  return new Date(dateString).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-// Sort pets by DOB (oldest first)
-function sortByDOB(pets: Pet[]): Pet[] {
-  return [...pets].sort((a, b) => {
-    if (!a.date_of_birth) return 1;
-    if (!b.date_of_birth) return -1;
-    return new Date(a.date_of_birth).getTime() - new Date(b.date_of_birth).getTime();
-  });
-}
-
-interface VaccineStatusBarProps {
-  name: string;
-  brandName?: string;
-  status: "protected" | "due_soon" | "overdue" | "none";
-  percentage: number;
-}
-
-function VaccineStatusBar({ name, brandName, status, percentage }: VaccineStatusBarProps) {
-  const getStatusColor = () => {
-    switch (status) {
-      case "protected":
-        return "bg-green-500";
-      case "due_soon":
-        return "bg-yellow-500";
-      case "overdue":
-        return "bg-red-500";
-      default:
-        return "bg-gray-200";
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (status) {
-      case "protected":
-        return <ShieldCheck className="w-5 h-5 text-white" />;
-      case "due_soon":
-        return <AlertTriangle className="w-4 h-4 text-yellow-900" />;
-      case "overdue":
-        return <AlertTriangle className="w-4 h-4 text-white" />;
-      default:
-        return null;
-    }
-  };
-
-  const getTextColor = () => {
-    switch (status) {
-      case "protected":
-        return "text-white";
-      case "due_soon":
-        return "text-yellow-900";
-      case "overdue":
-        return "text-white";
-      default:
-        return "text-gray-500";
-    }
-  };
-
-  // Build display text: "Rabies • Nobivac 3-Rabies" or just "Rabies" if no brand
-  const displayText = brandName && status !== "none"
-    ? `${name} • ${brandName}`
-    : status === "none"
-      ? `${name} • Not recorded`
-      : name;
-
-  return (
-    <div className="relative h-8 bg-gray-100 rounded-full overflow-hidden">
-      <div
-        className={`h-full ${getStatusColor()} rounded-full transition-all duration-500`}
-        style={{ width: status === "none" ? "100%" : `${percentage}%` }}
-      />
-      <div className={`absolute inset-0 flex items-center justify-between px-3 ${getTextColor()}`}>
-        <span className="text-xs font-medium truncate pr-2">{displayText}</span>
-        {getStatusIcon()}
-      </div>
-    </div>
-  );
-}
 
 function PetsContent() {
   const { user } = useAuth();
