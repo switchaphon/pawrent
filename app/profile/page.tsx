@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreatePetForm } from "@/components/create-pet-form";
 import { ImageCropper } from "@/components/image-cropper";
 import { getPets, submitFeedback, uploadFeedbackImage, getProfile, upsertProfile, uploadProfileAvatar } from "@/lib/db";
+import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Profile } from "@/lib/types";
 import { Bell, Shield, LogOut, Plus, PawPrint, Loader2, MessageSquare, X, ImagePlus, CheckCircle, Pencil, Camera } from "lucide-react";
 
@@ -424,6 +425,12 @@ function ProfileContent() {
                     
                     // Upload new avatar if selected
                     if (editAvatarFile) {
+                      const fileResult = imageFileSchema.safeParse({ size: editAvatarFile.size, type: editAvatarFile.type });
+                      if (!fileResult.success) {
+                        alert(fileResult.error.issues[0].message);
+                        setSavingProfile(false);
+                        return;
+                      }
                       const { data: uploadedUrl, error: uploadError } = await uploadProfileAvatar(editAvatarFile, user.id);
                       if (!uploadError && uploadedUrl) {
                         avatarUrl = uploadedUrl;

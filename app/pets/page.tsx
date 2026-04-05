@@ -16,6 +16,7 @@ import { getCoreVaccineTypesBySpecies, matchesVaccineType, isOptionalVaccine } f
 import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
 import { getPets, getPetWithDetails, getActiveSOSAlertForPet, resolveSOSAlert, getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto } from "@/lib/db";
+import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
 import { ImageCropper } from "@/components/image-cropper";
 import {
@@ -451,6 +452,12 @@ function PetsContent() {
                       setUploadingPhoto(true);
                       try {
                         const file = new File([croppedBlob], "gallery-photo.jpg", { type: "image/jpeg" });
+                        const fileResult = imageFileSchema.safeParse({ size: file.size, type: file.type });
+                        if (!fileResult.success) {
+                          alert(fileResult.error.issues[0].message);
+                          setUploadingPhoto(false);
+                          return;
+                        }
                         const photoId = `${Date.now()}`;
                         const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(file, selectedPet.id, photoId);
                         
