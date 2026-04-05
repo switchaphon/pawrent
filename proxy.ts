@@ -25,12 +25,14 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Refresh the auth session if cookies exist.
-  // This keeps the session alive and syncs cookies.
-  // Note: the client-side Supabase SDK currently uses localStorage for auth,
-  // so the redirect logic relies on the client-side AuthForm check on "/".
-  // Full server-side redirect will work once the client migrates to cookie auth.
-  await supabase.auth.getUser();
+  // 1. Refresh the auth session (updates cookies)
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 2. Redirect unauthenticated users from protected routes
+  const protectedPaths = ["/pets", "/profile", "/sos", "/notifications"];
+  if (!user && protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   return supabaseResponse;
 }
