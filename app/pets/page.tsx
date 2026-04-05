@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
@@ -494,11 +495,11 @@ function PetsContent() {
                     }`}
                     style={isSmallChips ? { minWidth: 'calc(30% - 8px)' } : undefined}
                   >
-                    <div className={`rounded-full bg-primary/10 overflow-hidden flex-shrink-0 ${
+                    <div className={`rounded-full bg-primary/10 overflow-hidden flex-shrink-0 relative ${
                       isSmallChips ? 'w-7 h-7' : 'w-8 h-8'
                     }`}>
                       {pet.photo_url ? (
-                        <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" />
+                        <Image src={pet.photo_url} alt={pet.name} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm">🐕</div>
                       )}

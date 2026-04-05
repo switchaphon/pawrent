@@ -10,6 +10,7 @@ import { getUserLikes } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { Heart, Loader2, Plus } from "lucide-react";
 import { CreatePostForm } from "@/components/create-post-form";
+import Image from "next/image";
 
 interface FeedPost {
   id: string;
@@ -150,9 +151,9 @@ function FeedContent() {
             <Card key={post.id} className="rounded-2xl overflow-hidden">
               {/* Post Header */}
               <div className="flex items-center gap-3 p-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden relative">
                   {post.pets?.photo_url ? (
-                    <img src={post.pets.photo_url} alt="" className="w-full h-full object-cover" />
+                    <Image src={post.pets.photo_url} alt="" fill className="object-cover" />
                   ) : (
                     <span className="text-lg">🐕</span>
                   )}
@@ -164,8 +165,8 @@ function FeedContent() {
               </div>
 
               {/* Post Image */}
-              <div className="aspect-square bg-muted">
-                <img src={post.image_url} alt="" className="w-full h-full object-cover" />
+              <div className="aspect-square bg-muted relative">
+                <Image src={post.image_url} alt="" fill className="object-cover" />
               </div>
 
               {/* Post Actions */}
