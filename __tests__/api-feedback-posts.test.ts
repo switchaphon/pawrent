@@ -23,6 +23,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
+// Mock @/lib/rate-limit — allow all requests through in tests
+// ---------------------------------------------------------------------------
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: () => ({}),
+  checkRateLimit: async () => null,
+  getClientIp: () => "127.0.0.1",
+}));
+
+// ---------------------------------------------------------------------------
 // Mock @/lib/supabase-api
 // createApiClient is mocked once; each test controls the returned client
 // by replacing the mock implementation in beforeEach.

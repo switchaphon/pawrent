@@ -1,8 +1,14 @@
 import { createApiClient } from "@/lib/supabase-api";
 import { feedbackSchema } from "@/lib/validations";
+import { createRateLimiter, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
+const limiter = createRateLimiter(5, "1 m");
+
 export async function POST(request: NextRequest) {
+  const rateLimited = await checkRateLimit(limiter, getClientIp(request));
+  if (rateLimited) return rateLimited;
+
   const body = await request.json();
 
   const result = feedbackSchema.safeParse(body);

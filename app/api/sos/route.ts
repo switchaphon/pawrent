@@ -1,6 +1,10 @@
 import { createApiClient } from "@/lib/supabase-api";
 import { sosAlertSchema, resolveAlertSchema } from "@/lib/validations";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+
+const postLimiter = createRateLimiter(3, "5 m");
+const putLimiter = createRateLimiter(10, "1 m");
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -9,6 +13,9 @@ export async function POST(request: NextRequest) {
   const supabase = createApiClient(authHeader);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(postLimiter, user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const result = sosAlertSchema.safeParse(body);
@@ -38,6 +45,9 @@ export async function PUT(request: NextRequest) {
   const supabase = createApiClient(authHeader);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(putLimiter, user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json();
   const result = resolveAlertSchema.safeParse(body);
