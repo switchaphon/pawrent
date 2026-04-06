@@ -12,9 +12,20 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
+    // Uncomment to enable authenticated E2E tests:
+    // {
+    //   name: "setup",
+    //   testMatch: /auth\.setup\.ts/,
+    // },
     {
       name: "chromium",
       use: { browserName: "chromium" },
+      // To use auth: dependencies: ["setup"],
+      // use: { browserName: "chromium", storageState: "e2e/.auth/user.json" },
+    },
+    {
+      name: "firefox",
+      use: { browserName: "firefox" },
     },
   ],
   webServer: {

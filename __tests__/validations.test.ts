@@ -37,6 +37,11 @@ describe("petSchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("should accept a name of exactly 100 characters (max boundary)", () => {
+    const result = petSchema.safeParse({ ...validPet, name: "A".repeat(100) });
+    expect(result.success).toBe(true);
+  });
+
   it("should reject a name longer than 100 characters", () => {
     const result = petSchema.safeParse({ ...validPet, name: "A".repeat(101) });
     expect(result.success).toBe(false);
@@ -69,6 +74,11 @@ describe("petSchema", () => {
 
   it("should accept weight of exactly 0 (boundary)", () => {
     const result = petSchema.safeParse({ ...validPet, weight_kg: 0 });
+    expect(result.success).toBe(true);
+  });
+
+  it("should accept weight of exactly 500 (max boundary)", () => {
+    const result = petSchema.safeParse({ ...validPet, weight_kg: 500 });
     expect(result.success).toBe(true);
   });
 
@@ -180,6 +190,11 @@ describe("sosAlertSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("should accept a description of exactly 2000 characters (max boundary)", () => {
+    const result = sosAlertSchema.safeParse({ ...validAlert, description: "x".repeat(2000) });
+    expect(result.success).toBe(true);
+  });
+
   it("should reject a description longer than 2000 characters", () => {
     const result = sosAlertSchema.safeParse({ ...validAlert, description: "x".repeat(2001) });
     expect(result.success).toBe(false);
@@ -244,6 +259,11 @@ describe("feedbackSchema", () => {
   it("should reject an empty message", () => {
     const result = feedbackSchema.safeParse({ message: "" });
     expect(result.success).toBe(false);
+  });
+
+  it("should accept a message of exactly 5000 characters (max boundary)", () => {
+    const result = feedbackSchema.safeParse({ message: "m".repeat(5000) });
+    expect(result.success).toBe(true);
   });
 
   it("should reject a message longer than 5000 characters", () => {
@@ -424,6 +444,11 @@ describe("parasiteLogSchema", () => {
 
   it("should accept null medicine_name", () => {
     const result = parasiteLogSchema.safeParse({ ...validLog, medicine_name: null });
+    expect(result.success).toBe(true);
+  });
+
+  it("should accept medicine_name of exactly 200 characters (max boundary)", () => {
+    const result = parasiteLogSchema.safeParse({ ...validLog, medicine_name: "m".repeat(200) });
     expect(result.success).toBe(true);
   });
 

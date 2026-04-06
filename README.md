@@ -17,7 +17,7 @@ Pet management & safety app built with Next.js 16, Supabase, and Tailwind CSS.
 - **Backend:** Supabase (Auth, Database, Storage, RLS)
 - **Rate Limiting:** Upstash Redis via `@upstash/ratelimit`
 - **PWA:** Serwist (service worker, offline fallback)
-- **Testing:** Vitest (175 unit tests), Playwright (E2E)
+- **Testing:** Vitest (306 unit/component tests, 94.72% coverage), Playwright (E2E)
 - **Validation:** Zod schemas on all forms and API routes
 
 ## Getting Started
@@ -48,6 +48,8 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_token
 | `npm run build` | Production build (webpack — required for PWA) |
 | `npm run start` | Start production server |
 | `npm test` | Run unit tests (Vitest) |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run test:watch` | Run tests in watch mode |
 | `npm run test:e2e` | Run E2E tests (Playwright) |
 
 ## API Routes

@@ -3,6 +3,21 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.1] - 2026-04-06
+
+### Added
+- **306 unit/integration/component tests** across 20 test files (PRP-09)
+  - 5 new API route test files: vaccinations, parasite-logs, pet-photos, profile, hospitals
+  - 6 component tests: auth-form, create-pet-form, edit-pet-form, add-vaccine-form, add-parasite-log-form, sos-button
+  - lib/db.ts full coverage (42 tests — CRUD, storage uploads, Haversine, RPC)
+  - Edge case and boundary tests for existing API and validation tests
+- **94.72% statement coverage** (up from ~55% before PRP-09)
+- **Test infrastructure**: `vitest.setup.ts`, `@vitest/coverage-v8`, `@testing-library/user-event`
+- **Coverage scripts**: `npm run test:coverage`, `npm run test:watch`
+- **E2E test expansion**: auth flow, feedback page, authenticated flows (with storageState pattern)
+- **CI/CD pipeline**: `.github/workflows/ci.yml` (lint, test+coverage, build, e2e)
+- **Cross-browser E2E**: Firefox added to Playwright config
+
 ## [0.2.0] - 2026-04-05
 
 ### Added

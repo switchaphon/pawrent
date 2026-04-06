@@ -141,6 +141,19 @@ describe("POST /api/sos", () => {
     expect(res.status).toBe(400);
   });
 
+  it("should accept boundary lat/lng values (-90, 90, -180, 180)", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const boundaryBody = { ...validSosBody, lat: -90, lng: 180 };
+    mockSingle.mockResolvedValueOnce({
+      data: { id: ALERT_UUID, owner_id: "user-1", is_active: true, ...boundaryBody },
+      error: null,
+    });
+
+    const req = makeRequest("POST", boundaryBody);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+  });
+
   it("should create an SOS alert and set owner_id + is_active from the server", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     const createdAlert = {
@@ -299,6 +312,32 @@ describe("PUT /api/sos", () => {
     expect(res.status).toBe(200);
     expect(capturedUpdatePayload.is_active).toBe(false);
     expect(capturedUpdatePayload.resolution_status).toBe("found");
+  });
+
+  it("should set resolution_status to 'given_up' when resolving with that value", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    let capturedUpdatePayload: Record<string, unknown> = {};
+    const chain = {
+      eq: vi.fn(() => chain),
+      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
+    };
+    mockFrom.mockReturnValueOnce({
+      update: vi.fn((payload: Record<string, unknown>) => {
+        capturedUpdatePayload = payload;
+        return chain;
+      }),
+    });
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { id: ALERT_UUID, is_active: false, resolution_status: "given_up" },
+      error: null,
+    });
+
+    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "given_up" });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    expect(capturedUpdatePayload.resolution_status).toBe("given_up");
+    expect(capturedUpdatePayload.is_active).toBe(false);
   });
 
   it("should return 500 when Supabase update fails", async () => {
