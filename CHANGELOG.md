@@ -3,6 +3,22 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.2] - 2026-04-06
+
+### Added
+- **100% component coverage** — all 21 components now tested (PRP-09 continued)
+  - pet-card, pet-profile-card, photo-lightbox, image-cropper, map-picker, hospital-map, location-provider, create-post-form
+  - Supabase wrapper tests (supabase.ts, supabase-api.ts, supabase-server.ts)
+  - Simple/medium/complex component groupings (BottomNav, VaccineStatusBar, LocationBanner, SearchableSelect, HealthTimeline)
+- **E2E tests verified** — 46 passing across Chromium + Firefox
+  - Hospital map markers/popups, offline page, bottom nav navigation
+- **375 unit/component tests** across 31 files, **96.48% statement coverage**, **100% function coverage**
+
+### Fixed
+- Leaflet icons in map-picker.tsx now use local `/leaflet/` paths (removed unpkg.com CDN dependency)
+- Playwright dev server uses `--webpack` flag (required for Serwist PWA)
+- E2E selector fixes for feedback link and offline retry button
+
 ## [0.2.1] - 2026-04-06
 
 ### Added
