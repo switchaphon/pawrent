@@ -8,6 +8,6 @@ test.describe("Offline fallback page", () => {
 
   test("shows retry button", async ({ page }) => {
     await page.goto("/offline");
-    await expect(page.getByRole("button", { name: /retry|try again/i }).or(page.getByText(/retry|try again/i))).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole("button", { name: "Retry" })).toBeVisible({ timeout: 5000 });
   });
 });

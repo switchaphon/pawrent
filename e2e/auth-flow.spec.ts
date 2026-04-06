@@ -45,9 +45,9 @@ test.describe("Authentication flow (unauthenticated)", () => {
 
   test("feedback link is visible on login page", async ({ page }) => {
     await page.goto("/");
-    const feedbackLink = page.getByText("Feedback");
+    const feedbackLink = page.locator('a[href*="/feedback"]');
     await expect(feedbackLink).toBeVisible();
-    expect(await feedbackLink.getAttribute("href") ?? "").toContain("/feedback");
+    expect(await feedbackLink.getAttribute("href")).toContain("/feedback");
   });
 
   test("all protected routes redirect to login", async ({ page }) => {
