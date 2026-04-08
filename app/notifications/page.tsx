@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,6 +17,17 @@ function NotificationsContent() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchAlerts = async () => {
+    setLoading(true);
+    const [activeResult, foundResult] = await Promise.all([
+      getActiveSOSAlerts(),
+      getRecentlyFoundPets(),
+    ]);
+    setAlerts(activeResult.data || []);
+    setFoundPets(foundResult.data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
     // Get user location
     if (navigator.geolocation) {
@@ -32,43 +44,24 @@ function NotificationsContent() {
         }
       );
     }
-
-    // Fetch alerts
-    fetchAlerts();
   }, []);
 
-  const fetchAlerts = async () => {
-    setLoading(true);
-    const [activeResult, foundResult] = await Promise.all([
-      getActiveSOSAlerts(),
-      getRecentlyFoundPets(),
-    ]);
-    setAlerts(activeResult.data || []);
-    setFoundPets(foundResult.data || []);
-    setLoading(false);
-  };
+  useEffect(() => {
+    void fetchAlerts();
+  }, []);
 
   // Filter and sort alerts by distance
   const alertsWithDistance = userLocation
     ? alerts
         .map((alert) => ({
           ...alert,
-          distance: calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            alert.lat,
-            alert.lng
-          ),
+          distance: calculateDistance(userLocation.lat, userLocation.lng, alert.lat, alert.lng),
         }))
         .sort((a, b) => a.distance - b.distance)
     : alerts.map((alert) => ({ ...alert, distance: null }));
 
-  const nearbyAlerts = alertsWithDistance.filter(
-    (a) => a.distance !== null && a.distance < 5
-  );
-  const otherAlerts = alertsWithDistance.filter(
-    (a) => a.distance === null || a.distance >= 5
-  );
+  const nearbyAlerts = alertsWithDistance.filter((a) => a.distance !== null && a.distance < 5);
+  const otherAlerts = alertsWithDistance.filter((a) => a.distance === null || a.distance >= 5);
 
   if (loading) {
     return (
@@ -88,9 +81,7 @@ function NotificationsContent() {
             <p className="text-sm text-muted-foreground">SOS alerts nearby</p>
           </div>
           {nearbyAlerts.length > 0 && (
-            <Badge className="bg-destructive text-white">
-              {nearbyAlerts.length} nearby
-            </Badge>
+            <Badge className="bg-destructive text-white">{nearbyAlerts.length} nearby</Badge>
           )}
         </div>
       </header>
@@ -106,10 +97,7 @@ function NotificationsContent() {
             </h2>
             <div className="space-y-3">
               {foundPets.map((alert) => (
-                <Card
-                  key={alert.id}
-                  className="p-3 rounded-xl border-green-200 bg-green-50"
-                >
+                <Card key={alert.id} className="p-3 rounded-xl border-green-200 bg-green-50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center overflow-hidden">
                       {alert.pets?.photo_url ? (
@@ -127,7 +115,8 @@ function NotificationsContent() {
                         {alert.pets?.name || "A pet"} was found!
                       </h3>
                       <p className="text-xs text-green-600">
-                        {alert.pets?.breed} • Found {new Date(alert.resolved_at || "").toLocaleDateString()}
+                        {alert.pets?.breed} • Found{" "}
+                        {new Date(alert.resolved_at || "").toLocaleDateString()}
                       </p>
                     </div>
                     <span className="text-2xl">🎉</span>
@@ -143,12 +132,8 @@ function NotificationsContent() {
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🎉</span>
             </div>
-            <h2 className="text-lg font-bold text-foreground mb-2">
-              No active alerts
-            </h2>
-            <p className="text-muted-foreground">
-              All pets in your area are safe!
-            </p>
+            <h2 className="text-lg font-bold text-foreground mb-2">No active alerts</h2>
+            <p className="text-muted-foreground">All pets in your area are safe!</p>
           </div>
         ) : alertsWithDistance.length > 0 ? (
           <>
@@ -177,9 +162,7 @@ function NotificationsContent() {
                             {alert.pets?.breed || "Unknown breed"}
                           </p>
                           {alert.description && (
-                            <p className="text-sm text-foreground mt-1">
-                              {alert.description}
-                            </p>
+                            <p className="text-sm text-foreground mt-1">{alert.description}</p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             <Badge
@@ -219,9 +202,7 @@ function NotificationsContent() {
                           <h3 className="font-semibold text-foreground">
                             {alert.pets?.name || "Unknown Pet"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {alert.pets?.breed}
-                          </p>
+                          <p className="text-sm text-muted-foreground">{alert.pets?.breed}</p>
                           {alert.distance !== null && (
                             <Badge variant="outline" className="mt-2 text-muted-foreground">
                               <Navigation className="w-3 h-3 mr-1" />
