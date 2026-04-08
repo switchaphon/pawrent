@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Tests for lib/db.ts — the client-side database layer.
  *
@@ -13,7 +14,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockRpc = vi.fn();
 const mockUpload = vi.fn();
-const mockGetPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://storage.example.com/file.jpg" } }));
+const mockGetPublicUrl = vi.fn(() => ({
+  data: { publicUrl: "https://storage.example.com/file.jpg" },
+}));
 const mockStorageFrom = vi.fn(() => ({
   upload: mockUpload,
   getPublicUrl: mockGetPublicUrl,
@@ -24,14 +27,27 @@ vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     rpc: (...args: unknown[]) => mockRpc(...args),
-    storage: { from: (...args: unknown[]) => mockStorageFrom(...args) },
+    storage: {
+      from: (...args: unknown[]) => (mockStorageFrom as (...a: unknown[]) => unknown)(...args),
+    },
   },
 }));
 
 // Helper to build a chainable mock that terminates at a given method
 function chain(terminalValue: unknown, terminalMethod = "single") {
   const obj: Record<string, unknown> = {};
-  const methods = ["select", "insert", "update", "delete", "upsert", "eq", "gte", "in", "order", "limit"];
+  const methods = [
+    "select",
+    "insert",
+    "update",
+    "delete",
+    "upsert",
+    "eq",
+    "gte",
+    "in",
+    "order",
+    "limit",
+  ];
   for (const m of methods) {
     obj[m] = vi.fn(() => obj);
   }
@@ -42,15 +58,34 @@ function chain(terminalValue: unknown, terminalMethod = "single") {
 }
 
 import {
-  getProfile, upsertProfile, uploadProfileAvatar,
-  getPets, getPetWithDetails, createPet, updatePet, deletePet, uploadPetPhoto,
-  getActiveSOSAlerts, getRecentlyFoundPets, createSOSAlert, uploadSOSVideo,
-  getActiveSOSAlertForPet, resolveSOSAlert,
-  calculateDistance, toggleLike, getUserLikes,
-  createVaccination, updateVaccination, deleteVaccination,
+  getProfile,
+  upsertProfile,
+  uploadProfileAvatar,
+  getPets,
+  getPetWithDetails,
+  createPet,
+  updatePet,
+  deletePet,
+  uploadPetPhoto,
+  getActiveSOSAlerts,
+  getRecentlyFoundPets,
+  createSOSAlert,
+  uploadSOSVideo,
+  getActiveSOSAlertForPet,
+  resolveSOSAlert,
+  calculateDistance,
+  toggleLike,
+  getUserLikes,
+  createVaccination,
+  updateVaccination,
+  deleteVaccination,
   createParasiteLog,
-  uploadFeedbackImage, submitFeedback,
-  getPetPhotos, uploadPetGalleryImage, addPetPhoto, deletePetPhoto,
+  uploadFeedbackImage,
+  submitFeedback,
+  getPetPhotos,
+  uploadPetGalleryImage,
+  addPetPhoto,
+  deletePetPhoto,
 } from "@/lib/db";
 
 beforeEach(() => {
@@ -240,7 +275,11 @@ describe("SOS Operations", () => {
     mockFrom.mockReturnValue(chain({ data: alert, error: null }));
 
     const result = await createSOSAlert({
-      pet_id: "pet-1", owner_id: "user-1", lat: 13.7, lng: 100.5, description: "Lost",
+      pet_id: "pet-1",
+      owner_id: "user-1",
+      lat: 13.7,
+      lng: 100.5,
+      description: "Lost",
     } as any);
     expect(result.data).toEqual(alert);
   });
@@ -348,13 +387,16 @@ describe("Like Operations", () => {
     const result = await toggleLike("post-1", "user-1");
     expect(result.newCount).toBe(5);
     expect(mockRpc).toHaveBeenCalledWith("toggle_like", {
-      p_post_id: "post-1", p_user_id: "user-1",
+      p_post_id: "post-1",
+      p_user_id: "user-1",
     });
   });
 
   it("getUserLikes returns array of post_ids", async () => {
     const c = chain(null);
-    c.in = vi.fn(() => Promise.resolve({ data: [{ post_id: "p1" }, { post_id: "p2" }], error: null }));
+    c.in = vi.fn(() =>
+      Promise.resolve({ data: [{ post_id: "p1" }, { post_id: "p2" }], error: null })
+    );
     c.eq = vi.fn(() => ({ in: c.in }));
     c.select = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
@@ -448,10 +490,16 @@ describe("Feedback Operations", () => {
 
   it("submitFeedback calls RPC with correct params", async () => {
     mockRpc.mockResolvedValueOnce({ data: { id: "f1" }, error: null });
-    const result = await submitFeedback({ message: "Great!", user_id: "u1", image_url: null } as any);
+    const result = await submitFeedback({
+      message: "Great!",
+      user_id: "u1",
+      image_url: null,
+    } as any);
     expect(result.data).toEqual({ id: "f1" });
     expect(mockRpc).toHaveBeenCalledWith("submit_anonymous_feedback", {
-      p_message: "Great!", p_user_id: "u1", p_image_url: null,
+      p_message: "Great!",
+      p_user_id: "u1",
+      p_image_url: null,
     });
   });
 
@@ -459,7 +507,9 @@ describe("Feedback Operations", () => {
     mockRpc.mockResolvedValueOnce({ data: { id: "f2" }, error: null });
     await submitFeedback({ message: "Bug", user_id: null, image_url: null } as any);
     expect(mockRpc).toHaveBeenCalledWith("submit_anonymous_feedback", {
-      p_message: "Bug", p_user_id: null, p_image_url: null,
+      p_message: "Bug",
+      p_user_id: null,
+      p_image_url: null,
     });
   });
 });
