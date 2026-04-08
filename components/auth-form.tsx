@@ -45,14 +45,11 @@ export function AuthForm() {
       }
     } else {
       const { error, needsEmailVerification, emailAlreadyExists } = await signUp(email, password);
-      
+
       if (error) {
         showToast(error.message, "error");
       } else if (emailAlreadyExists) {
-        showToast(
-          "An account with this email already exists. Please sign in instead.",
-          "error"
-        );
+        showToast("An account with this email already exists. Please sign in instead.", "error");
         // Switch to login mode
         setIsLogin(true);
         setPassword("");
@@ -121,11 +118,7 @@ export function AuthForm() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -149,9 +142,7 @@ export function AuthForm() {
         <div className="text-center mt-4">
           {isLogin ? (
             <>
-              <p className="text-muted-foreground text-sm mb-2">
-                Don't have an account?
-              </p>
+              <p className="text-muted-foreground text-sm mb-2">Don&apos;t have an account?</p>
               <button
                 type="button"
                 onClick={() => setIsLogin(false)}
@@ -162,9 +153,7 @@ export function AuthForm() {
             </>
           ) : (
             <>
-              <p className="text-muted-foreground text-sm mb-2">
-                Already have an account?
-              </p>
+              <p className="text-muted-foreground text-sm mb-2">Already have an account?</p>
               <button
                 type="button"
                 onClick={() => setIsLogin(true)}

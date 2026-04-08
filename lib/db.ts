@@ -1,22 +1,23 @@
 import { supabase } from "./supabase";
-import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, Profile, Feedback, PetPhoto } from "./types";
+import type {
+  Pet,
+  Vaccination,
+  ParasiteLog,
+  HealthEvent,
+  SOSAlert,
+  Profile,
+  Feedback,
+  PetPhoto,
+} from "./types";
 
 // Profile Operations
 export async function getProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
   return { data: data as Profile | null, error };
 }
 
 export async function upsertProfile(profile: Partial<Profile> & { id: string }) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .upsert(profile)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("profiles").upsert(profile).select().single();
   return { data: data as Profile | null, error };
 }
 
@@ -29,9 +30,7 @@ export async function uploadProfileAvatar(file: File, userId: string) {
 
   if (error) return { data: null, error };
 
-  const { data: urlData } = supabase.storage
-    .from("user-photos")
-    .getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage.from("user-photos").getPublicUrl(fileName);
 
   return { data: urlData.publicUrl, error: null };
 }
@@ -57,8 +56,17 @@ export async function getPetWithDetails(petId: string) {
 
   const [vaccinations, parasiteLogs, healthEvents] = await Promise.all([
     supabase.from("vaccinations").select("*").eq("pet_id", petId),
-    supabase.from("parasite_logs").select("*").eq("pet_id", petId).order("created_at", { ascending: false }).limit(1),
-    supabase.from("health_events").select("*").eq("pet_id", petId).order("event_date", { ascending: false }),
+    supabase
+      .from("parasite_logs")
+      .select("*")
+      .eq("pet_id", petId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("health_events")
+      .select("*")
+      .eq("pet_id", petId)
+      .order("event_date", { ascending: false }),
   ]);
 
   return {
@@ -73,11 +81,7 @@ export async function getPetWithDetails(petId: string) {
 }
 
 export async function createPet(pet: Omit<Pet, "id" | "created_at">) {
-  const { data, error } = await supabase
-    .from("pets")
-    .insert(pet)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("pets").insert(pet).select().single();
   return { data: data as Pet | null, error };
 }
 
@@ -92,10 +96,7 @@ export async function updatePet(petId: string, updates: Partial<Pet>) {
 }
 
 export async function deletePet(petId: string) {
-  const { error } = await supabase
-    .from("pets")
-    .delete()
-    .eq("id", petId);
+  const { error } = await supabase.from("pets").delete().eq("id", petId);
 
   if (error) {
     console.error("Error deleting pet:", error.message);
@@ -109,9 +110,7 @@ export async function uploadPetPhoto(file: File, petId: string) {
   const fileName = `${petId}-${Date.now()}.${fileExt}`;
   const filePath = `${fileName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from("pet-photos")
-    .upload(filePath, file);
+  const { error: uploadError } = await supabase.storage.from("pet-photos").upload(filePath, file);
 
   if (uploadError) return { url: null, error: uploadError };
 
@@ -133,7 +132,7 @@ export async function getActiveSOSAlerts() {
 export async function getRecentlyFoundPets() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
+
   const { data, error } = await supabase
     .from("sos_alerts")
     .select("*, pets(*)")
@@ -144,7 +143,9 @@ export async function getRecentlyFoundPets() {
   return { data: data as (SOSAlert & { pets: Pet })[] | null, error };
 }
 
-export async function createSOSAlert(alert: Omit<SOSAlert, "id" | "created_at" | "is_active" | "resolved_at">) {
+export async function createSOSAlert(
+  alert: Omit<SOSAlert, "id" | "created_at" | "is_active" | "resolved_at">
+) {
   const { data, error } = await supabase
     .from("sos_alerts")
     .insert({ ...alert, is_active: true })
@@ -158,9 +159,7 @@ export async function uploadSOSVideo(file: File, alertId: string) {
   const fileName = `${alertId}-${Date.now()}.${fileExt}`;
   const filePath = `${fileName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from("sos-videos")
-    .upload(filePath, file);
+  const { error: uploadError } = await supabase.storage.from("sos-videos").upload(filePath, file);
 
   if (uploadError) return { url: null, error: uploadError };
 
@@ -193,28 +192,22 @@ export async function resolveSOSAlert(alertId: string, resolution: "found" | "gi
     .eq("id", alertId)
     .select()
     .maybeSingle();
-  
+
   if (error) {
     console.error("Error resolving SOS alert:", error);
   }
-  
+
   return { data: data as SOSAlert | null, error };
 }
 
 // Haversine Distance Calculation
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number
-): number {
+export function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -243,11 +236,7 @@ export async function getUserLikes(userId: string, postIds: string[]) {
 
 // Vaccination Operations
 export async function createVaccination(vaccination: Omit<Vaccination, "id" | "created_at">) {
-  const { data, error } = await supabase
-    .from("vaccinations")
-    .insert(vaccination)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("vaccinations").insert(vaccination).select().single();
   return { data: data as Vaccination | null, error };
 }
 
@@ -262,20 +251,13 @@ export async function updateVaccination(vaccinationId: string, updates: Partial<
 }
 
 export async function deleteVaccination(vaccinationId: string) {
-  const { error } = await supabase
-    .from("vaccinations")
-    .delete()
-    .eq("id", vaccinationId);
+  const { error } = await supabase.from("vaccinations").delete().eq("id", vaccinationId);
   return { error };
 }
 
 // Parasite Log Operations
 export async function createParasiteLog(log: Omit<ParasiteLog, "id" | "created_at">) {
-  const { data, error } = await supabase
-    .from("parasite_logs")
-    .insert(log)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("parasite_logs").insert(log).select().single();
   return { data: data as ParasiteLog | null, error };
 }
 
@@ -285,16 +267,14 @@ export async function uploadFeedbackImage(file: File, userId: string | null) {
   // If userId is null (anonymous), use "anonymous" namespace
   const safeUserId = userId || "anonymous";
   const fileName = `${safeUserId}_${Date.now()}.${fileExt}`;
-  
+
   const { data, error } = await supabase.storage
     .from("feedback-images")
     .upload(fileName, file, { upsert: true });
 
   if (error) return { data: null, error };
 
-  const { data: urlData } = supabase.storage
-    .from("feedback-images")
-    .getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage.from("feedback-images").getPublicUrl(fileName);
 
   return { data: urlData.publicUrl, error: null };
 }
@@ -327,9 +307,7 @@ export async function uploadPetGalleryImage(file: File, petId: string, photoId: 
 
   if (error) return { data: null, error };
 
-  const { data: urlData } = supabase.storage
-    .from("pet-photos")
-    .getPublicUrl(fileName);
+  const { data: urlData } = supabase.storage.from("pet-photos").getPublicUrl(fileName);
 
   return { data: urlData.publicUrl, error: null };
 }
@@ -344,9 +322,6 @@ export async function addPetPhoto(petId: string, photoUrl: string, displayOrder:
 }
 
 export async function deletePetPhoto(photoId: string) {
-  const { error } = await supabase
-    .from("pet_photos")
-    .delete()
-    .eq("id", photoId);
+  const { error } = await supabase.from("pet_photos").delete().eq("id", photoId);
   return { error };
 }

@@ -16,16 +16,16 @@ import { sosAlertSchema, videoFileSchema } from "@/lib/validations";
 import { AlertTriangle, MapPin, Video, Send, Loader2, CheckCircle } from "lucide-react";
 
 // Dynamic import for Leaflet (SSR issue)
-const MapPicker = dynamic(
-  () => import("@/components/map-picker").then((mod) => mod.MapPicker),
-  { ssr: false, loading: () => <div className="h-48 bg-muted rounded-xl animate-pulse" /> }
-);
+const MapPicker = dynamic(() => import("@/components/map-picker").then((mod) => mod.MapPicker), {
+  ssr: false,
+  loading: () => <div className="h-48 bg-muted rounded-xl animate-pulse" />,
+});
 
 function SOSFormContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const preselectedPetId = searchParams.get("pet");
-  
+
   const [step, setStep] = useState<"form" | "success">("form");
   const [loading, setLoading] = useState(false);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -35,14 +35,14 @@ function SOSFormContent() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
 
   // Get selected pet object
-  const selectedPet = pets.find(p => p.id === selectedPetId);
+  const selectedPet = pets.find((p) => p.id === selectedPetId);
 
   useEffect(() => {
     if (user) {
       getPets(user.id).then(({ data }) => {
         setPets(data || []);
         // Use preselected pet from URL, or first pet
-        if (preselectedPetId && data?.some(p => p.id === preselectedPetId)) {
+        if (preselectedPetId && data?.some((p) => p.id === preselectedPetId)) {
           setSelectedPetId(preselectedPetId);
         } else if (data && data.length > 0) {
           setSelectedPetId(data[0].id);
@@ -121,9 +121,7 @@ function SOSFormContent() {
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            Alert Broadcasted
-          </h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Alert Broadcasted</h2>
           <p className="text-muted-foreground mb-6">
             Nearby pet parents within 5km will be notified. Stay strong!
           </p>
@@ -184,9 +182,7 @@ function SOSFormContent() {
               <MapPin className="w-4 h-4 text-destructive" />
               Last Seen Location *
             </Label>
-            <MapPicker
-              onLocationSelect={(lat, lng) => setLocation({ lat, lng })}
-            />
+            <MapPicker onLocationSelect={(lat, lng) => setLocation({ lat, lng })} />
             <p className="text-xs text-muted-foreground mt-2">
               {location
                 ? `📍 ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
@@ -206,11 +202,7 @@ function SOSFormContent() {
               onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
               className="mt-2"
             />
-            {videoFile && (
-              <p className="text-xs text-muted-foreground mt-2">
-                📹 {videoFile.name}
-              </p>
-            )}
+            {videoFile && <p className="text-xs text-muted-foreground mt-2">📹 {videoFile.name}</p>}
           </Card>
 
           {/* Description */}

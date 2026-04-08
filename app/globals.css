@@ -45,7 +45,7 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   --color-success: var(--success);
-  
+
   --animate-slide-in-down: slide-in-down 0.3s ease-out;
   @keyframes slide-in-down {
     from {
@@ -215,12 +215,7 @@ textarea {
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    oklch(0.95 0 0) 25%,
-    oklch(0.9 0 0) 50%,
-    oklch(0.95 0 0) 75%
-  );
+  background: linear-gradient(90deg, oklch(0.95 0 0) 25%, oklch(0.9 0 0) 50%, oklch(0.95 0 0) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }

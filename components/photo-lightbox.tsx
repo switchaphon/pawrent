@@ -25,6 +25,14 @@ export function PhotoLightbox({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const goToPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
+  }, [photos.length]);
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
+  }, [photos.length]);
+
   useEffect(() => {
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
@@ -41,15 +49,7 @@ export function PhotoLightbox({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentIndex]);
-
-  const goToPrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
-  }, [photos.length]);
-
-  const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
-  }, [photos.length]);
+  }, [isOpen, currentIndex, onClose, goToPrev, goToNext]);
 
   const handleDownload = async () => {
     const photo = photos[currentIndex];
@@ -185,9 +185,7 @@ export function PhotoLightbox({
           <div className="bg-card rounded-2xl p-6 max-w-sm w-full text-center">
             <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-foreground mb-2">Delete Photo?</h3>
-            <p className="text-muted-foreground text-sm mb-6">
-              This action cannot be undone.
-            </p>
+            <p className="text-muted-foreground text-sm mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
               <Button
                 variant="outline"

@@ -11,15 +11,35 @@ import { describe, it, expect, vi } from "vitest";
 // Mock all leaflet dependencies to prevent DOM errors
 vi.mock("leaflet/dist/leaflet.css", () => ({}));
 vi.mock("leaflet", () => {
-  class MockIcon { constructor() {} static Default = { mergeOptions: () => {} }; }
-  class MockLatLng { lat: number; lng: number; constructor(lat: number, lng: number) { this.lat = lat; this.lng = lng; } }
+  class MockIcon {
+    constructor() {}
+    static Default = { mergeOptions: () => {} };
+  }
+  class MockLatLng {
+    lat: number;
+    lng: number;
+    constructor(lat: number, lng: number) {
+      this.lat = lat;
+      this.lng = lng;
+    }
+  }
   return {
-    default: { icon: () => new MockIcon(), divIcon: () => new MockIcon(), Icon: MockIcon, Marker: { prototype: { options: {} } } },
-    Icon: MockIcon, icon: () => new MockIcon(), divIcon: () => new MockIcon(), LatLng: MockLatLng,
+    default: {
+      icon: () => new MockIcon(),
+      divIcon: () => new MockIcon(),
+      Icon: MockIcon,
+      Marker: { prototype: { options: {} } },
+    },
+    Icon: MockIcon,
+    icon: () => new MockIcon(),
+    divIcon: () => new MockIcon(),
+    LatLng: MockLatLng,
   };
 });
 vi.mock("react-leaflet", () => ({
-  MapContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="map">{children}</div>,
+  MapContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="map">{children}</div>
+  ),
   TileLayer: () => <div />,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Popup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

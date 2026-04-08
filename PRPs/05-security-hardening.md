@@ -21,6 +21,7 @@ Fix issues at the layer where they originate — ownership checks belong in the 
 ## Scope
 
 **In scope:**
+
 - `app/api/pets/route.ts` — add `owner_id` filter to PUT and DELETE
 - `app/api/sos/route.ts` — add Zod validation + `owner_id` filter to PUT
 - `app/api/feedback/route.ts` — use `result.data.image_url` instead of raw `body.image_url`
@@ -33,6 +34,7 @@ Fix issues at the layer where they originate — ownership checks belong in the 
 - `package.json` — upgrade Next.js past vulnerability GHSA-h25m-26qc-wcjf
 
 **Out of scope (deferred):**
+
 - Server-side auth redirects in middleware (requires cookie-based auth migration)
 - Rate limiting on API routes (warrants its own PRP)
 - Storage bucket policy configuration (P4 from PRP-01 — requires Supabase Dashboard)
@@ -64,7 +66,7 @@ const { data, error } = await auth.supabase
   .from("pets")
   .update(result.data)
   .eq("id", petId)
-  .eq("owner_id", auth.user.id)   // ownership check
+  .eq("owner_id", auth.user.id) // ownership check
   .select()
   .single();
 
@@ -87,11 +89,12 @@ export const petSchema = z.object({
   date_of_birth: z.string().nullable(),
   microchip_number: z.string().max(50).nullable(),
   special_notes: z.string().max(1000).nullable(),
-  photo_url: z.string().url().max(2048).nullable().optional(),  // add this line
+  photo_url: z.string().url().max(2048).nullable().optional(), // add this line
 });
 ```
 
 **Files to modify:**
+
 - `app/api/pets/route.ts`
 - `lib/validations.ts`
 
@@ -113,7 +116,7 @@ const { data, error } = await auth.supabase
   .from("pets")
   .delete()
   .eq("id", petId)
-  .eq("owner_id", auth.user.id)   // ownership check
+  .eq("owner_id", auth.user.id) // ownership check
   .select()
   .maybeSingle();
 
@@ -123,6 +126,7 @@ return NextResponse.json({ success: true });
 ```
 
 **Files to modify:**
+
 - `app/api/pets/route.ts`
 
 ---
@@ -159,7 +163,9 @@ export async function PUT(request: NextRequest) {
   if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const body = await request.json();
@@ -176,7 +182,7 @@ export async function PUT(request: NextRequest) {
       resolution_status: result.data.resolution,
     })
     .eq("id", result.data.alertId)
-    .eq("owner_id", user.id)   // ownership check
+    .eq("owner_id", user.id) // ownership check
     .select()
     .maybeSingle();
 
@@ -187,6 +193,7 @@ export async function PUT(request: NextRequest) {
 ```
 
 **Files to modify:**
+
 - `lib/validations.ts`
 - `app/api/sos/route.ts`
 
@@ -217,6 +224,7 @@ p_image_url: result.data.image_url ?? null,
 ```
 
 **Files to modify:**
+
 - `lib/validations.ts`
 - `app/api/feedback/route.ts`
 
@@ -230,22 +238,21 @@ p_image_url: result.data.image_url ?? null,
 
 ```typescript
 // lib/validations.ts — replace parasiteLogSchema
-export const parasiteLogSchema = z.object({
-  pet_id: z.string().uuid(),
-  medicine_name: z.string().max(200).nullable(),
-  administered_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
-  next_due_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
-}).refine(
-  (data) => data.next_due_date >= data.administered_date,
-  { message: "Next due date must be after administered date", path: ["next_due_date"] }
-);
+export const parasiteLogSchema = z
+  .object({
+    pet_id: z.string().uuid(),
+    medicine_name: z.string().max(200).nullable(),
+    administered_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+    next_due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  })
+  .refine((data) => data.next_due_date >= data.administered_date, {
+    message: "Next due date must be after administered date",
+    path: ["next_due_date"],
+  });
 ```
 
 **Files to modify:**
+
 - `lib/validations.ts`
 
 ---
@@ -278,7 +285,8 @@ const signIn = async (email: string, password: string) => {
 // components/auth-provider.tsx — update AuthContextType interface (line 12)
 
 // Before:
-signIn: (email: string, password: string) => Promise<{ error: Error | null; isUserNotFound?: boolean }>;
+signIn: (email: string, password: string) =>
+  Promise<{ error: Error | null; isUserNotFound?: boolean }>;
 
 // After:
 signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -290,17 +298,14 @@ signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
 // Before:
 if (isLogin) {
   const { error, isUserNotFound } = await signIn(email, password);
-  
+
   if (isUserNotFound) {
     setIsLogin(false);
-    showToast(
-      "No account found with this email. Let's create one for you!",
-      "info"
-    );
+    showToast("No account found with this email. Let's create one for you!", "info");
     setLoading(false);
     return;
   }
-  
+
   if (error) {
     showToast(error.message, "error");
   }
@@ -316,6 +321,7 @@ if (isLogin) {
 ```
 
 **Files to modify:**
+
 - `components/auth-provider.tsx`
 - `components/auth-form.tsx`
 
@@ -333,6 +339,7 @@ if (!user) return <AuthForm />;
 ```
 
 **Files to modify:**
+
 - `app/profile/page.tsx`
 
 ---
@@ -349,6 +356,7 @@ Dead variables and `console.log` calls left in production code expose internal s
 Read each file before editing to confirm current line numbers, as prior PRPs may have shifted them.
 
 **Files to modify:**
+
 - `components/edit-pet-form.tsx`
 - `lib/db.ts`
 - `app/pets/page.tsx`
@@ -372,6 +380,7 @@ npm run build
 ```
 
 **Files to modify:**
+
 - `package.json` (version bumped automatically by npm)
 
 ---
@@ -454,7 +463,7 @@ npm audit
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-05 | Initial PRP — 9 tasks across 3 phases, based on Guardian audit findings |
-| v1.1 | 2026-04-05 | Validation fixes: Supabase `.delete()` uses `.select().maybeSingle()` instead of `count`; task 5.6 targets exact code in both `auth-provider.tsx` + `auth-form.tsx`; DELETE curl uses JSON body; `photo_url` addition noted as bug fix; `resolveAlertSchema` import added; `console.log` vs `console.error` scope clarified |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                     |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0    | 2026-04-05 | Initial PRP — 9 tasks across 3 phases, based on Guardian audit findings                                                                                                                                                                                                                                                     |
+| v1.1    | 2026-04-05 | Validation fixes: Supabase `.delete()` uses `.select().maybeSingle()` instead of `count`; task 5.6 targets exact code in both `auth-provider.tsx` + `auth-form.tsx`; DELETE curl uses JSON body; `photo_url` addition noted as bug fix; `resolveAlertSchema` import added; `console.log` vs `console.error` scope clarified |

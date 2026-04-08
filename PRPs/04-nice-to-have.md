@@ -13,11 +13,13 @@ A dead route, external CDN dependency for map icons, and zero test infrastructur
 ## Scope — 3 Quick Tasks Only
 
 **In scope:**
+
 - Delete dead `app/feed/page.tsx` (mock data, no links point to it)
 - Bundle Leaflet icons locally (remove unpkg.com CDN dependency)
 - Install Vitest + 1 smoke test (prove test tooling works)
 
 **Deferred to future PRPs:**
+
 - Hospital DB migration (high-risk, needs own PRP)
 - Full test suite (massive effort, needs own PRP)
 - PWA support (needs research, `next-pwa` unmaintained)
@@ -40,6 +42,7 @@ A dead route, external CDN dependency for map icons, and zero test infrastructur
 - [ ] Verify no broken links
 
 **Verification:**
+
 ```bash
 grep -r '"/feed"' app/ components/ --include="*.tsx"
 # Expected: only /feedback references, no /feed
@@ -55,6 +58,7 @@ grep -r '"/feed"' app/ components/ --include="*.tsx"
 - [ ] Update `hospital-map.tsx` to use local paths
 
 **Current code (hospital-map.tsx:13-16):**
+
 ```typescript
 const defaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -62,6 +66,7 @@ const defaultIcon = L.icon({
 ```
 
 **After:**
+
 ```typescript
 const defaultIcon = L.icon({
   iconUrl: "/leaflet/marker-icon.png",
@@ -69,6 +74,7 @@ const defaultIcon = L.icon({
 ```
 
 **Download commands:**
+
 ```bash
 mkdir -p public/leaflet
 curl -o public/leaflet/marker-icon.png "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
@@ -79,9 +85,11 @@ curl -o public/leaflet/marker-shadow.png "https://unpkg.com/leaflet@1.9.4/dist/i
 Note: Download from `leaflet@1.9.4` (matching the installed version), not `1.7.1` (the outdated URL in the code).
 
 **Files to modify:**
+
 - `components/hospital-map.tsx`
 
 **Files to create:**
+
 - `public/leaflet/marker-icon.png`
 - `public/leaflet/marker-icon-2x.png`
 - `public/leaflet/marker-shadow.png`
@@ -99,6 +107,7 @@ Set up test infrastructure and prove it works with a single test. Actual test wr
 - [ ] Verify `npm test` passes
 
 **vitest.config.ts:**
+
 ```typescript
 import { defineConfig } from "vitest/config";
 import path from "path";
@@ -116,19 +125,40 @@ export default defineConfig({
 });
 ```
 
-**__tests__/validations.test.ts:**
+****tests**/validations.test.ts:**
+
 ```typescript
 import { describe, it, expect } from "vitest";
 import { petSchema, imageFileSchema, feedbackSchema } from "@/lib/validations";
 
 describe("petSchema", () => {
   it("rejects empty name", () => {
-    const result = petSchema.safeParse({ name: "", species: null, breed: null, sex: null, color: null, weight_kg: null, date_of_birth: null, microchip_number: null, special_notes: null });
+    const result = petSchema.safeParse({
+      name: "",
+      species: null,
+      breed: null,
+      sex: null,
+      color: null,
+      weight_kg: null,
+      date_of_birth: null,
+      microchip_number: null,
+      special_notes: null,
+    });
     expect(result.success).toBe(false);
   });
 
   it("accepts valid pet", () => {
-    const result = petSchema.safeParse({ name: "Luna", species: "Dog", breed: "Golden", sex: "Female", color: "Gold", weight_kg: 25, date_of_birth: "2020-01-01", microchip_number: null, special_notes: null });
+    const result = petSchema.safeParse({
+      name: "Luna",
+      species: "Dog",
+      breed: "Golden",
+      sex: "Female",
+      color: "Gold",
+      weight_kg: 25,
+      date_of_birth: "2020-01-01",
+      microchip_number: null,
+      special_notes: null,
+    });
     expect(result.success).toBe(true);
   });
 });
@@ -164,10 +194,12 @@ describe("feedbackSchema", () => {
 ```
 
 **Files to create:**
+
 - `vitest.config.ts`
 - `__tests__/validations.test.ts`
 
 **Files to modify:**
+
 - `package.json` — add test deps + script
 
 ---
@@ -207,7 +239,7 @@ npx tsc --noEmit
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-04 | Initial PRP — 5 tasks covering hospital migration, dead code, tests, PWA, Leaflet icons |
-| v2.0 | 2026-04-05 | Major revision: reduced to 3 quick tasks. Deferred hospital migration, full tests, PWA, lazy LocationProvider. Kept dark mode CSS. Added code templates, download commands, smoke test, verification commands |
+| Version | Date       | Changes                                                                                                                                                                                                       |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0    | 2026-04-04 | Initial PRP — 5 tasks covering hospital migration, dead code, tests, PWA, Leaflet icons                                                                                                                       |
+| v2.0    | 2026-04-05 | Major revision: reduced to 3 quick tasks. Deferred hospital migration, full tests, PWA, lazy LocationProvider. Kept dark mode CSS. Added code templates, download commands, smoke test, verification commands |

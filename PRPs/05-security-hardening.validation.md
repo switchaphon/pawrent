@@ -11,6 +11,7 @@
 ### 1. [CRITICAL] Task 5.2 — `.delete()` does NOT return `count` by default
 
 **PRP code:**
+
 ```ts
 const { error, count } = await auth.supabase
   .from("pets")
@@ -24,6 +25,7 @@ if (count === 0) return NextResponse.json({ error: "Pet not found" }, { status: 
 **Problem:** Supabase JS `.delete()` returns `{ data: null, error }` — `count` is `undefined`, not `0`. The 404 check silently passes, defeating the purpose.
 
 **Fix:** Chain `.select()` after `.delete()` to get the deleted rows back:
+
 ```ts
 const { data, error } = await auth.supabase
   .from("pets")
@@ -43,12 +45,14 @@ return NextResponse.json({ success: true });
 ### 2. [CRITICAL] Task 5.6 — Code sample doesn't match actual auth-form pattern
 
 **PRP shows (approximate):**
+
 ```ts
 if (error.message.includes("No account found") || error.message.includes("Invalid login")) {
   setMode("signup");
 ```
 
 **Actual code (`auth-form.tsx:41-53`):**
+
 ```ts
 const { error, isUserNotFound } = await signIn(email, password);
 if (isUserNotFound) {
@@ -60,6 +64,7 @@ if (isUserNotFound) {
 ```
 
 The `isUserNotFound` flag is derived in `auth-provider.tsx:62`:
+
 ```ts
 const isUserNotFound = error?.message?.includes("Invalid login credentials") ?? false;
 ```
@@ -67,6 +72,7 @@ const isUserNotFound = error?.message?.includes("Invalid login credentials") ?? 
 **Problem:** Supabase returns "Invalid login credentials" for BOTH wrong password AND non-existent user. The current code treats ALL login failures as "user not found" — which is the root cause of the enumeration issue.
 
 **Fix must target two files:**
+
 1. `auth-provider.tsx:62` — remove `isUserNotFound` derivation (or always return `false`)
 2. `auth-form.tsx:44-52` — remove the `isUserNotFound` branch entirely, let the generic `if (error)` on line 55 handle all login failures with `error.message`
 
@@ -75,16 +81,19 @@ const isUserNotFound = error?.message?.includes("Invalid login credentials") ?? 
 ### 3. [CRITICAL] Verification curl for DELETE uses query params, but handler reads from body
 
 **PRP verification section:**
+
 ```bash
 curl -X DELETE "http://localhost:3000/api/pets?id=<victim_pet_id>" ...
 ```
 
 **Actual handler (`api/pets/route.ts:67`):**
+
 ```ts
 const { petId } = await request.json();
 ```
 
 **Fix:** Curl must send JSON body:
+
 ```bash
 curl -X DELETE http://localhost:3000/api/pets \
   -H "Authorization: Bearer <other_user_token>" \

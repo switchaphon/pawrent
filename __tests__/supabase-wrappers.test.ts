@@ -126,21 +126,22 @@ describe("lib/supabase-server.ts (server client)", () => {
     );
 
     // Verify cookie handlers work
-    const cookieConfig = mockCreateServerClient.mock.calls[0][2];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cookieConfig = (mockCreateServerClient.mock.calls[0] as any[])[2];
     const cookies = cookieConfig.cookies.getAll();
     expect(cookies).toEqual([{ name: "sb-token", value: "abc" }]);
 
     // setAll should call cookieStore.set for each cookie
-    cookieConfig.cookies.setAll([
-      { name: "token", value: "xyz", options: { path: "/" } },
-    ]);
+    cookieConfig.cookies.setAll([{ name: "token", value: "xyz", options: { path: "/" } }]);
     expect(mockCookieStore.set).toHaveBeenCalledWith("token", "xyz", { path: "/" });
   });
 
   it("setAll silently catches errors in Server Components", async () => {
     const mockCookieStore = {
       getAll: vi.fn(() => []),
-      set: vi.fn(() => { throw new Error("Read-only cookies"); }),
+      set: vi.fn(() => {
+        throw new Error("Read-only cookies");
+      }),
     };
 
     vi.doMock("next/headers", () => ({
@@ -155,7 +156,8 @@ describe("lib/supabase-server.ts (server client)", () => {
     const { createClient } = await import("@/lib/supabase-server");
     await createClient();
 
-    const cookieConfig = mockCreateServerClient.mock.calls[0][2];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cookieConfig = (mockCreateServerClient.mock.calls[0] as any[])[2];
 
     // Should not throw — catches the error silently
     expect(() => {

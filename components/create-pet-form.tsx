@@ -118,7 +118,6 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
         if (uploadError) {
           console.error("Photo upload error:", uploadError);
         } else if (url) {
-          
           // Update pet with photo URL via API
           await apiFetch("/api/pets", {
             method: "PUT",
@@ -174,160 +173,151 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
               <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
                 <Camera className="w-4 h-4" />
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
             </label>
           </div>
           <p className="text-xs text-center text-muted-foreground">Tap to add & crop photo</p>
 
-        {/* Name */}
-        <div className="space-y-2">
-          <Label htmlFor="name">Pet Name *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g., Fido"
-            className="h-12 rounded-xl"
-            required
-          />
-        </div>
+          {/* Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Pet Name *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Fido"
+              className="h-12 rounded-xl"
+              required
+            />
+          </div>
 
-        {/* Species */}
-        <div className="space-y-2">
-          <Label>Species</Label>
-          <SearchableSelect
-            value={formData.species}
-            onChange={(value) => setFormData({ ...formData, species: value, breed: "" })}
-            options={speciesData.species.map((s) => s.name)}
-            placeholder="Select species..."
-          />
-        </div>
+          {/* Species */}
+          <div className="space-y-2">
+            <Label>Species</Label>
+            <SearchableSelect
+              value={formData.species}
+              onChange={(value) => setFormData({ ...formData, species: value, breed: "" })}
+              options={speciesData.species.map((s) => s.name)}
+              placeholder="Select species..."
+            />
+          </div>
 
-        {/* Breed */}
-        <div className="space-y-2">
-          <Label>Breed</Label>
-          <SearchableSelect
-            value={formData.breed}
-            onChange={(value) => setFormData({ ...formData, breed: value })}
-            options={getBreedOptions(formData.species)}
-            placeholder={formData.species ? "Select breed..." : "Select species first"}
-          />
-        </div>
+          {/* Breed */}
+          <div className="space-y-2">
+            <Label>Breed</Label>
+            <SearchableSelect
+              value={formData.breed}
+              onChange={(value) => setFormData({ ...formData, breed: value })}
+              options={getBreedOptions(formData.species)}
+              placeholder={formData.species ? "Select breed..." : "Select species first"}
+            />
+          </div>
 
-        {/* Sex */}
-        <div className="space-y-2">
-          <Label>Sex</Label>
-          <div className="flex gap-2">
-            {["Male", "Female"].map((sex) => (
-              <button
-                key={sex}
+          {/* Sex */}
+          <div className="space-y-2">
+            <Label>Sex</Label>
+            <div className="flex gap-2">
+              {["Male", "Female"].map((sex) => (
+                <button
+                  key={sex}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, sex })}
+                  className={`flex-1 h-12 rounded-xl border-2 font-medium transition-colors ${
+                    formData.sex === sex
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-gray-200 bg-white text-foreground hover:border-gray-300"
+                  }`}
+                >
+                  {sex === "Male" ? "♂" : "♀"} {sex}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color */}
+          <div className="space-y-2">
+            <Label htmlFor="color">Color</Label>
+            <Input
+              id="color"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              placeholder="e.g., Golden, Black, White"
+              className="h-12 rounded-xl"
+            />
+          </div>
+
+          {/* Weight & DOB */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input
+                id="weight"
+                type="number"
+                step="0.1"
+                value={formData.weight_kg}
+                onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
+                placeholder="e.g., 12.5"
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dob">Date of Birth</Label>
+              <Input
+                id="dob"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                className="h-12 rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* Microchip */}
+          <div className="space-y-2">
+            <Label htmlFor="microchip">Microchip ID</Label>
+            <Input
+              id="microchip"
+              value={formData.microchip_number}
+              onChange={(e) => setFormData({ ...formData, microchip_number: e.target.value })}
+              placeholder="e.g., 123456789012345"
+              className="h-12 rounded-xl font-mono"
+            />
+          </div>
+
+          {/* Special Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Special Notes / Marks</Label>
+            <textarea
+              id="notes"
+              value={formData.special_notes}
+              onChange={(e) => setFormData({ ...formData, special_notes: e.target.value })}
+              placeholder="e.g., White patch on chest, shy around strangers"
+              className="w-full h-20 px-3 py-2 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            {onCancel && (
+              <Button
                 type="button"
-                onClick={() => setFormData({ ...formData, sex })}
-                className={`flex-1 h-12 rounded-xl border-2 font-medium transition-colors ${
-                  formData.sex === sex
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-gray-200 bg-white text-foreground hover:border-gray-300"
-                }`}
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1 h-12 rounded-xl"
               >
-                {sex === "Male" ? "♂" : "♀"} {sex}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Color */}
-        <div className="space-y-2">
-          <Label htmlFor="color">Color</Label>
-          <Input
-            id="color"
-            value={formData.color}
-            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-            placeholder="e.g., Golden, Black, White"
-            className="h-12 rounded-xl"
-          />
-        </div>
-
-        {/* Weight & DOB */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="weight">Weight (kg)</Label>
-            <Input
-              id="weight"
-              type="number"
-              step="0.1"
-              value={formData.weight_kg}
-              onChange={(e) => setFormData({ ...formData, weight_kg: e.target.value })}
-              placeholder="e.g., 12.5"
-              className="h-12 rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="dob">Date of Birth</Label>
-            <Input
-              id="dob"
-              type="date"
-              value={formData.date_of_birth}
-              onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-              className="h-12 rounded-xl"
-            />
-          </div>
-        </div>
-
-        {/* Microchip */}
-        <div className="space-y-2">
-          <Label htmlFor="microchip">Microchip ID</Label>
-          <Input
-            id="microchip"
-            value={formData.microchip_number}
-            onChange={(e) => setFormData({ ...formData, microchip_number: e.target.value })}
-            placeholder="e.g., 123456789012345"
-            className="h-12 rounded-xl font-mono"
-          />
-        </div>
-
-        {/* Special Notes */}
-        <div className="space-y-2">
-          <Label htmlFor="notes">Special Notes / Marks</Label>
-          <textarea
-            id="notes"
-            value={formData.special_notes}
-            onChange={(e) => setFormData({ ...formData, special_notes: e.target.value })}
-            placeholder="e.g., White patch on chest, shy around strangers"
-            className="w-full h-20 px-3 py-2 rounded-xl border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-4">
-          {onCancel && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="flex-1 h-12 rounded-xl"
-            >
-              Cancel
-            </Button>
-          )}
-          <Button
-            type="submit"
-            disabled={loading}
-            className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              "Add Pet"
+                Cancel
+              </Button>
             )}
-          </Button>
-        </div>
-      </form>
-    </Card>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Add Pet"}
+            </Button>
+          </div>
+        </form>
+      </Card>
     </>
   );
 }

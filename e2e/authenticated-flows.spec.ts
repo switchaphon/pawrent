@@ -34,7 +34,9 @@ test.describe("Authenticated user flows", () => {
   test("can access /profile page", async ({ page }) => {
     await page.goto("/profile");
     await expect(page).toHaveURL(/\/profile/);
-    await expect(page.locator('input[type="email"], [data-testid="profile"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('input[type="email"], [data-testid="profile"]')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("can navigate between pages via bottom nav", async ({ page }) => {

@@ -45,7 +45,10 @@ function FeedContent() {
     setLoading(false);
 
     if (user && data && data.length > 0) {
-      getUserLikes(user.id, data.map((p: FeedPost) => p.id)).then(({ data: liked }) => {
+      getUserLikes(
+        user.id,
+        data.map((p: FeedPost) => p.id)
+      ).then(({ data: liked }) => {
         setLikedPosts(new Set(liked));
       });
     }
@@ -63,11 +66,11 @@ function FeedContent() {
       isLiked ? next.delete(postId) : next.add(postId);
       return next;
     });
-    setPosts(posts.map((p) =>
-      p.id === postId
-        ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) }
-        : p
-    ));
+    setPosts(
+      posts.map((p) =>
+        p.id === postId ? { ...p, likes_count: p.likes_count + (isLiked ? -1 : 1) } : p
+      )
+    );
 
     try {
       const { likes_count: newCount } = await apiFetch("/api/posts/like", {
@@ -75,9 +78,7 @@ function FeedContent() {
         body: JSON.stringify({ postId }),
       });
       if (newCount !== undefined) {
-        setPosts(posts.map((p) =>
-          p.id === postId ? { ...p, likes_count: newCount } : p
-        ));
+        setPosts(posts.map((p) => (p.id === postId ? { ...p, likes_count: newCount } : p)));
       }
     } catch {
       // Revert on error
@@ -86,14 +87,13 @@ function FeedContent() {
         isLiked ? next.add(postId) : next.delete(postId);
         return next;
       });
-      setPosts(posts.map((p) =>
-        p.id === postId ? { ...p, likes_count: post.likes_count } : p
-      ));
+      setPosts(posts.map((p) => (p.id === postId ? { ...p, likes_count: post.likes_count } : p)));
     }
   };
 
   useEffect(() => {
-    fetchPosts();
+    void fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatTime = (dateStr: string) => {
@@ -143,7 +143,7 @@ function FeedContent() {
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">No posts yet</h2>
             <p className="text-muted-foreground mb-6">
-              Be the first to share your pet's moment!
+              Be the first to share your pet&apos;s moment!
             </p>
           </div>
         ) : (
@@ -160,7 +160,9 @@ function FeedContent() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">{post.pets?.name || "Pet Parent"}</p>
-                  <p className="text-xs text-muted-foreground">{post.pets?.breed || ""} • {formatTime(post.created_at)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {post.pets?.breed || ""} • {formatTime(post.created_at)}
+                  </p>
                 </div>
               </div>
 
@@ -175,7 +177,9 @@ function FeedContent() {
                   onClick={() => handleLike(post.id)}
                   className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  <Heart className={`w-6 h-6 ${likedPosts.has(post.id) ? "fill-destructive text-destructive" : ""}`} />
+                  <Heart
+                    className={`w-6 h-6 ${likedPosts.has(post.id) ? "fill-destructive text-destructive" : ""}`}
+                  />
                   <span className="font-semibold">{post.likes_count}</span>
                 </button>
                 {post.caption && (

@@ -8,36 +8,38 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup & Preparation | 2 | ⬜ Not Started |
-| P1 | TypeScript Type Fix | 2 | ⬜ Not Started |
-| P2 | Database — CASCADE Constraints | 3 | ⬜ Not Started |
-| P3 | Database — RLS Policies | 5 | ⬜ Not Started |
-| P4 | Storage Bucket Policies | 4 | ⬜ Not Started |
-| P5 | Auth Middleware + Cleanup | 5 | ⬜ Not Started |
+| Phase | Description                    | Tasks | Status         |
+| ----- | ------------------------------ | ----- | -------------- |
+| P0    | Setup & Preparation            | 2     | ⬜ Not Started |
+| P1    | TypeScript Type Fix            | 2     | ⬜ Not Started |
+| P2    | Database — CASCADE Constraints | 3     | ⬜ Not Started |
+| P3    | Database — RLS Policies        | 5     | ⬜ Not Started |
+| P4    | Storage Bucket Policies        | 4     | ⬜ Not Started |
+| P5    | Auth Middleware + Cleanup      | 5     | ⬜ Not Started |
 
 ---
 
 ## Phase 0: Setup & Preparation
+
 **Complexity:** Low | **Risk:** None
 
 ### Tasks
 
 - [ ] **P0.T1:** Initialize git repository
-      ```bash
-      cd /Users/switchaphon/recovered-pawrent/src
-      git init && git add -A && git commit -m "initial: recovered pawrent codebase"
-      ```
+      `bash
+    cd /Users/switchaphon/recovered-pawrent/src
+    git init && git add -A && git commit -m "initial: recovered pawrent codebase"
+    `
       Verify: `git log --oneline -1` shows initial commit
 
 - [ ] **P0.T2:** Create feature branch
-      ```bash
-      git checkout -b feature/critical-security-fixes
-      ```
+      `bash
+    git checkout -b feature/critical-security-fixes
+    `
       Verify: `git branch --show-current` → `feature/critical-security-fixes`
 
 ### Validation Gate
+
 ```bash
 git branch --show-current | grep "feature/critical-security-fixes"
 ```
@@ -45,6 +47,7 @@ git branch --show-current | grep "feature/critical-security-fixes"
 ---
 
 ## Phase 1: TypeScript Type Fix
+
 **Complexity:** Low | **Risk:** None — additive change only
 
 ### Tasks
@@ -56,17 +59,19 @@ git branch --show-current | grep "feature/critical-security-fixes"
       Verify: File contains the new field
 
 - [ ] **P1.T2:** Verify TypeScript compiles cleanly
-      ```bash
-      npx tsc --noEmit
-      ```
+      `bash
+    npx tsc --noEmit
+    `
       Verify: Exit code 0, no errors
 
 ### Validation Gate
+
 ```bash
 npx tsc --noEmit && echo "PASS: TypeScript clean"
 ```
 
 ### Commit Point
+
 ```bash
 git add lib/types.ts && git commit -m "fix: add resolution_status to SOSAlert type
 
@@ -76,6 +81,7 @@ Aligns TypeScript interface with existing DB column used in db.ts:161 and db.ts:
 ---
 
 ## Phase 2: Database — CASCADE Constraints
+
 **Complexity:** Medium | **Risk:** Medium — modifying FK constraints on live data
 **Rollback:** Re-run with `ON DELETE NO ACTION` instead of `ON DELETE CASCADE`
 
@@ -83,11 +89,11 @@ Aligns TypeScript interface with existing DB column used in db.ts:161 and db.ts:
 
 - [ ] **P2.T1:** Discover actual FK constraint names
       Action: Run in Supabase Dashboard > SQL Editor:
-      ```sql
-      SELECT conname, conrelid::regclass, confrelid::regclass
-      FROM pg_constraint
-      WHERE confrelid = 'pets'::regclass AND contype = 'f';
-      ```
+      `sql
+    SELECT conname, conrelid::regclass, confrelid::regclass
+    FROM pg_constraint
+    WHERE confrelid = 'pets'::regclass AND contype = 'f';
+    `
       Depends on: P0.T1
       Verify: Returns list of constraint names for all 6 child tables
       **IMPORTANT:** Record the actual constraint names. If they differ from `{table}_pet_id_fkey`, update the SQL in P2.T2 before running.
@@ -96,9 +102,9 @@ Aligns TypeScript interface with existing DB column used in db.ts:161 and db.ts:
       Action: Run in Supabase Dashboard > SQL Editor (adjust constraint names from P2.T1 if needed):
       ```sql
       ALTER TABLE vaccinations
-        DROP CONSTRAINT IF EXISTS vaccinations_pet_id_fkey,
-        ADD CONSTRAINT vaccinations_pet_id_fkey
-          FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE;
+      DROP CONSTRAINT IF EXISTS vaccinations_pet_id_fkey,
+      ADD CONSTRAINT vaccinations_pet_id_fkey
+      FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE;
 
       ALTER TABLE parasite_logs
         DROP CONSTRAINT IF EXISTS parasite_logs_pet_id_fkey,
@@ -133,10 +139,10 @@ Aligns TypeScript interface with existing DB column used in db.ts:161 and db.ts:
       Action: Replace the manual cascade deletion with:
       ```typescript
       export async function deletePet(petId: string) {
-        const { error } = await supabase
-          .from("pets")
-          .delete()
-          .eq("id", petId);
+      const { error } = await supabase
+      .from("pets")
+      .delete()
+      .eq("id", petId);
 
         if (error) {
           console.error("Error deleting pet:", error.message);
@@ -149,6 +155,7 @@ Aligns TypeScript interface with existing DB column used in db.ts:161 and db.ts:
       Verify: `npx tsc --noEmit` passes
 
 ### Validation Gate
+
 ```bash
 # TypeScript still clean after db.ts change
 npx tsc --noEmit && echo "PASS"
@@ -160,6 +167,7 @@ npx tsc --noEmit && echo "PASS"
 ```
 
 ### Commit Point
+
 ```bash
 git add lib/db.ts && git commit -m "fix: simplify deletePet with ON DELETE CASCADE
 
@@ -171,8 +179,10 @@ transaction safety."
 ---
 
 ## Phase 3: Database — RLS Policies
+
 **Complexity:** High | **Risk:** High — incorrect policies break the entire app
 **Rollback:**
+
 ```sql
 ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE pets DISABLE ROW LEVEL SECURITY;
@@ -206,7 +216,7 @@ ALTER TABLE feedback DISABLE ROW LEVEL SECURITY;
       Action: In browser, log in as User A. Open browser devtools Console:
       ```javascript
       // Should return only User A's pets
-      const { data } = await supabase.from("pets").select("*");
+      const { data } = await supabase.from("pets").select("\*");
       console.log("My pets:", data?.length);
 
       // Should return empty for User B's pet ID
@@ -217,15 +227,16 @@ ALTER TABLE feedback DISABLE ROW LEVEL SECURITY;
       Verify: Own data visible, other user's data empty
 
 - [ ] **P3.T5:** Test unauthenticated access blocked
-      ```bash
-      # Should return empty array (not data)
-      curl -s "https://qzwoycjitecuhucpskyu.supabase.co/rest/v1/profiles?select=*&limit=1" \
-        -H "apikey: sb_publishable__l0ZlkEG1jKi4TDF-39BVA_YLCRdmOL"
-      ```
+      `bash
+    # Should return empty array (not data)
+    curl -s "https://qzwoycjitecuhucpskyu.supabase.co/rest/v1/profiles?select=*&limit=1" \
+      -H "apikey: sb_publishable__l0ZlkEG1jKi4TDF-39BVA_YLCRdmOL"
+    `
       Depends on: P3.T3
       Verify: Returns `[]`
 
 ### Validation Gate
+
 ```bash
 # Unauthenticated read returns empty
 RESULT=$(curl -s "https://qzwoycjitecuhucpskyu.supabase.co/rest/v1/pets?select=id&limit=1" \
@@ -238,39 +249,30 @@ echo "$RESULT" | grep -q '^\[\]$' && echo "PASS: RLS blocking unauthenticated" |
 ---
 
 ## Phase 4: Storage Bucket Policies
+
 **Complexity:** Low | **Risk:** Low — additive policies
 **Rollback:** Remove policies via Dashboard > Storage > Policies
 
 ### Tasks
 
 - [ ] **P4.T1:** Set `user-photos` bucket policy
-      Action: Supabase Dashboard > Storage > user-photos > Policies
-      - SELECT: `auth.role() = 'authenticated'` (authenticated can read all — avatars are public)
-      - INSERT: `auth.uid()::text = (storage.foldername(name))[2]` (can only upload to own `avatars/{user_id}` path)
-      - UPDATE: same as INSERT
-      - DELETE: same as INSERT
+      Action: Supabase Dashboard > Storage > user-photos > Policies - SELECT: `auth.role() = 'authenticated'` (authenticated can read all — avatars are public) - INSERT: `auth.uid()::text = (storage.foldername(name))[2]` (can only upload to own `avatars/{user_id}` path) - UPDATE: same as INSERT - DELETE: same as INSERT
       Verify: Upload own avatar succeeds; cannot overwrite another user's avatar
 
 - [ ] **P4.T2:** Set `pet-photos` bucket policy
-      Action: Supabase Dashboard > Storage > pet-photos > Policies
-      - SELECT: `auth.role() = 'authenticated'`
-      - INSERT: `auth.role() = 'authenticated'`
-      - DELETE: `auth.role() = 'authenticated'`
+      Action: Supabase Dashboard > Storage > pet-photos > Policies - SELECT: `auth.role() = 'authenticated'` - INSERT: `auth.role() = 'authenticated'` - DELETE: `auth.role() = 'authenticated'`
       Verify: Authenticated user can upload pet photos
 
 - [ ] **P4.T3:** Set `sos-videos` bucket policy
-      Action: Supabase Dashboard > Storage > sos-videos > Policies
-      - SELECT: `auth.role() = 'authenticated'` (all can view SOS videos)
-      - INSERT: `auth.role() = 'authenticated'`
+      Action: Supabase Dashboard > Storage > sos-videos > Policies - SELECT: `auth.role() = 'authenticated'` (all can view SOS videos) - INSERT: `auth.role() = 'authenticated'`
       Verify: Can upload and view SOS videos when authenticated
 
 - [ ] **P4.T4:** Set `feedback-images` bucket policy
-      Action: Supabase Dashboard > Storage > feedback-images > Policies
-      - INSERT: `auth.role() = 'authenticated'`
-      - No SELECT policy (admin only)
+      Action: Supabase Dashboard > Storage > feedback-images > Policies - INSERT: `auth.role() = 'authenticated'` - No SELECT policy (admin only)
       Verify: Can upload feedback image; direct URL access blocked for non-admins
 
 ### Validation Gate
+
 Manual: Upload an avatar, pet photo, and feedback image — all succeed when authenticated.
 
 ### No Commit (Dashboard-only changes)
@@ -278,15 +280,16 @@ Manual: Upload an avatar, pet photo, and feedback image — all succeed when aut
 ---
 
 ## Phase 5: Auth Middleware + Cleanup
+
 **Complexity:** Medium | **Risk:** Medium — incorrect middleware can lock all users out
 **Rollback:** Delete `src/middleware.ts`, restore `<ProtectedRoute>` wrappers
 
 ### Tasks
 
 - [ ] **P5.T1:** Install `@supabase/ssr`
-      ```bash
-      npm install @supabase/ssr
-      ```
+      `bash
+    npm install @supabase/ssr
+    `
       Depends on: P3 complete (RLS must be working before middleware)
       Verify: `npm ls @supabase/ssr` shows installed version
 
@@ -298,21 +301,12 @@ Manual: Upload an avatar, pet photo, and feedback image — all succeed when aut
 
 - [ ] **P5.T3:** Create auth middleware
       Files: `src/middleware.ts` (new — MUST be sibling to `app/`, inside `src/`)
-      Action: Create middleware that:
-      - Refreshes auth session on every request
-      - Redirects unauthenticated users to `/` (home/login)
-      - Excludes: `_next/static`, `_next/image`, `favicon.ico`, `/` itself
+      Action: Create middleware that: - Refreshes auth session on every request - Redirects unauthenticated users to `/` (home/login) - Excludes: `_next/static`, `_next/image`, `favicon.ico`, `/` itself
       Depends on: P5.T2
       Verify: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/pets` returns `307`
 
 - [ ] **P5.T4:** Remove `<ProtectedRoute>` wrappers from all pages
-      Files:
-      - `app/page.tsx` — remove ProtectedRoute wrapper
-      - `app/pets/page.tsx` — remove ProtectedRoute wrapper
-      - `app/sos/page.tsx` — remove ProtectedRoute wrapper
-      - `app/notifications/page.tsx` — remove ProtectedRoute wrapper
-      - `app/profile/page.tsx` — remove ProtectedRoute wrapper
-      - `app/feedback/page.tsx` — check if uses ProtectedRoute
+      Files: - `app/page.tsx` — remove ProtectedRoute wrapper - `app/pets/page.tsx` — remove ProtectedRoute wrapper - `app/sos/page.tsx` — remove ProtectedRoute wrapper - `app/notifications/page.tsx` — remove ProtectedRoute wrapper - `app/profile/page.tsx` — remove ProtectedRoute wrapper - `app/feedback/page.tsx` — check if uses ProtectedRoute
       Depends on: P5.T3 (middleware must be working first)
       Verify: `grep -r "ProtectedRoute" src/app/ --include="*.tsx" -l` returns no results
 
@@ -323,6 +317,7 @@ Manual: Upload an avatar, pet photo, and feedback image — all succeed when aut
       Verify: `npx tsc --noEmit` passes, app loads correctly
 
 ### Validation Gate
+
 ```bash
 # Middleware redirects unauthenticated
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/pets
@@ -337,6 +332,7 @@ npx tsc --noEmit && echo "PASS"
 ```
 
 ### Commit Point
+
 ```bash
 git add -A && git commit -m "feat: add auth middleware, remove ProtectedRoute
 

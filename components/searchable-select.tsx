@@ -65,7 +65,9 @@ export function SearchableSelect({
         <span className={value ? "text-foreground" : "text-muted-foreground"}>
           {value || placeholder}
         </span>
-        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {/* Dropdown */}

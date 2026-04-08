@@ -6,22 +6,25 @@
 **Estimated complexity:** Medium
 
 ## Progress Tracker
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup & Preparation | 3 | ✅ Complete |
-| P1 | High-Priority Route Tests (vaccinations, parasite-logs) | 4 | ✅ Complete |
-| P2 | Medium/Low-Priority Route Tests (pet-photos, profile, hospitals) | 6 | ✅ Complete |
-| P3 | Edge Cases & Boundary Tests | 4 | ✅ Complete |
-| P4 | Coverage Report & Assessment | 5 | ✅ Complete |
+
+| Phase | Description                                                      | Tasks | Status      |
+| ----- | ---------------------------------------------------------------- | ----- | ----------- |
+| P0    | Setup & Preparation                                              | 3     | ✅ Complete |
+| P1    | High-Priority Route Tests (vaccinations, parasite-logs)          | 4     | ✅ Complete |
+| P2    | Medium/Low-Priority Route Tests (pet-photos, profile, hospitals) | 6     | ✅ Complete |
+| P3    | Edge Cases & Boundary Tests                                      | 4     | ✅ Complete |
+| P4    | Coverage Report & Assessment                                     | 5     | ✅ Complete |
 
 ---
 
 ## Phase 0: Setup & Preparation
+
 **Complexity:** Low
 **Risk:** `vitest.setup.ts` could break existing tests if matchers conflict
 **Rollback:** Delete `vitest.setup.ts`, revert `vitest.config.ts` and `package.json`
 
 ### Tasks
+
 - [ ] P0.T1: Install `@vitest/coverage-v8` and add scripts to `package.json`
       Files: `package.json`
       Depends on: —
@@ -38,6 +41,7 @@
       Verify: `npm test` — all 180 existing tests pass; `npm run test:coverage` generates report
 
 ### Validation Gate
+
 ```bash
 npm test && npm run test:coverage
 ```
@@ -45,25 +49,19 @@ npm test && npm run test:coverage
 ---
 
 ## Phase 1: High-Priority Route Tests
+
 **Complexity:** Medium
 **Risk:** Mock chain setup must correctly handle two-table queries (pet ownership check + insert)
 **Rollback:** Delete new test files
 
 ### Tasks
+
 - [ ] P1.T1: Create `__tests__/api-vaccinations.test.ts` (~8 tests)
       Files: `__tests__/api-vaccinations.test.ts` (new)
       Depends on: P0.T3
       Reference: Copy mock pattern from `__tests__/api-pets.test.ts` lines 20-73
       Route: `app/api/vaccinations/route.ts`
-      Test cases:
-        - 401 no auth header
-        - 401 invalid token
-        - 400 invalid schema (bad pet_id, empty name, invalid status)
-        - 400 invalid status enum
-        - 404 pet not owned by user
-        - 200 success with created record
-        - 500 DB insert error
-        - Ownership `.eq("owner_id", userId)` verified
+      Test cases: - 401 no auth header - 401 invalid token - 400 invalid schema (bad pet_id, empty name, invalid status) - 400 invalid status enum - 404 pet not owned by user - 200 success with created record - 500 DB insert error - Ownership `.eq("owner_id", userId)` verified
       Verify: `npx vitest run __tests__/api-vaccinations.test.ts`
 
 - [ ] P1.T2: Create `__tests__/api-parasite-logs.test.ts` (~8 tests)
@@ -71,15 +69,7 @@ npm test && npm run test:coverage
       Depends on: P0.T3
       Reference: Copy mock pattern from `__tests__/api-pets.test.ts` lines 20-73
       Route: `app/api/parasite-logs/route.ts`
-      Test cases:
-        - 401 no auth header
-        - 401 invalid token
-        - 400 bad date format (not YYYY-MM-DD)
-        - 400 next_due_date < administered_date (assert message: "Next due date must be after administered date")
-        - 404 pet not owned by user
-        - 200 success
-        - 500 DB error
-        - Ownership `.eq("owner_id", userId)` verified
+      Test cases: - 401 no auth header - 401 invalid token - 400 bad date format (not YYYY-MM-DD) - 400 next_due_date < administered_date (assert message: "Next due date must be after administered date") - 404 pet not owned by user - 200 success - 500 DB error - Ownership `.eq("owner_id", userId)` verified
       Verify: `npx vitest run __tests__/api-parasite-logs.test.ts`
 
 - [ ] P1.T3: Run full test suite to verify no regressions
@@ -91,6 +81,7 @@ npm test && npm run test:coverage
       Verify: Clean git status
 
 ### Validation Gate
+
 ```bash
 npm test
 # Expected: ~196 tests passing (180 existing + ~16 new)
@@ -99,11 +90,13 @@ npm test
 ---
 
 ## Phase 2: Medium/Low-Priority Route Tests
+
 **Complexity:** Medium-High (pet-photos DELETE has unique join-based ownership mock)
 **Risk:** The `pets!inner(owner_id)` join mock in pet-photos DELETE is more complex than standard patterns
 **Rollback:** Delete new test files
 
 ### Tasks
+
 - [ ] P2.T1: Create `__tests__/api-pet-photos.test.ts` (~11 tests)
       Files: `__tests__/api-pet-photos.test.ts` (new)
       Depends on: P0.T3
@@ -140,6 +133,7 @@ npm test
       Verify: Clean git status
 
 ### Validation Gate
+
 ```bash
 npm test
 # Expected: ~216 tests passing (196 from P1 + ~20 new)
@@ -148,11 +142,13 @@ npm test
 ---
 
 ## Phase 3: Edge Cases & Boundary Tests
+
 **Complexity:** Low
 **Risk:** Some boundary values may already be tested in `validations.test.ts` (74 existing tests) — check before adding duplicates
 **Rollback:** Revert additions to existing test files
 
 ### Tasks
+
 - [ ] P3.T1: Add edge cases to `__tests__/api-pets.test.ts` (~2 tests)
       Files: `__tests__/api-pets.test.ts`
       Depends on: P2.T5
@@ -168,12 +164,7 @@ npm test
 - [ ] P3.T3: Add boundary tests to `__tests__/validations.test.ts` (check existing first, add only missing)
       Files: `__tests__/validations.test.ts`
       Depends on: P2.T5
-      Check & add if missing:
-        - petSchema name at 100 chars (max boundary)
-        - petSchema weight_kg at 500 (max boundary)
-        - sosAlertSchema description at 2000 chars
-        - parasiteLogSchema medicine_name at 200 chars (validations.ts:50)
-        - feedbackSchema message at 5000 chars
+      Check & add if missing: - petSchema name at 100 chars (max boundary) - petSchema weight_kg at 500 (max boundary) - sosAlertSchema description at 2000 chars - parasiteLogSchema medicine_name at 200 chars (validations.ts:50) - feedbackSchema message at 5000 chars
       Verify: `npx vitest run __tests__/validations.test.ts`
 
 - [ ] P3.T4: Run full suite and commit
@@ -181,6 +172,7 @@ npm test
       Verify: `npm test` — all tests pass (~226 total)
 
 ### Validation Gate
+
 ```bash
 npm test
 # Expected: ~226 tests passing
@@ -189,11 +181,13 @@ npm test
 ---
 
 ## Phase 4: Coverage Report & Assessment
+
 **Complexity:** Low (analysis only, no code changes)
 **Risk:** None
 **Rollback:** N/A
 
 ### Tasks
+
 - [ ] P4.T1: Run coverage report
       Depends on: P3.T4
       Verify: `npm run test:coverage` — report generates
@@ -218,6 +212,7 @@ npm test
       Verify: `npm test && npm run test:coverage` — clean pass
 
 ### Validation Gate
+
 ```bash
 npm test && npm run test:coverage
 # Expected: ~226+ tests, coverage report generated
@@ -238,6 +233,7 @@ P0.T1 → P0.T2 → P0.T3 → P1.T1/P1.T2 (parallel) → P1.T3 → P1.T4
 **Longest path:** P0.T1 → P0.T2 → P0.T3 → P1.T1 → P1.T3 → P1.T4 → P2.T1 → P2.T4 → P2.T5 → P3.T1 → P3.T4 → P4.T1 → P4.T5 (13 steps)
 
 **Parallelizable tasks:**
+
 - P1.T1 + P1.T2 (vaccinations & parasite-logs tests — independent)
 - P2.T1 + P2.T2 + P2.T3 (pet-photos, profile, hospitals — independent)
 - P3.T1 + P3.T2 + P3.T3 (edge cases across different files — independent)

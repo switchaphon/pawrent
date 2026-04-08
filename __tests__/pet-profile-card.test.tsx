@@ -17,7 +17,11 @@ vi.mock("@/components/photo-gallery", () => ({
 
 vi.mock("@/components/photo-lightbox", () => ({
   PhotoLightbox: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? <div data-testid="photo-lightbox"><button onClick={onClose}>Close</button></div> : null,
+    isOpen ? (
+      <div data-testid="photo-lightbox">
+        <button onClick={onClose}>Close</button>
+      </div>
+    ) : null,
 }));
 
 import { PetProfileCard } from "@/components/pet-profile-card";
@@ -46,7 +50,9 @@ const defaultProps = {
 };
 
 describe("PetProfileCard", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders pet name", () => {
     render(<PetProfileCard {...defaultProps} />);
@@ -63,7 +69,9 @@ describe("PetProfileCard", () => {
     // Edit button is a small icon button near the pet name — find by class pattern
     const buttons = screen.getAllByRole("button");
     // The edit button has a Pencil icon and bg-gray-100 class
-    const editBtn = buttons.find(b => b.className.includes("bg-gray-100") && b.className.includes("w-8"));
+    const editBtn = buttons.find(
+      (b) => b.className.includes("bg-gray-100") && b.className.includes("w-8")
+    );
     expect(editBtn).toBeTruthy();
     await userEvent.click(editBtn!);
     expect(defaultProps.onEdit).toHaveBeenCalled();
@@ -125,8 +133,9 @@ describe("PetProfileCard", () => {
     Object.assign(navigator, { clipboard: { writeText } });
 
     render(<PetProfileCard {...defaultProps} />);
-    const copyBtn = screen.getByText("123456789012345").closest("button")
-      || screen.getAllByRole("button").find(b => b.textContent?.includes("12345"));
+    const copyBtn =
+      screen.getByText("123456789012345").closest("button") ||
+      screen.getAllByRole("button").find((b) => b.textContent?.includes("12345"));
     if (copyBtn) {
       await userEvent.click(copyBtn);
       await waitFor(() => {

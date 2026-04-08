@@ -126,11 +126,11 @@ export default function NotFound() {
 
 Only **4 occurrences** across 3 files. `remotePatterns` is already configured in `next.config.ts`.
 
-| File | Line | Context | Action |
-|------|------|---------|--------|
-| `app/page.tsx` | ~155 | Pet avatar in feed post header | Replace with `next/image` using `fill` + `object-cover` |
-| `app/page.tsx` | ~168 | Post image (main content) | Replace with `next/image` using `fill` + `object-cover` |
-| `app/pets/page.tsx` | ~501 | Pet photo in detail view | Replace with `next/image` using `fill` + `object-cover` |
+| File                              | Line | Context                        | Action                                                                |
+| --------------------------------- | ---- | ------------------------------ | --------------------------------------------------------------------- |
+| `app/page.tsx`                    | ~155 | Pet avatar in feed post header | Replace with `next/image` using `fill` + `object-cover`               |
+| `app/page.tsx`                    | ~168 | Post image (main content)      | Replace with `next/image` using `fill` + `object-cover`               |
+| `app/pets/page.tsx`               | ~501 | Pet photo in detail view       | Replace with `next/image` using `fill` + `object-cover`               |
 | `components/create-post-form.tsx` | ~104 | Media preview (local blob URL) | Keep as `<img>` — blob URLs don't work with `next/image` optimization |
 
 **Net change: 3 replacements, 1 kept as-is.**
@@ -150,6 +150,7 @@ import Image from "next/image";
 ```
 
 **Files to modify:**
+
 - `app/page.tsx` — 2 replacements
 - `app/pets/page.tsx` — 1 replacement
 
@@ -161,14 +162,14 @@ import Image from "next/image";
 
 The pets page currently has these internal functions:
 
-| Function | Lines | Purpose | Extractable? |
-|----------|-------|---------|-------------|
-| `calculateAge()` | 36-48 | Age from DOB | ✅ Pure utility |
-| `calculateDaysLeft()` | 50-57 | Days until next due | ✅ Pure utility |
-| `formatDate()` | 60-67 | Date formatting | ✅ Pure utility |
-| `sortByDOB()` | 70-77 | Sort pets by DOB | ✅ Pure utility |
-| `VaccineStatusBar` | 85-144 | Vaccine progress bar component | ✅ Self-contained |
-| `PetsContent` | 146-745 | Everything else | ❌ Too complex for now |
+| Function              | Lines   | Purpose                        | Extractable?           |
+| --------------------- | ------- | ------------------------------ | ---------------------- |
+| `calculateAge()`      | 36-48   | Age from DOB                   | ✅ Pure utility        |
+| `calculateDaysLeft()` | 50-57   | Days until next due            | ✅ Pure utility        |
+| `formatDate()`        | 60-67   | Date formatting                | ✅ Pure utility        |
+| `sortByDOB()`         | 70-77   | Sort pets by DOB               | ✅ Pure utility        |
+| `VaccineStatusBar`    | 85-144  | Vaccine progress bar component | ✅ Self-contained      |
+| `PetsContent`         | 146-745 | Everything else                | ❌ Too complex for now |
 
 - [ ] Extract `calculateAge`, `calculateDaysLeft`, `formatDate`, `sortByDOB` to `lib/pet-utils.ts`
 - [ ] Extract `VaccineStatusBar` component to `components/vaccine-status-bar.tsx`
@@ -176,10 +177,12 @@ The pets page currently has these internal functions:
 - [ ] Verify page still works identically
 
 **Files to create:**
+
 - `lib/pet-utils.ts`
 - `components/vaccine-status-bar.tsx`
 
 **Files to modify:**
+
 - `app/pets/page.tsx` — replace inline functions with imports
 
 **Expected result:** Pets page reduced from ~748 to ~640 lines. Full decomposition of `PetsContent` (600+ lines) deferred to a future PRP with proper component boundary analysis.
@@ -194,6 +197,7 @@ PRP-02 added file validation to `create-post-form`, `sos/page`, and `feedback/pa
 - [ ] Add `imageFileSchema` validation to photo gallery upload in `components/photo-gallery.tsx`
 
 **Files to modify:**
+
 - `app/profile/page.tsx` — validate avatar file before `uploadProfileAvatar()`
 - `components/photo-gallery.tsx` — validate image file before `uploadPetGalleryImage()`
 
@@ -238,7 +242,7 @@ grep -n "<img " app/page.tsx app/pets/page.tsx
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-04 | Initial PRP |
-| v2.0 | 2026-04-05 | Major revision: removed duplicate task 3.3 (done in PRP-02), removed wrong alert() replacement, added error.tsx/loading.tsx code templates, simplified pets decomposition to helpers + VaccineStatusBar only, enumerated exact 4 img tags, noted remotePatterns already configured, added task ordering and verification commands |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                           |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0    | 2026-04-04 | Initial PRP                                                                                                                                                                                                                                                                                                                       |
+| v2.0    | 2026-04-05 | Major revision: removed duplicate task 3.3 (done in PRP-02), removed wrong alert() replacement, added error.tsx/loading.tsx code templates, simplified pets decomposition to helpers + VaccineStatusBar only, enumerated exact 4 img tags, noted remotePatterns already configured, added task ordering and verification commands |

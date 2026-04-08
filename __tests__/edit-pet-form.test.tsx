@@ -14,7 +14,9 @@ vi.mock("@/components/auth-provider", () => ({
     user: { id: "user-1" },
     session: { access_token: "fake" },
     loading: false,
-    signIn: vi.fn(), signUp: vi.fn(), signOut: vi.fn(),
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
   }),
 }));
 
@@ -22,20 +24,42 @@ const mockApiFetch = vi.fn();
 vi.mock("@/lib/api", () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }));
 
 const mockUploadPetPhoto = vi.fn();
-vi.mock("@/lib/db", () => ({ uploadPetPhoto: (...args: unknown[]) => mockUploadPetPhoto(...args) }));
+vi.mock("@/lib/db", () => ({
+  uploadPetPhoto: (...args: unknown[]) => mockUploadPetPhoto(...args),
+}));
 
 vi.mock("@/components/image-cropper", () => ({
-  ImageCropper: ({ onCropComplete, onCancel }: { onCropComplete: (b: Blob) => void; onCancel: () => void }) => (
+  ImageCropper: ({
+    onCropComplete,
+    onCancel,
+  }: {
+    onCropComplete: (b: Blob) => void;
+    onCancel: () => void;
+  }) => (
     <div data-testid="image-cropper">
-      <button onClick={() => onCropComplete(new Blob(["img"], { type: "image/jpeg" }))}>Crop</button>
+      <button onClick={() => onCropComplete(new Blob(["img"], { type: "image/jpeg" }))}>
+        Crop
+      </button>
       <button onClick={onCancel}>Cancel Crop</button>
     </div>
   ),
 }));
 
 vi.mock("@/components/searchable-select", () => ({
-  SearchableSelect: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => (
-    <select data-testid={`select-${placeholder}`} value={value} onChange={(e) => onChange(e.target.value)}>
+  SearchableSelect: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+  }) => (
+    <select
+      data-testid={`select-${placeholder}`}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">{placeholder}</option>
       <option value="Dog">Dog</option>
     </select>
@@ -68,7 +92,9 @@ const mockPet = {
 // ---------------------------------------------------------------------------
 
 describe("EditPetForm", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders with pre-filled pet data", () => {
     render(<EditPetForm pet={mockPet} />);

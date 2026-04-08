@@ -137,10 +137,7 @@ export function PhotoGallery({
         {photos.length > 4 && (
           <div className="flex justify-center gap-1.5 mt-3">
             {Array.from({ length: Math.min(5, Math.ceil(photos.length / 3)) }).map((_, i) => (
-              <div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"
-              />
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
             ))}
           </div>
         )}

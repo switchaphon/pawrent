@@ -16,47 +16,48 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 
 ## Scope Comparison
 
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| Phase 1: Test infrastructure | Planned | ✅ Implemented | vitest.setup.ts, coverage config, scripts |
-| Phase 2A: Vaccinations tests | Planned (~8) | ✅ 9 tests | +1 for extra validation case |
-| Phase 2B: Parasite-logs tests | Planned (~8) | ✅ 8 tests | Exact match |
-| Phase 2C: Pet-photos tests | Planned (~11) | ✅ 11 tests | Exact match |
-| Phase 2D: Profile tests | Planned (~6) | ✅ 6 tests | Exact match |
-| Phase 2E: Hospitals tests | Planned (~3) | ✅ 3 tests | Exact match |
-| Phase 3: Edge cases | Planned (~10) | ✅ 7 tests | Boundary tests for SOS + validations |
-| Phase 4: Assessment | Planned | ✅ Completed | Coverage report + recommendations |
-| Shared test helper | Planned then removed | ✅ Correctly skipped | Validation caught this |
-| Component tests (6 priority) | Recommendation | ✅ 6 components | auth-form, create-pet, edit-pet, sos-button, add-vaccine, add-parasite-log |
-| lib/db.ts tests | Recommendation | ✅ 42 tests | Full CRUD, storage, Haversine, RPC |
-| E2E expansion | Recommendation | ✅ 7 spec files | auth-flow, feedback, hospital, offline, bottom-nav, authenticated flows, setup |
-| CI/CD pipeline | Recommendation | ✅ GitHub Actions | lint, test+coverage, build, e2e |
-| Supabase wrapper tests | Not planned | ✅ 5 tests | supabase.ts, supabase-api.ts, supabase-server.ts |
-| Simple component tests | Not planned | ✅ 13 tests | BottomNav, VaccineStatusBar, LocationBanner |
-| Medium component tests | Not planned | ✅ 10 tests | SearchableSelect, HealthTimeline |
-| Complex component tests | Not planned | ✅ 4 tests | CreatePostForm, LocationProvider |
-| Remaining 9 components | Not planned | ✅ 38 tests | pet-card, pet-profile-card, photo-lightbox, image-cropper, map-picker, hospital-map, location-provider, create-post-form |
-| E2E verification run | Not planned | ✅ 46 pass | Chromium + Firefox, 0 failures |
-| CDN fix (map-picker) | PRP-04 leftover | ✅ Fixed | unpkg.com → /leaflet/ local paths |
+| Requirement                   | PRP Status           | Implementation Status | Notes                                                                                                                    |
+| ----------------------------- | -------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Phase 1: Test infrastructure  | Planned              | ✅ Implemented        | vitest.setup.ts, coverage config, scripts                                                                                |
+| Phase 2A: Vaccinations tests  | Planned (~8)         | ✅ 9 tests            | +1 for extra validation case                                                                                             |
+| Phase 2B: Parasite-logs tests | Planned (~8)         | ✅ 8 tests            | Exact match                                                                                                              |
+| Phase 2C: Pet-photos tests    | Planned (~11)        | ✅ 11 tests           | Exact match                                                                                                              |
+| Phase 2D: Profile tests       | Planned (~6)         | ✅ 6 tests            | Exact match                                                                                                              |
+| Phase 2E: Hospitals tests     | Planned (~3)         | ✅ 3 tests            | Exact match                                                                                                              |
+| Phase 3: Edge cases           | Planned (~10)        | ✅ 7 tests            | Boundary tests for SOS + validations                                                                                     |
+| Phase 4: Assessment           | Planned              | ✅ Completed          | Coverage report + recommendations                                                                                        |
+| Shared test helper            | Planned then removed | ✅ Correctly skipped  | Validation caught this                                                                                                   |
+| Component tests (6 priority)  | Recommendation       | ✅ 6 components       | auth-form, create-pet, edit-pet, sos-button, add-vaccine, add-parasite-log                                               |
+| lib/db.ts tests               | Recommendation       | ✅ 42 tests           | Full CRUD, storage, Haversine, RPC                                                                                       |
+| E2E expansion                 | Recommendation       | ✅ 7 spec files       | auth-flow, feedback, hospital, offline, bottom-nav, authenticated flows, setup                                           |
+| CI/CD pipeline                | Recommendation       | ✅ GitHub Actions     | lint, test+coverage, build, e2e                                                                                          |
+| Supabase wrapper tests        | Not planned          | ✅ 5 tests            | supabase.ts, supabase-api.ts, supabase-server.ts                                                                         |
+| Simple component tests        | Not planned          | ✅ 13 tests           | BottomNav, VaccineStatusBar, LocationBanner                                                                              |
+| Medium component tests        | Not planned          | ✅ 10 tests           | SearchableSelect, HealthTimeline                                                                                         |
+| Complex component tests       | Not planned          | ✅ 4 tests            | CreatePostForm, LocationProvider                                                                                         |
+| Remaining 9 components        | Not planned          | ✅ 38 tests           | pet-card, pet-profile-card, photo-lightbox, image-cropper, map-picker, hospital-map, location-provider, create-post-form |
+| E2E verification run          | Not planned          | ✅ 46 pass            | Chromium + Firefox, 0 failures                                                                                           |
+| CDN fix (map-picker)          | PRP-04 leftover      | ✅ Fixed              | unpkg.com → /leaflet/ local paths                                                                                        |
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Unit/component tests | ~226 | 375 | ✅ +66% over target |
-| E2E tests | — | 46 pass (12 skipped) | ✅ |
-| Statement coverage | 70% | 96.48% | ✅ |
-| Line coverage | 70% | 99.73% | ✅ |
-| Function coverage | — | 100% | ✅ |
-| `app/api/**` coverage | 90% | 90-100% per route | ✅ |
-| `lib/**` coverage | 80% | 100% | ✅ |
-| Components tested | 3 priority | 21/21 (100%) | ✅ |
-| Type errors | 0 | 0 | ✅ |
-| E2E browsers | 1 (Chromium) | 2 (Chromium + Firefox) | ✅ |
+| Metric                | Target       | Actual                 | Status              |
+| --------------------- | ------------ | ---------------------- | ------------------- |
+| Unit/component tests  | ~226         | 375                    | ✅ +66% over target |
+| E2E tests             | —            | 46 pass (12 skipped)   | ✅                  |
+| Statement coverage    | 70%          | 96.48%                 | ✅                  |
+| Line coverage         | 70%          | 99.73%                 | ✅                  |
+| Function coverage     | —            | 100%                   | ✅                  |
+| `app/api/**` coverage | 90%          | 90-100% per route      | ✅                  |
+| `lib/**` coverage     | 80%          | 100%                   | ✅                  |
+| Components tested     | 3 priority   | 21/21 (100%)           | ✅                  |
+| Type errors           | 0            | 0                      | ✅                  |
+| E2E browsers          | 1 (Chromium) | 2 (Chromium + Firefox) | ✅                  |
 
 ## Lessons Learned
 
 ### ✅ What Worked
+
 1. **Validation report** caught shared helper over-extraction — per-file mocks worked better
 2. **Priority ordering** (vaccinations → parasite-logs → pet-photos → profile → hospitals) built on previous patterns
 3. **`api-pets.test.ts` as reference** — all 5 API test files adapted it successfully
@@ -64,6 +65,7 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 5. **Boundary-value dedup** saved time in Phase 3
 
 ### ❌ What Didn't Work
+
 1. **Mock chain for two-table queries** needed different terminal methods (maybeSingle vs select chain)
 2. **Component selectors** required iteration — shadcn/ui adds extra aria-labels and data-slot attributes
 3. **UUID validation in component tests** — `petId: "pet-1"` isn't a valid UUID, caused silent Zod failures
@@ -72,6 +74,7 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 6. **Serwist + Turbopack** — dev server needs `--webpack` flag, caught during E2E run
 
 ### 📝 Add to Future PRPs
+
 1. Always specify exact Supabase query chain shape for ownership checks
 2. Run `grep -c "it\("` literally to count tests, don't estimate
 3. Component test props must use valid UUIDs when passing through Zod
@@ -81,6 +84,7 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 ## Files Inventory
 
 ### Created (31 new files)
+
 - `vitest.setup.ts` — test setup
 - `__tests__/api-vaccinations.test.ts` — 9 tests
 - `__tests__/api-parasite-logs.test.ts` — 8 tests
@@ -115,6 +119,7 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 - `.github/workflows/ci.yml` — CI/CD pipeline
 
 ### Modified (7 files)
+
 - `package.json` — deps, scripts, version bump
 - `vitest.config.ts` — setupFiles, coverage
 - `playwright.config.ts` — Firefox, auth setup, --webpack
@@ -124,6 +129,7 @@ The PRP accurately identified all gaps, correct mock patterns, and the right pri
 - `__tests__/validations.test.ts` — +5 boundary tests
 
 ## Time & Effort
+
 - PRP phases completed: 4/4 (original)
 - Extended rounds: 3 (components+db+CI, wrappers+components+E2E, 100% coverage)
 - Total commits: 5

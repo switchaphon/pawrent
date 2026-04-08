@@ -25,7 +25,8 @@ vi.mock("@/lib/rate-limit", () => ({
 
 const mockSingle = vi.fn();
 const mockSelect = vi.fn(() => ({ single: mockSingle }));
-const mockUpsert = vi.fn(() => ({ select: mockSelect }));
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const mockUpsert = vi.fn((_payload?: unknown) => ({ select: mockSelect }));
 
 // Capture the upsert payload to verify id: auth.user.id
 let capturedUpsertPayload: unknown = null;
@@ -127,8 +128,6 @@ describe("PUT /api/profile", () => {
     const req = makeRequest({ full_name: "Test" });
     await PUT(req);
 
-    expect(capturedUpsertPayload).toEqual(
-      expect.objectContaining({ id: "user-42" })
-    );
+    expect(capturedUpsertPayload).toEqual(expect.objectContaining({ id: "user-42" }));
   });
 });

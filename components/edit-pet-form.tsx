@@ -180,12 +180,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
                 <Camera className="w-4 h-4" />
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoSelect}
-                className="hidden"
-              />
+              <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
             </label>
           </div>
           <p className="text-xs text-center text-muted-foreground">Tap to change & crop photo</p>
@@ -325,11 +320,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               disabled={loading || !formData.name}
               className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90"
             >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "Save Changes"
-              )}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
             </Button>
           </div>
         </form>

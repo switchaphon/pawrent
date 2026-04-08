@@ -15,17 +15,45 @@ vi.mock("@/lib/api", () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...
 vi.mock("@/data/parasite-prevention", () => ({
   getParasitePreventionNames: () => ["NexGard", "Frontline", "Bravecto"],
   getParasitePreventionInfo: (name: string) => {
-    if (name === "NexGard") return { name: "NexGard", brand: "NexGard", manufacturer: "Boehringer", description: "Flea & tick", durationMonths: 1 };
-    if (name === "Bravecto") return { name: "Bravecto", brand: "Bravecto", manufacturer: "MSD", description: "Flea & tick", durationMonths: 3 };
+    if (name === "NexGard")
+      return {
+        name: "NexGard",
+        brand: "NexGard",
+        manufacturer: "Boehringer",
+        description: "Flea & tick",
+        durationMonths: 1,
+      };
+    if (name === "Bravecto")
+      return {
+        name: "Bravecto",
+        brand: "Bravecto",
+        manufacturer: "MSD",
+        description: "Flea & tick",
+        durationMonths: 3,
+      };
     return null;
   },
 }));
 
 vi.mock("@/components/searchable-select", () => ({
-  SearchableSelect: ({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string }) => (
+  SearchableSelect: ({
+    value,
+    onChange,
+    options,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    options: string[];
+    placeholder: string;
+  }) => (
     <select data-testid="product-select" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{placeholder}</option>
-      {options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o: string) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
     </select>
   ),
 }));
@@ -44,7 +72,9 @@ const defaultProps = {
 // ---------------------------------------------------------------------------
 
 describe("AddParasiteLogForm", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders the form with product select and date field", () => {
     render(<AddParasiteLogForm {...defaultProps} />);

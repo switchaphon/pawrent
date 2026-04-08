@@ -43,6 +43,7 @@ Rationale: Type fix is trivial and unblocks TypeScript. CASCADE must be set befo
 - [ ] Run `npx tsc --noEmit` to confirm no type errors
 
 **Files to modify:**
+
 - `lib/types.ts`
 
 ---
@@ -105,10 +106,7 @@ ALTER TABLE pet_photos
 
 ```typescript
 export async function deletePet(petId: string) {
-  const { error, count } = await supabase
-    .from("pets")
-    .delete()
-    .eq("id", petId);
+  const { error, count } = await supabase.from("pets").delete().eq("id", petId);
 
   if (error) {
     console.error("Error deleting pet:", error.message);
@@ -119,6 +117,7 @@ export async function deletePet(petId: string) {
 ```
 
 **Files to modify:**
+
 - `lib/db.ts` — simplify `deletePet()` (lines 94-125)
 - Supabase SQL Editor — run CASCADE migration
 
@@ -335,6 +334,7 @@ CREATE POLICY "Authenticated users can submit feedback"
 ```
 
 **Files to modify:**
+
 - Supabase SQL Editor — run RLS migration
 
 ---
@@ -360,14 +360,17 @@ CREATE POLICY "Authenticated users can submit feedback"
 - [ ] After middleware is confirmed working, remove `ProtectedRoute` wrapper from all pages
 
 **Files to create:**
+
 - `src/middleware.ts`
 - `lib/supabase-server.ts`
 
 **Files to modify:**
+
 - `package.json` (add `@supabase/ssr`)
 - All page files in `app/` — remove `<ProtectedRoute>` wrapper
 
 **Files to deprecate (after middleware works):**
+
 - `components/protected-route.tsx`
 
 ---
@@ -395,13 +398,13 @@ For middleware rollback: delete `src/middleware.ts` and restore `<ProtectedRoute
 
 ## Side Effect Analysis
 
-| Existing Feature | Impact | Mitigation |
-|-----------------|--------|------------|
-| Notifications page (`getActiveSOSAlerts`) | Joins `pets(*)` — would break if pets SELECT is owner-only | Added "pets with active SOS" exception policy |
-| Feed page (`posts` query) | Needs all posts visible | Posts SELECT allows all authenticated users |
-| `deletePet()` manual cascade | Will fail once RLS blocks cross-table deletes from client | CASCADE constraints must be set BEFORE RLS |
-| `ProtectedRoute` component | Becomes redundant after middleware | Removed in final task |
-| Anonymous feedback | `user_id` can be null | Feedback INSERT policy uses `auth.role()` not `auth.uid()` |
+| Existing Feature                          | Impact                                                     | Mitigation                                                 |
+| ----------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| Notifications page (`getActiveSOSAlerts`) | Joins `pets(*)` — would break if pets SELECT is owner-only | Added "pets with active SOS" exception policy              |
+| Feed page (`posts` query)                 | Needs all posts visible                                    | Posts SELECT allows all authenticated users                |
+| `deletePet()` manual cascade              | Will fail once RLS blocks cross-table deletes from client  | CASCADE constraints must be set BEFORE RLS                 |
+| `ProtectedRoute` component                | Becomes redundant after middleware                         | Removed in final task                                      |
+| Anonymous feedback                        | `user_id` can be null                                      | Feedback INSERT policy uses `auth.role()` not `auth.uid()` |
 
 ---
 
@@ -459,16 +462,16 @@ grep -r "ProtectedRoute" src/app/ src/components/ --include="*.tsx" -l
 
 Verified via Supabase REST API — no Dashboard access needed:
 
-| Check | Result | Method |
-|-------|--------|--------|
-| `resolution_status` on sos_alerts | EXISTS | `GET /rest/v1/sos_alerts?select=resolution_status` → HTTP 206 |
-| `pet_id` on vaccinations | EXISTS | `GET /rest/v1/vaccinations?select=pet_id` → HTTP 200 |
-| `pet_id` on parasite_logs | EXISTS | `GET /rest/v1/parasite_logs?select=pet_id` → HTTP 200 |
-| `pet_id` on health_events | EXISTS | `GET /rest/v1/health_events?select=pet_id` → HTTP 200 |
-| `pet_id` on sos_alerts | EXISTS | `GET /rest/v1/sos_alerts?select=pet_id` → HTTP 200 |
-| `pet_id` on posts | EXISTS | `GET /rest/v1/posts?select=pet_id` → HTTP 200 |
-| `pet_id` on pet_photos | EXISTS | `GET /rest/v1/pet_photos?select=pet_id` → HTTP 200 |
-| RLS enabled | NO — returns real data unauthenticated | `GET /rest/v1/pets?select=id` → HTTP 200 with rows |
+| Check                             | Result                                 | Method                                                        |
+| --------------------------------- | -------------------------------------- | ------------------------------------------------------------- |
+| `resolution_status` on sos_alerts | EXISTS                                 | `GET /rest/v1/sos_alerts?select=resolution_status` → HTTP 206 |
+| `pet_id` on vaccinations          | EXISTS                                 | `GET /rest/v1/vaccinations?select=pet_id` → HTTP 200          |
+| `pet_id` on parasite_logs         | EXISTS                                 | `GET /rest/v1/parasite_logs?select=pet_id` → HTTP 200         |
+| `pet_id` on health_events         | EXISTS                                 | `GET /rest/v1/health_events?select=pet_id` → HTTP 200         |
+| `pet_id` on sos_alerts            | EXISTS                                 | `GET /rest/v1/sos_alerts?select=pet_id` → HTTP 200            |
+| `pet_id` on posts                 | EXISTS                                 | `GET /rest/v1/posts?select=pet_id` → HTTP 200                 |
+| `pet_id` on pet_photos            | EXISTS                                 | `GET /rest/v1/pet_photos?select=pet_id` → HTTP 200            |
+| RLS enabled                       | NO — returns real data unauthenticated | `GET /rest/v1/pets?select=id` → HTTP 200 with rows            |
 
 **Note:** FK constraint names cannot be verified via REST API (requires `service_role` key). The CASCADE migration SQL includes a discovery query (`SELECT conname ...`) as step 1 — run it first and adjust constraint names if they differ from the assumed `{table}_pet_id_fkey` pattern.
 

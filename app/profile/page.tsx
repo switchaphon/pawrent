@@ -13,7 +13,20 @@ import { getPets, uploadFeedbackImage, getProfile, uploadProfileAvatar } from "@
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Profile } from "@/lib/types";
-import { Bell, Shield, LogOut, Plus, PawPrint, Loader2, MessageSquare, X, ImagePlus, CheckCircle, Pencil, Camera } from "lucide-react";
+import {
+  Bell,
+  Shield,
+  LogOut,
+  Plus,
+  PawPrint,
+  Loader2,
+  MessageSquare,
+  X,
+  ImagePlus,
+  CheckCircle,
+  Pencil,
+  Camera,
+} from "lucide-react";
 
 function ProfileContent() {
   const { user, signOut } = useAuth();
@@ -28,7 +41,7 @@ function ProfileContent() {
   const [feedbackImagePreview, setFeedbackImagePreview] = useState<string | null>(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-  
+
   // Edit Profile State
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -46,7 +59,7 @@ function ProfileContent() {
     setPets(data || []);
     setLoading(false);
   };
-  
+
   const fetchProfile = async () => {
     if (!user) return;
     const { data } = await getProfile(user.id);
@@ -100,12 +113,14 @@ function ProfileContent() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             {feedbackSuccess ? (
               <div className="py-8 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                 <h2 className="text-xl font-bold text-foreground mb-2">Thank You!</h2>
-                <p className="text-muted-foreground">Your feedback has been submitted successfully.</p>
+                <p className="text-muted-foreground">
+                  Your feedback has been submitted successfully.
+                </p>
               </div>
             ) : (
               <>
@@ -113,121 +128,125 @@ function ProfileContent() {
                   <MessageSquare className="w-8 h-8 text-primary" />
                   <h2 className="text-xl font-bold text-foreground">Send Feedback</h2>
                 </div>
-                
+
                 <p className="text-sm text-muted-foreground mb-4">
-                  Help us improve Pawrent! Share your experience, report issues, or suggest new features.
+                  Help us improve Pawrent! Share your experience, report issues, or suggest new
+                  features.
                 </p>
-            
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Describe your feedback, issue, or suggestion..."
-              className="w-full h-32 p-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-            />
-            
-            {/* Image Upload */}
-            <div className="mt-4">
-              {feedbackImagePreview ? (
-                <div className="relative">
-                  <img
-                    src={feedbackImagePreview}
-                    alt="Feedback attachment"
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <button
+
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Describe your feedback, issue, or suggestion..."
+                  className="w-full h-32 p-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                />
+
+                {/* Image Upload */}
+                <div className="mt-4">
+                  {feedbackImagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={feedbackImagePreview}
+                        alt="Feedback attachment"
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <button
+                        onClick={() => {
+                          setFeedbackImage(null);
+                          setFeedbackImagePreview(null);
+                        }}
+                        className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
+                      <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Attach screenshot (optional)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setFeedbackImage(file);
+                            setFeedbackImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    variant="outline"
                     onClick={() => {
+                      setShowFeedback(false);
+                      setFeedbackText("");
                       setFeedbackImage(null);
                       setFeedbackImagePreview(null);
                     }}
-                    className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                    className="flex-1"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
-                  <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Attach screenshot (optional)</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setFeedbackImage(file);
-                        setFeedbackImagePreview(URL.createObjectURL(file));
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (!user) return;
+                      setSubmittingFeedback(true);
+                      try {
+                        let imageUrl: string | null = null;
+
+                        // Upload image if attached
+                        if (feedbackImage) {
+                          const tempId = `${user.id}_${Date.now()}`;
+                          const { data: uploadedUrl, error: uploadError } =
+                            await uploadFeedbackImage(feedbackImage, tempId);
+                          if (uploadError) {
+                            console.error("Failed to upload image:", uploadError);
+                          } else {
+                            imageUrl = uploadedUrl;
+                          }
+                        }
+
+                        // Submit feedback via API route
+                        await apiFetch("/api/feedback", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            message: feedbackText,
+                            image_url: imageUrl,
+                          }),
+                        });
+
+                        // Show success state
+                        setFeedbackSuccess(true);
+                        setFeedbackText("");
+                        setFeedbackImage(null);
+                        setFeedbackImagePreview(null);
+                        // Auto close after 1.5 seconds
+                        setTimeout(() => {
+                          setShowFeedback(false);
+                          setFeedbackSuccess(false);
+                        }, 1500);
+                      } catch (err) {
+                        console.error("Unexpected error:", err);
+                        alert("An unexpected error occurred.");
+                      } finally {
+                        setSubmittingFeedback(false);
                       }
                     }}
-                  />
-                </label>
-              )}
-            </div>
-            
-            {/* Buttons */}
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowFeedback(false);
-                  setFeedbackText("");
-                  setFeedbackImage(null);
-                  setFeedbackImagePreview(null);
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!user) return;
-                  setSubmittingFeedback(true);
-                  try {
-                    let imageUrl: string | null = null;
-                    
-                    // Upload image if attached
-                    if (feedbackImage) {
-                      const tempId = `${user.id}_${Date.now()}`;
-                      const { data: uploadedUrl, error: uploadError } = await uploadFeedbackImage(feedbackImage, tempId);
-                      if (uploadError) {
-                        console.error("Failed to upload image:", uploadError);
-                      } else {
-                        imageUrl = uploadedUrl;
-                      }
-                    }
-                    
-                    // Submit feedback via API route
-                    await apiFetch("/api/feedback", {
-                      method: "POST",
-                      body: JSON.stringify({
-                        message: feedbackText,
-                        image_url: imageUrl,
-                      }),
-                    });
-
-                    // Show success state
-                    setFeedbackSuccess(true);
-                    setFeedbackText("");
-                    setFeedbackImage(null);
-                    setFeedbackImagePreview(null);
-                    // Auto close after 1.5 seconds
-                    setTimeout(() => {
-                      setShowFeedback(false);
-                      setFeedbackSuccess(false);
-                    }, 1500);
-                  } catch (err) {
-                    console.error("Unexpected error:", err);
-                    alert("An unexpected error occurred.");
-                  } finally {
-                    setSubmittingFeedback(false);
-                  }
-                }}
-                disabled={!feedbackText.trim() || submittingFeedback}
-                className="flex-1 bg-primary hover:bg-primary/90"
-              >
-                {submittingFeedback ? "Submitting..." : "Submit Feedback"}
-              </Button>
-            </div>
+                    disabled={!feedbackText.trim() || submittingFeedback}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    {submittingFeedback ? "Submitting..." : "Submit Feedback"}
+                  </Button>
+                </div>
               </>
             )}
           </Card>
@@ -248,21 +267,21 @@ function ProfileContent() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-8 h-8 text-primary" />
               <h2 className="text-xl font-bold text-foreground">Privacy & Security</h2>
             </div>
-            
+
             <div className="space-y-4 text-sm text-muted-foreground">
               <section>
                 <h3 className="font-semibold text-foreground mb-2">PDPA Privacy Notice</h3>
                 <p>
-                  Pawrent respects your privacy and is committed to protecting your personal data 
-                  in accordance with Thailand's Personal Data Protection Act (PDPA) B.E. 2562.
+                  Pawrent respects your privacy and is committed to protecting your personal data in
+                  accordance with Thailand&apos;s Personal Data Protection Act (PDPA) B.E. 2562.
                 </p>
               </section>
-              
+
               <section>
                 <h3 className="font-semibold text-foreground mb-2">Data We Collect</h3>
                 <ul className="list-disc list-inside space-y-1">
@@ -272,7 +291,7 @@ function ProfileContent() {
                   <li>Location data (for SOS alerts only)</li>
                 </ul>
               </section>
-              
+
               <section>
                 <h3 className="font-semibold text-foreground mb-2">How We Use Your Data</h3>
                 <ul className="list-disc list-inside space-y-1">
@@ -281,24 +300,25 @@ function ProfileContent() {
                   <li>To improve our services</li>
                 </ul>
               </section>
-              
+
               <section>
                 <h3 className="font-semibold text-foreground mb-2">Your Rights</h3>
                 <p>
-                  Under PDPA, you have the right to access, correct, delete, or transfer your personal data. 
-                  Contact us at privacy@pawrent.app for any data-related requests.
+                  Under PDPA, you have the right to access, correct, delete, or transfer your
+                  personal data. Contact us at privacy@pawrent.app for any data-related requests.
                 </p>
               </section>
-              
+
               <section>
                 <h3 className="font-semibold text-foreground mb-2">Data Security</h3>
                 <p>
-                  We use industry-standard encryption and security measures to protect your data. 
-                  Your information is stored securely and never shared with third parties without consent.
+                  We use industry-standard encryption and security measures to protect your data.
+                  Your information is stored securely and never shared with third parties without
+                  consent.
                 </p>
               </section>
             </div>
-            
+
             <Button
               onClick={() => setShowPrivacy(false)}
               className="w-full mt-6 bg-primary hover:bg-primary/90"
@@ -331,9 +351,9 @@ function ProfileContent() {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h2 className="text-xl font-bold text-foreground mb-6">Edit Profile</h2>
-            
+
             {/* Image Cropper Modal */}
             {showAvatarCropper && avatarImageToCrop && (
               <ImageCropper
@@ -353,12 +373,12 @@ function ProfileContent() {
                 cropShape="rect"
               />
             )}
-            
+
             {/* Photo Upload - Matching Pet Photo Design */}
             <div className="flex justify-center">
               <label className="cursor-pointer relative">
                 <div className="w-24 h-24 rounded-lg bg-primary/10 border-2 border-dashed border-primary flex items-center justify-center overflow-hidden">
-                  {(editAvatarPreview || profile?.avatar_url) ? (
+                  {editAvatarPreview || profile?.avatar_url ? (
                     <img
                       src={editAvatarPreview || profile?.avatar_url || ""}
                       alt="Profile preview"
@@ -387,8 +407,10 @@ function ProfileContent() {
                 />
               </label>
             </div>
-            <p className="text-xs text-center text-muted-foreground mt-2 mb-4">Tap to change & crop photo</p>
-            
+            <p className="text-xs text-center text-muted-foreground mt-2 mb-4">
+              Tap to change & crop photo
+            </p>
+
             {/* Name Input */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-foreground mb-2">Display Name</label>
@@ -400,7 +422,7 @@ function ProfileContent() {
                 className="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-            
+
             {/* Buttons */}
             <div className="flex gap-3">
               <Button
@@ -420,21 +442,27 @@ function ProfileContent() {
                   setSavingProfile(true);
                   try {
                     let avatarUrl = profile?.avatar_url || null;
-                    
+
                     // Upload new avatar if selected
                     if (editAvatarFile) {
-                      const fileResult = imageFileSchema.safeParse({ size: editAvatarFile.size, type: editAvatarFile.type });
+                      const fileResult = imageFileSchema.safeParse({
+                        size: editAvatarFile.size,
+                        type: editAvatarFile.type,
+                      });
                       if (!fileResult.success) {
                         alert(fileResult.error.issues[0].message);
                         setSavingProfile(false);
                         return;
                       }
-                      const { data: uploadedUrl, error: uploadError } = await uploadProfileAvatar(editAvatarFile, user.id);
+                      const { data: uploadedUrl, error: uploadError } = await uploadProfileAvatar(
+                        editAvatarFile,
+                        user.id
+                      );
                       if (!uploadError && uploadedUrl) {
                         avatarUrl = uploadedUrl;
                       }
                     }
-                    
+
                     // Update profile via API route
                     await apiFetch("/api/profile", {
                       method: "PUT",
@@ -443,7 +471,7 @@ function ProfileContent() {
                         avatar_url: avatarUrl,
                       }),
                     });
-                    
+
                     // Refresh profile and close
                     await fetchProfile();
                     setShowEditProfile(false);
@@ -491,9 +519,7 @@ function ProfileContent() {
                 <Pencil className="w-4 h-4 text-muted-foreground" />
               </button>
               <Avatar className="w-20 h-20 mx-auto mb-4">
-                {profile?.avatar_url ? (
-                  <AvatarImage src={profile.avatar_url} />
-                ) : null}
+                {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} /> : null}
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                   {user?.email ? getInitials(user.email) : "?"}
                 </AvatarFallback>
@@ -553,22 +579,22 @@ function ProfileContent() {
 
             {/* Menu Items - Compact with Breathing Room */}
             <div className="space-y-2">
-              <button 
-                onClick={() => router.push('/notifications')}
+              <button
+                onClick={() => router.push("/notifications")}
                 className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
               >
                 <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-sm text-foreground">Notifications</span>
               </button>
-              <button 
+              <button
                 onClick={() => setShowPrivacy(true)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
               >
                 <Shield className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-sm text-foreground">Privacy & Security</span>
               </button>
-              <button 
-                onClick={() => router.push('/feedback')}
+              <button
+                onClick={() => router.push("/feedback")}
                 className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
               >
                 <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />

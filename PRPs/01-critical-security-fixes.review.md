@@ -16,18 +16,18 @@ The PRP correctly identified all problems and the SQL was mostly correct, but th
 
 ## Scope Comparison
 
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 1.3: Fix SOSAlert type | Planned | ✅ Implemented | Clean, no issues |
-| 1.4: CASCADE constraints | Planned | ✅ Implemented | Typo in SQL (`posts` referenced itself instead of `pets`) — caught by user |
-| 1.1: RLS on all 9 tables | Planned | ✅ Implemented | Had to drop+recreate due to pre-existing policies |
-| 1.5: Storage bucket policies | Planned | ⏳ Deferred | User hasn't configured via Dashboard yet |
-| 1.2: Auth middleware | Planned | ✅ Implemented | Required 3 hotfixes (see below) |
-| 1.2: Remove ProtectedRoute | Planned | ✅ Implemented | Component deleted, removed from all 5 pages |
-| Anonymous feedback | Not planned | ✅ Fixed | RLS broke anonymous inserts — needed SECURITY DEFINER function |
-| Sign-out redirect | Not planned | ✅ Fixed | ProtectedRoute removal meant no redirect after sign-out |
-| Home page auth gate | Not planned | ✅ Fixed | `/` is both login and feed — needed inline AuthForm check |
-| Middleware redirect conflict | Not planned | ✅ Fixed | Client uses localStorage, middleware uses cookies — simplified middleware to session refresh only |
+| Requirement                  | PRP Status  | Implementation Status | Notes                                                                                             |
+| ---------------------------- | ----------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| 1.3: Fix SOSAlert type       | Planned     | ✅ Implemented        | Clean, no issues                                                                                  |
+| 1.4: CASCADE constraints     | Planned     | ✅ Implemented        | Typo in SQL (`posts` referenced itself instead of `pets`) — caught by user                        |
+| 1.1: RLS on all 9 tables     | Planned     | ✅ Implemented        | Had to drop+recreate due to pre-existing policies                                                 |
+| 1.5: Storage bucket policies | Planned     | ⏳ Deferred           | User hasn't configured via Dashboard yet                                                          |
+| 1.2: Auth middleware         | Planned     | ✅ Implemented        | Required 3 hotfixes (see below)                                                                   |
+| 1.2: Remove ProtectedRoute   | Planned     | ✅ Implemented        | Component deleted, removed from all 5 pages                                                       |
+| Anonymous feedback           | Not planned | ✅ Fixed              | RLS broke anonymous inserts — needed SECURITY DEFINER function                                    |
+| Sign-out redirect            | Not planned | ✅ Fixed              | ProtectedRoute removal meant no redirect after sign-out                                           |
+| Home page auth gate          | Not planned | ✅ Fixed              | `/` is both login and feed — needed inline AuthForm check                                         |
+| Middleware redirect conflict | Not planned | ✅ Fixed              | Client uses localStorage, middleware uses cookies — simplified middleware to session refresh only |
 
 **Planned: 6 | Implemented: 9 (3 unplanned hotfixes) | Deferred: 1**
 
@@ -35,24 +35,26 @@ The PRP correctly identified all problems and the SQL was mostly correct, but th
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Type errors | 0 | 0 | ✅ |
-| RLS blocks unauthenticated | `[]` | `[]` | ✅ |
-| ProtectedRoute references | 0 | 0 | ✅ |
-| Test coverage | 80% | 0% | ❌ No tests (deferred to PRP-04) |
-| Lint warnings | 0 | Not checked | ⚠️ |
+| Metric                     | Target | Actual      | Status                           |
+| -------------------------- | ------ | ----------- | -------------------------------- |
+| Type errors                | 0      | 0           | ✅                               |
+| RLS blocks unauthenticated | `[]`   | `[]`        | ✅                               |
+| ProtectedRoute references  | 0      | 0           | ✅                               |
+| Test coverage              | 80%    | 0%          | ❌ No tests (deferred to PRP-04) |
+| Lint warnings              | 0      | Not checked | ⚠️                               |
 
 ---
 
 ## Files Inventory
 
 ### Created (3)
+
 - `lib/supabase-server.ts` — Server-side Supabase client factory using `@supabase/ssr`
 - `middleware.ts` — Auth session refresh middleware
 - `.gitignore` — Excludes node_modules, .next, .env.local
 
 ### Modified (8)
+
 - `lib/types.ts` — Added `resolution_status` to SOSAlert (+1 line)
 - `lib/db.ts` — Simplified `deletePet()` (31→10 lines), changed `submitFeedback` to use RPC
 - `app/page.tsx` — Added inline auth gate (AuthForm when not signed in)
@@ -64,9 +66,11 @@ The PRP correctly identified all problems and the SQL was mostly correct, but th
 - `package.json` — Added `@supabase/ssr`
 
 ### Deleted (1)
+
 - `components/protected-route.tsx`
 
 ### Database Changes (Supabase Dashboard)
+
 - CASCADE constraints on 6 child tables → `pets.id`
 - RLS enabled on all 9 tables with 33 policies
 - `submit_anonymous_feedback()` SECURITY DEFINER function
@@ -77,16 +81,16 @@ The PRP correctly identified all problems and the SQL was mostly correct, but th
 
 ## Commits (8)
 
-| Hash | Description |
-|------|-------------|
-| `ceefb51` | initial: recovered pawrent codebase |
-| `b291a27` | fix: add resolution_status to SOSAlert type |
-| `76b4ccb` | fix: simplify deletePet with ON DELETE CASCADE |
-| `e02af12` | feat: add auth middleware, remove ProtectedRoute |
-| `d096257` | fix: restore auth gate on home page, simplify middleware |
-| `55c8a7b` | fix: redirect to home after sign out |
-| `b401b2e` | fix: require auth for feedback submission |
-| `337f29a` | fix: restore anonymous feedback support |
+| Hash      | Description                                               |
+| --------- | --------------------------------------------------------- |
+| `ceefb51` | initial: recovered pawrent codebase                       |
+| `b291a27` | fix: add resolution_status to SOSAlert type               |
+| `76b4ccb` | fix: simplify deletePet with ON DELETE CASCADE            |
+| `e02af12` | feat: add auth middleware, remove ProtectedRoute          |
+| `d096257` | fix: restore auth gate on home page, simplify middleware  |
+| `55c8a7b` | fix: redirect to home after sign out                      |
+| `b401b2e` | fix: require auth for feedback submission                 |
+| `337f29a` | fix: restore anonymous feedback support                   |
 | `ac0936f` | fix: use SECURITY DEFINER function for anonymous feedback |
 
 ---

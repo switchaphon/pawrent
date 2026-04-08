@@ -221,7 +221,10 @@ describe("DELETE /api/pet-photos", () => {
   it("should return 200 with { success: true } on success", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     const deleteChain = buildDeleteOwnershipChain();
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: PHOTO_UUID, pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { id: PHOTO_UUID, pet_id: VALID_UUID },
+      error: null,
+    });
 
     let deleteCallIndex = 0;
     fromHandler = () => {
@@ -244,7 +247,10 @@ describe("DELETE /api/pet-photos", () => {
   it("should return 500 on DB delete error", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     const deleteChain = buildDeleteOwnershipChain();
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: PHOTO_UUID, pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { id: PHOTO_UUID, pet_id: VALID_UUID },
+      error: null,
+    });
 
     let deleteCallIndex = 0;
     fromHandler = () => {
@@ -252,7 +258,11 @@ describe("DELETE /api/pet-photos", () => {
       if (deleteCallIndex === 1) {
         return { select: vi.fn(() => deleteChain) };
       }
-      return { delete: vi.fn(() => ({ eq: vi.fn(() => Promise.resolve({ error: { message: "FK error" } })) })) };
+      return {
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: { message: "FK error" } })),
+        })),
+      };
     };
 
     const req = makeRequest("DELETE", { photoId: PHOTO_UUID });

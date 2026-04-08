@@ -14,24 +14,24 @@ The PRP predicted the implementation well. The core migration (Task 7.1), auth-p
 
 ## Scope Comparison
 
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 7.1: Replace createClient with createBrowserClient | Planned | Implemented | 1-line swap, worked perfectly |
-| 7.2: localStorage cleanup in onAuthStateChange | Planned | Implemented | Added SIGNED_IN handler |
-| 7.3: Proxy redirects for protected routes | Planned | Implemented | 4 protected paths, redirect to / |
-| 7.4: Verify apiFetch works (Option A) | Planned | Verified | Zero changes needed, 165 tests pass |
-| 7.5: Hospital Server Component POC | Planned | Deferred | `dynamic()` with `ssr: false` + loading JSX requires "use client" — can't simply remove it |
-| 7.6: Remove profile auth guard | Planned | Implemented | Removed AuthForm import + guard |
-| 7.7: Add proxy redirect tests | Planned | Skipped | Manual verification done; test infrastructure for proxy mocking not in scope |
+| Requirement                                        | PRP Status | Implementation Status | Notes                                                                                      |
+| -------------------------------------------------- | ---------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| 7.1: Replace createClient with createBrowserClient | Planned    | Implemented           | 1-line swap, worked perfectly                                                              |
+| 7.2: localStorage cleanup in onAuthStateChange     | Planned    | Implemented           | Added SIGNED_IN handler                                                                    |
+| 7.3: Proxy redirects for protected routes          | Planned    | Implemented           | 4 protected paths, redirect to /                                                           |
+| 7.4: Verify apiFetch works (Option A)              | Planned    | Verified              | Zero changes needed, 165 tests pass                                                        |
+| 7.5: Hospital Server Component POC                 | Planned    | Deferred              | `dynamic()` with `ssr: false` + loading JSX requires "use client" — can't simply remove it |
+| 7.6: Remove profile auth guard                     | Planned    | Implemented           | Removed AuthForm import + guard                                                            |
+| 7.7: Add proxy redirect tests                      | Planned    | Skipped               | Manual verification done; test infrastructure for proxy mocking not in scope               |
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Test suite | 165 pass | 165 pass | Pass |
-| Type errors (source) | 0 | 0 | Pass |
-| Build | Clean | Clean | Pass |
-| Files changed | ~6 | 4 | Pass (smaller than expected — good) |
+| Metric               | Target   | Actual   | Status                              |
+| -------------------- | -------- | -------- | ----------------------------------- |
+| Test suite           | 165 pass | 165 pass | Pass                                |
+| Type errors (source) | 0        | 0        | Pass                                |
+| Build                | Clean    | Clean    | Pass                                |
+| Files changed        | ~6       | 4        | Pass (smaller than expected — good) |
 
 ## Lessons Learned
 
@@ -62,10 +62,12 @@ The PRP predicted the implementation well. The core migration (Task 7.1), auth-p
 ## Files Inventory
 
 ### Modified (4)
+
 - `lib/supabase.ts` — `createClient` → `createBrowserClient`
 - `components/auth-provider.tsx` — localStorage cleanup on SIGNED_IN
 - `proxy.ts` — Protected route redirects after getUser()
 - `app/profile/page.tsx` — Removed AuthForm guard + import
 
 ### Not Modified (deferred)
+
 - `app/hospital/page.tsx` — SC conversion blocked by dynamic() constraints

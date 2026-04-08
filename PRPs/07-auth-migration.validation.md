@@ -90,16 +90,19 @@ The existing `proxy.ts` correctly follows the Next.js middleware pattern for `@s
 However, the proposed redirect logic in Task 7.3 has a subtle issue:
 
 ```typescript
-const { data: { user } } = await supabase.auth.getUser();
-const protectedPaths = ['/pets', '/profile', '/sos', '/notifications'];
-if (!user && protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))) {
-  return NextResponse.redirect(new URL('/', request.url));
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+const protectedPaths = ["/pets", "/profile", "/sos", "/notifications"];
+if (!user && protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))) {
+  return NextResponse.redirect(new URL("/", request.url));
 }
 ```
 
 If the `getUser()` call is placed **before** the `return supabaseResponse` line, the middleware will redirect **and then also try to return `supabaseResponse`**. The PRP shows the redirect returning early, which is correct. But the PRP does not show where in the function this block is inserted. It must be placed **after** `await supabase.auth.getUser()` (which refreshes the session) and the redirect must `return` immediately. If the implementer inserts the redirect before `getUser()`, the session will not be refreshed for non-redirected requests.
 
 The correct order:
+
 1. Create `supabaseResponse`
 2. Create `supabase` client
 3. `await supabase.auth.getUser()` — this refreshes the session and updates cookies
@@ -179,12 +182,11 @@ If Option B is chosen, there will be a period where some routes have been migrat
 
 ## Summary of Required Changes to PRP
 
-| # | Location | Change |
-|---|----------|--------|
-| 1 | Task 7.4 | Decide and document Option A (keep Bearer tokens) or Option B (migrate API routes to cookies). Expand task list if Option B. |
-| 2 | Task 7.5 | Replace `/notifications` as the Server Component proof-of-concept — it cannot be converted without removing or isolating `navigator.geolocation`. |
-| 3 | Task 7.3 | Show the complete updated `proxy.ts` implementation, not just the redirect snippet. |
-| 4 | Task 7.7 | Add "run full test suite after Task 7.1; update `apiFetch.test.ts` if `apiFetch` behaviour changes." |
-| 5 | Risks section | Add PKCE flow change note and localStorage cleanup note. |
-| 6 | Scope section | Mention `lib/db.ts` direct calls as a transparently affected surface that benefits from the migration. |
-
+| #   | Location      | Change                                                                                                                                            |
+| --- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Task 7.4      | Decide and document Option A (keep Bearer tokens) or Option B (migrate API routes to cookies). Expand task list if Option B.                      |
+| 2   | Task 7.5      | Replace `/notifications` as the Server Component proof-of-concept — it cannot be converted without removing or isolating `navigator.geolocation`. |
+| 3   | Task 7.3      | Show the complete updated `proxy.ts` implementation, not just the redirect snippet.                                                               |
+| 4   | Task 7.7      | Add "run full test suite after Task 7.1; update `apiFetch.test.ts` if `apiFetch` behaviour changes."                                              |
+| 5   | Risks section | Add PKCE flow change note and localStorage cleanup note.                                                                                          |
+| 6   | Scope section | Mention `lib/db.ts` direct calls as a transparently affected surface that benefits from the migration.                                            |

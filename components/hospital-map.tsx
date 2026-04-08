@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Phone, Clock, Navigation, Cross, BadgeCheck, Stethoscope, Loader2 } from "lucide-react";
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Navigation,
+  Cross,
+  BadgeCheck,
+  Stethoscope,
+  Loader2,
+} from "lucide-react";
 import type { Hospital } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +24,7 @@ const DefaultIcon = L.icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -54,19 +63,19 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
   const map = useMap();
 
   return (
-    <Marker 
-      position={[hospital.lat, hospital.lng]} 
+    <Marker
+      position={[hospital.lat, hospital.lng]}
       icon={hospitalIcon}
       eventHandlers={{
         click: () => {
           // Offset the latitude slightly to center the popup (which is above the marker)
           // 0.005 is roughly accurate for Zoom 15 to place the popup near center
-          const latOffset = 0.005; 
+          const latOffset = 0.005;
           map.flyTo([hospital.lat + latOffset, hospital.lng], 15, {
             animate: true,
-            duration: 1.5
+            duration: 1.5,
           });
-        }
+        },
       }}
     >
       <Popup className="custom-popup">
@@ -88,27 +97,37 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
           {/* Header with name and opening hours */}
           <div className="flex items-start justify-between gap-2 mb-0.5">
             <h3 className="font-bold text-sm">{hospital.name}</h3>
-            <span className={`text-[10px] flex items-center gap-0.5 whitespace-nowrap ${hospital.open_hours === "24 Hours" ? "text-green-600 font-medium" : "text-gray-500"}`}>
+            <span
+              className={`text-[10px] flex items-center gap-0.5 whitespace-nowrap ${hospital.open_hours === "24 Hours" ? "text-green-600 font-medium" : "text-gray-500"}`}
+            >
               <Clock className="w-2.5 h-2.5" />
               {hospital.open_hours}
             </span>
           </div>
-          
+
           <div className="space-y-0 mb-1">
             <p className="text-[11px] text-gray-500 flex items-start gap-1 leading-tight">
               <MapPin className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
               <span>{hospital.address}</span>
             </p>
-            
+
             <div className="flex items-center justify-between gap-1 py-0">
               <p className="text-[11px] text-gray-700 flex items-center gap-1 font-medium leading-none">
                 <Phone className="w-2.5 h-2.5 flex-shrink-0 text-muted-foreground" />
                 {hospital.phone}
               </p>
-              <Button size="sm" className="bg-primary hover:bg-primary/90 h-6 text-[10px] px-3 rounded-full shadow-sm" asChild>
-                <a href={`tel:${hospital.phone}`} className="flex items-center gap-1" style={{ color: '#FFFFFF' }}>
-                  <Phone className="w-2.5 h-2.5" style={{ color: '#FFFFFF' }} />
-                  <span style={{ color: '#FFFFFF' }}>Call</span>
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90 h-6 text-[10px] px-3 rounded-full shadow-sm"
+                asChild
+              >
+                <a
+                  href={`tel:${hospital.phone}`}
+                  className="flex items-center gap-1"
+                  style={{ color: "#FFFFFF" }}
+                >
+                  <Phone className="w-2.5 h-2.5" style={{ color: "#FFFFFF" }} />
+                  <span style={{ color: "#FFFFFF" }}>Call</span>
                 </a>
               </Button>
             </div>
@@ -118,7 +137,10 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
           {hospital.specialists && hospital.specialists.length > 0 && (
             <div className="flex flex-wrap gap-0.5 mb-1.5">
               {hospital.specialists.slice(0, 3).map((spec: string, i: number) => (
-                <span key={i} className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                <span
+                  key={i}
+                  className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full"
+                >
                   {spec}
                 </span>
               ))}
@@ -131,8 +153,13 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
           )}
 
           <div className="w-full">
-            <Button size="sm" variant="outline" className="w-full h-8 text-xs font-medium bg-white" asChild>
-              <a 
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-8 text-xs font-medium bg-white"
+              asChild
+            >
+              <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${hospital.lat},${hospital.lng}`}
                 target="_blank"
                 rel="noopener noreferrer"

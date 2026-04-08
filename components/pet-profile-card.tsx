@@ -56,13 +56,13 @@ function formatBirthday(dob: string | null): string {
   });
 }
 
-export function PetProfileCard({ 
-  pet, 
-  activeSOSAlert, 
+export function PetProfileCard({
+  pet,
+  activeSOSAlert,
   photos = [],
-  onEdit, 
-  onSOS, 
-  onPetFound, 
+  onEdit,
+  onSOS,
+  onPetFound,
   onGiveUp,
   onAddPhoto,
   onDeletePhoto,
@@ -82,12 +82,7 @@ export function PetProfileCard({
   };
 
   // Build the info line: species • breed • sex • color
-  const infoItems = [
-    pet.species,
-    pet.breed,
-    pet.sex,
-    pet.color,
-  ].filter(Boolean);
+  const infoItems = [pet.species, pet.breed, pet.sex, pet.color].filter(Boolean);
   const infoLine = infoItems.join(" • ") || "No details";
 
   return (
@@ -107,7 +102,7 @@ export function PetProfileCard({
               <X className="w-5 h-5" />
             </button>
             <h3 className="font-bold text-foreground text-lg mb-4">{pet.name}</h3>
-            
+
             {/* Code Display */}
             <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center mb-4">
               {codeType === "qr" ? (
@@ -122,24 +117,24 @@ export function PetProfileCard({
                     {/* Bottom-Left */}
                     <path d="M10,70 h20 v20 h-20 z M14,74 v12 h12 v-12 z M18,78 h4 v4 h-4 z" />
                   </g>
-                  
+
                   {/* Random Data Dots */}
                   <g fill="currentColor" opacity="0.9">
                     {Array.from({ length: 100 }).map((_, i) => {
                       // Generate somewhat random positions but avoid finder pattern areas
                       const x = Math.floor(i % 10) * 8 + 12;
                       const y = Math.floor(i / 10) * 8 + 12;
-                      
+
                       // Skip finder pattern zones approx
                       const isTL = x < 35 && y < 35;
                       const isTR = x > 65 && y < 35;
                       const isBL = x < 35 && y > 65;
-                      
+
                       if (isTL || isTR || isBL) return null;
-                      
-                      return Math.random() > 0.4 ? (
-                        <rect key={i} x={x} y={y} width="6" height="6" rx="1" />
-                      ) : null;
+
+                      // Deterministic pattern based on index
+                      const show = (i * 7 + 3) % 5 !== 0;
+                      return show ? <rect key={i} x={x} y={y} width="6" height="6" rx="1" /> : null;
                     })}
                   </g>
                 </svg>
@@ -149,20 +144,19 @@ export function PetProfileCard({
                   <g fill="currentColor">
                     {Array.from({ length: 40 }).map((_, i) => {
                       const x = 10 + i * 4.5;
-                      const width = Math.random() > 0.5 ? 3 : 1.5;
-                      return (
-                        <rect
-                          key={i}
-                          x={x}
-                          y="10"
-                          width={width}
-                          height="50"
-                        />
-                      );
+                      const width = i % 2 === 0 ? 3 : 1.5;
+                      return <rect key={i} x={x} y="10" width={width} height="50" />;
                     })}
                   </g>
                   {/* Text below barcode */}
-                  <text x="100" y="75" fontFamily="monospace" fontSize="12" textAnchor="middle" fill="currentColor">
+                  <text
+                    x="100"
+                    y="75"
+                    fontFamily="monospace"
+                    fontSize="12"
+                    textAnchor="middle"
+                    fill="currentColor"
+                  >
                     {pet.microchip_number || "123456789012345"}
                   </text>
                 </svg>
@@ -219,11 +213,7 @@ export function PetProfileCard({
             {/* Square Photo */}
             <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
               {pet.photo_url ? (
-                <img
-                  src={pet.photo_url}
-                  alt={pet.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <span className="text-3xl">🐕</span>
@@ -234,9 +224,7 @@ export function PetProfileCard({
             {/* Info Section */}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-xl font-bold text-foreground truncate">
-                  {pet.name}
-                </h2>
+                <h2 className="text-xl font-bold text-foreground truncate">{pet.name}</h2>
                 {/* Edit Button */}
                 <button
                   onClick={onEdit}
@@ -250,9 +238,7 @@ export function PetProfileCard({
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-lg">
                   <span className="text-xs font-mono text-foreground">
-                    {pet.microchip_number
-                      ? pet.microchip_number.slice(0, 15)
-                      : "No ID"}
+                    {pet.microchip_number ? pet.microchip_number.slice(0, 15) : "No ID"}
                   </span>
                   <button
                     onClick={handleCopyId}
@@ -280,18 +266,12 @@ export function PetProfileCard({
           <div className="border-t border-gray-200 my-4" />
 
           {/* Info line: species • breed • sex • color */}
-          {infoItems.length > 0 && (
-            <p className="text-sm text-muted-foreground mb-2">
-              {infoLine}
-            </p>
-          )}
+          {infoItems.length > 0 && <p className="text-sm text-muted-foreground mb-2">{infoLine}</p>}
 
           {/* Special Notes */}
           {pet.special_notes && (
             <div className="text-sm">
-              <p className="text-muted-foreground">
-                {pet.special_notes}
-              </p>
+              <p className="text-muted-foreground">{pet.special_notes}</p>
             </div>
           )}
 
@@ -311,7 +291,7 @@ export function PetProfileCard({
                 className="w-full h-7 text-xs text-muted-foreground hover:text-destructive rounded-lg"
               >
                 <HeartCrack className="w-3 h-3 mr-1" />
-                I'm Give Up
+                I&apos;m Give Up
               </Button>
             </div>
           ) : (
@@ -359,9 +339,7 @@ export function PetProfileCard({
           <p className="font-bold text-foreground text-base leading-tight">
             {calculateAge(pet.date_of_birth)}
           </p>
-          <p className="text-xs text-muted-foreground">
-            DOB: {formatBirthday(pet.date_of_birth)}
-          </p>
+          <p className="text-xs text-muted-foreground">DOB: {formatBirthday(pet.date_of_birth)}</p>
         </Card>
 
         {/* Weight Card */}
@@ -379,9 +357,7 @@ export function PetProfileCard({
           <p className="font-bold text-foreground text-base leading-tight">
             {pet.weight_kg ? `${pet.weight_kg} kg` : "—"}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Recorded: Today
-          </p>
+          <p className="text-xs text-muted-foreground">Recorded: Today</p>
         </Card>
       </div>
     </>

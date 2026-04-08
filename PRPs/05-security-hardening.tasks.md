@@ -7,14 +7,14 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup & Branch | 1 | DONE |
-| P1 | Zod Schema Hardening | 5 | DONE (635c12d) |
-| P2 | API Route Ownership Checks | 4 | DONE (884ee7b) |
-| P3 | Auth Hardening | 4 | DONE (9ec10ae) |
-| P4 | Code Cleanup | 5 | DONE (ecf816b) |
-| P5 | Dependency Upgrade | 3 | DONE (976f3c9) |
+| Phase | Description                | Tasks | Status         |
+| ----- | -------------------------- | ----- | -------------- |
+| P0    | Setup & Branch             | 1     | DONE           |
+| P1    | Zod Schema Hardening       | 5     | DONE (635c12d) |
+| P2    | API Route Ownership Checks | 4     | DONE (884ee7b) |
+| P3    | Auth Hardening             | 4     | DONE (9ec10ae) |
+| P4    | Code Cleanup               | 5     | DONE (ecf816b) |
+| P5    | Dependency Upgrade         | 3     | DONE (976f3c9) |
 
 ---
 
@@ -253,13 +253,13 @@ P0.T1 (branch)
 
 ## Rollback Strategy
 
-| Phase | Rollback |
-|-------|----------|
-| P1 | `git checkout lib/validations.ts` — reverts all schema changes |
-| P2 | `git checkout app/api/` — reverts API route changes |
-| P3 | `git checkout components/auth-provider.tsx components/auth-form.tsx app/profile/page.tsx` |
-| P4 | Safe to keep — dead code removal only |
-| P5 | `npm install next@16.1.3` — pin back to previous version |
+| Phase | Rollback                                                                                  |
+| ----- | ----------------------------------------------------------------------------------------- |
+| P1    | `git checkout lib/validations.ts` — reverts all schema changes                            |
+| P2    | `git checkout app/api/` — reverts API route changes                                       |
+| P3    | `git checkout components/auth-provider.tsx components/auth-form.tsx app/profile/page.tsx` |
+| P4    | Safe to keep — dead code removal only                                                     |
+| P5    | `npm install next@16.1.3` — pin back to previous version                                  |
 
 ---
 

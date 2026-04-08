@@ -39,7 +39,10 @@ const mockUpsert = vi.fn(() => Promise.resolve({ error: null }));
 // eq() chain: supports .eq().eq().select() for ownership checks
 // We track every call to verify the ownership filter is applied.
 const eqCalls: Array<[string, unknown]> = [];
-const mockEqChain: ReturnType<typeof buildEqChain> = buildEqChain();
+const mockEqChain = buildEqChain();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyChain = any;
 
 function buildEqChain() {
   const chain: Record<string, unknown> = {};
@@ -48,13 +51,10 @@ function buildEqChain() {
     return chain;
   });
   chain.select = vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle }));
-  return chain as {
-    eq: ReturnType<typeof vi.fn>;
-    select: ReturnType<typeof vi.fn>;
-  };
+  return chain as AnyChain;
 }
 
-const mockFrom = vi.fn((table: string) => {
+const mockFrom: ReturnType<typeof vi.fn> = vi.fn((table: string) => {
   if (table === "profiles") return { upsert: mockUpsert };
   return {
     insert: mockInsert,
@@ -187,10 +187,12 @@ describe("PUT /api/pets", () => {
     vi.clearAllMocks();
     eqCalls.length = 0;
     // Re-wire the eq chain for a fresh test
-    (mockEqChain.eq as ReturnType<typeof vi.fn>).mockImplementation((...args: [string, unknown]) => {
-      eqCalls.push(args);
-      return mockEqChain;
-    });
+    (mockEqChain.eq as ReturnType<typeof vi.fn>).mockImplementation(
+      (...args: [string, unknown]) => {
+        eqCalls.push(args);
+        return mockEqChain;
+      }
+    );
     mockUpdate.mockReturnValue({ eq: mockEqChain.eq });
   });
 
@@ -241,7 +243,10 @@ describe("PUT /api/pets", () => {
       select: vi.fn(() => ({ single: mockSingle })),
     };
     mockFrom.mockReturnValueOnce({ update: vi.fn(() => chainObj) });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { code: "PGRST116", message: "Not found" } });
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: "PGRST116", message: "Not found" },
+    });
 
     const req = makeRequest("PUT", { petId: ANOTHER_UUID, name: "Hack" });
     const res = await PUT(req);

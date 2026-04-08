@@ -7,13 +7,13 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup & Dependencies | 2 | Not Started |
-| P1 | Rate Limit Utility | 2 | Not Started |
-| P2 | High-Risk Routes | 4 | Not Started |
-| P3 | Remaining Routes | 7 | Not Started |
-| P4 | Tests + Verification | 3 | Not Started |
+| Phase | Description          | Tasks | Status      |
+| ----- | -------------------- | ----- | ----------- |
+| P0    | Setup & Dependencies | 2     | Not Started |
+| P1    | Rate Limit Utility   | 2     | Not Started |
+| P2    | High-Risk Routes     | 4     | Not Started |
+| P3    | Remaining Routes     | 7     | Not Started |
+| P4    | Tests + Verification | 3     | Not Started |
 
 ---
 
@@ -143,11 +143,7 @@ npx tsc --noEmit && npx vitest run
 
 ### Tasks
 
-- [ ] P4.T1: Create `__tests__/rate-limit.test.ts`
-      - Mock `@upstash/redis` with `vi.mock`
-      - Test `getClientIp` extracts from `x-real-ip`, falls back to `x-forwarded-for`
-      - Test `checkRateLimit` returns null when under limit
-      - Test `checkRateLimit` returns 429 response with `Retry-After` header when over limit
+- [ ] P4.T1: Create `__tests__/rate-limit.test.ts` - Mock `@upstash/redis` with `vi.mock` - Test `getClientIp` extracts from `x-real-ip`, falls back to `x-forwarded-for` - Test `checkRateLimit` returns null when under limit - Test `checkRateLimit` returns 429 response with `Retry-After` header when over limit
       Verify: `npx vitest run __tests__/rate-limit.test.ts`
 
 - [ ] P4.T2: Run full test suite + build
@@ -190,12 +186,12 @@ P0.T1 (branch) --> P0.T2 (install deps)
 
 ## Rollback Strategy
 
-| Phase | Rollback |
-|-------|----------|
-| P0 | `npm uninstall @upstash/ratelimit @upstash/redis` |
-| P1 | `rm lib/rate-limit.ts` |
+| Phase | Rollback                                                              |
+| ----- | --------------------------------------------------------------------- |
+| P0    | `npm uninstall @upstash/ratelimit @upstash/redis`                     |
+| P1    | `rm lib/rate-limit.ts`                                                |
 | P2-P3 | Remove rate limit imports and `checkRateLimit` calls from route files |
-| P4 | `rm __tests__/rate-limit.test.ts` |
+| P4    | `rm __tests__/rate-limit.test.ts`                                     |
 
 ---
 

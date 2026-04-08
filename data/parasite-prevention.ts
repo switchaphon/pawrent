@@ -267,29 +267,37 @@ export const parasitePreventions: ParasitePreventionInfo[] = [
 export function getParasitePreventionsBySpecies(species: string | null): ParasitePreventionInfo[] {
   if (!species) {
     // Default to dog products
-    return parasitePreventions.filter(p => p.species === "dog" || p.species === "both");
+    return parasitePreventions.filter((p) => p.species === "dog" || p.species === "both");
   }
 
   const normalizedSpecies = species.toLowerCase().trim();
 
-  if (normalizedSpecies === "dog" || normalizedSpecies.includes("dog") || normalizedSpecies.includes("canine")) {
-    return parasitePreventions.filter(p => p.species === "dog" || p.species === "both");
+  if (
+    normalizedSpecies === "dog" ||
+    normalizedSpecies.includes("dog") ||
+    normalizedSpecies.includes("canine")
+  ) {
+    return parasitePreventions.filter((p) => p.species === "dog" || p.species === "both");
   }
-  if (normalizedSpecies === "cat" || normalizedSpecies.includes("cat") || normalizedSpecies.includes("feline")) {
-    return parasitePreventions.filter(p => p.species === "cat" || p.species === "both");
+  if (
+    normalizedSpecies === "cat" ||
+    normalizedSpecies.includes("cat") ||
+    normalizedSpecies.includes("feline")
+  ) {
+    return parasitePreventions.filter((p) => p.species === "cat" || p.species === "both");
   }
 
   // Default to dog products for unknown species
-  return parasitePreventions.filter(p => p.species === "dog" || p.species === "both");
+  return parasitePreventions.filter((p) => p.species === "dog" || p.species === "both");
 }
 
 // Get product names for dropdown
 export function getParasitePreventionNames(species: string | null): string[] {
   const products = getParasitePreventionsBySpecies(species);
-  return products.map(p => p.name);
+  return products.map((p) => p.name);
 }
 
 // Get product info by name
 export function getParasitePreventionInfo(name: string): ParasitePreventionInfo | undefined {
-  return parasitePreventions.find(p => p.name === name);
+  return parasitePreventions.find((p) => p.name === name);
 }

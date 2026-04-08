@@ -12,8 +12,18 @@ import userEvent from "@testing-library/user-event";
 const mockUsePathname = vi.fn(() => "/");
 vi.mock("next/navigation", () => ({ usePathname: () => mockUsePathname() }));
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode; className?: string }) => (
-    <a href={href} {...props}>{children}</a>
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 
@@ -37,7 +47,10 @@ import { LocationBanner } from "@/components/location-banner";
 // ---------------------------------------------------------------------------
 
 describe("BottomNav", () => {
-  beforeEach(() => { vi.clearAllMocks(); mockUsePathname.mockReturnValue("/"); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUsePathname.mockReturnValue("/");
+  });
 
   it("renders all 5 nav items", () => {
     render(<BottomNav />);
@@ -87,17 +100,23 @@ describe("VaccineStatusBar", () => {
   });
 
   it("applies green color for protected status", () => {
-    const { container } = render(<VaccineStatusBar name="Rabies" status="protected" percentage={80} />);
+    const { container } = render(
+      <VaccineStatusBar name="Rabies" status="protected" percentage={80} />
+    );
     expect(container.querySelector(".bg-green-500")).toBeTruthy();
   });
 
   it("applies yellow color for due_soon status", () => {
-    const { container } = render(<VaccineStatusBar name="DHPP" status="due_soon" percentage={40} />);
+    const { container } = render(
+      <VaccineStatusBar name="DHPP" status="due_soon" percentage={40} />
+    );
     expect(container.querySelector(".bg-yellow-500")).toBeTruthy();
   });
 
   it("applies red color for overdue status", () => {
-    const { container } = render(<VaccineStatusBar name="Bordetella" status="overdue" percentage={10} />);
+    const { container } = render(
+      <VaccineStatusBar name="Bordetella" status="overdue" percentage={10} />
+    );
     expect(container.querySelector(".bg-red-500")).toBeTruthy();
   });
 });

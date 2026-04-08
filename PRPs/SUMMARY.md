@@ -6,17 +6,18 @@
 
 ## Results
 
-| PRP | Priority | Accuracy | Retries | Hotfixes | Commits |
-|-----|----------|----------|---------|----------|---------|
-| PRP-01: Critical Security | CRITICAL | 7/10 | 0 | 4 | 8 |
-| PRP-02: Architecture | HIGH | 9/10 | 1 | 0 | 4 |
-| PRP-03: Quality | MEDIUM | 10/10 | 0 | 0 | 4 |
+| PRP                       | Priority | Accuracy | Retries | Hotfixes | Commits |
+| ------------------------- | -------- | -------- | ------- | -------- | ------- |
+| PRP-01: Critical Security | CRITICAL | 7/10     | 0       | 4        | 8       |
+| PRP-02: Architecture      | HIGH     | 9/10     | 1       | 0        | 4       |
+| PRP-03: Quality           | MEDIUM   | 10/10    | 0       | 0        | 4       |
 
 **Trend:** Accuracy improved with each PRP as lessons were applied.
 
 ## What Was Delivered
 
 ### PRP-01: Critical Security Fixes
+
 - RLS policies on all 9 Supabase tables (33 policies)
 - ON DELETE CASCADE on 6 child tables
 - Auth middleware (`@supabase/ssr`)
@@ -26,6 +27,7 @@
 - Removed ProtectedRoute (replaced by middleware + inline auth gate)
 
 ### PRP-02: Architecture Improvements
+
 - Zod validation schemas for all 8 forms
 - File upload validation (size + type) on 8 upload points
 - Likes system rewrite (`post_likes` table + `toggle_like` atomic function)
@@ -34,6 +36,7 @@
 - Phase B (Server Components) correctly descoped
 
 ### PRP-03: Quality & Maintainability
+
 - 7 error/loading/not-found route files
 - `next/image` migration (3 of 4 `<img>` tags)
 - Pets page decomposition (748 → 647 lines)
@@ -49,9 +52,11 @@
 - **2 new npm packages** (zod, @supabase/ssr)
 
 ## Pending Dashboard Actions
+
 - [ ] Run likes SQL migration (post_likes table + toggle_like function)
 - [ ] Configure storage bucket policies (P4 from PRP-01)
 
 ## Remaining PRPs
+
 - PRP-04 (Nice-to-Have): Hospital DB migration, dead code cleanup, tests, PWA
 - Future: Client auth migration to cookies (unblocks Server Components)

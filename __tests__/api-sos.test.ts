@@ -46,7 +46,8 @@ const makeEqChain = () => {
 let insertChain = makeEqChain();
 let updateChain = makeEqChain();
 
-const mockFrom = vi.fn(() => ({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => ({
   insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
   update: vi.fn(() => updateChain),
 }));

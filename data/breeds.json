@@ -227,9 +227,5 @@
     "Lorikeet",
     "Other"
   ],
-  "other": [
-    "Mixed Breed",
-    "Unknown",
-    "Other"
-  ]
+  "other": ["Mixed Breed", "Unknown", "Other"]
 }
