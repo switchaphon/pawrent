@@ -26,18 +26,18 @@ The proposed schema defines: `id, name, address, lat, lng, phone, hours, type, c
 
 The actual `hospitals.json` contains these fields per record:
 
-| JSON field | SQL schema | Status |
-|---|---|---|
-| `id` | `id uuid` | Mismatch — source uses integer IDs (1–5); PRP upgrades to uuid, which is fine, but seed SQL must not use the JSON ids |
-| `name` | `name text` | OK |
-| `lat` | `lat double precision` | OK |
-| `lng` | `lng double precision` | OK |
-| `phone` | `phone text` | OK |
-| `address` | `address text` | OK |
-| `open_hours` | `hours text` | FIELD NAME MISMATCH — JSON uses `open_hours`, SQL column is `hours`; the component reads `hospital.open_hours` so either the column must be `open_hours` or the API response must map it |
-| `certified` | MISSING | boolean, used for the "Certified" badge in the popup |
-| `specialists` | MISSING | text array (`text[]`), rendered as specialist tags in the popup |
-| `type` | present in SQL | NOT IN SOURCE DATA — the JSON has no `type` field; the DEFAULT 'hospital' covers it, but note the discrepancy |
+| JSON field    | SQL schema             | Status                                                                                                                                                                                   |
+| ------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | `id uuid`              | Mismatch — source uses integer IDs (1–5); PRP upgrades to uuid, which is fine, but seed SQL must not use the JSON ids                                                                    |
+| `name`        | `name text`            | OK                                                                                                                                                                                       |
+| `lat`         | `lat double precision` | OK                                                                                                                                                                                       |
+| `lng`         | `lng double precision` | OK                                                                                                                                                                                       |
+| `phone`       | `phone text`           | OK                                                                                                                                                                                       |
+| `address`     | `address text`         | OK                                                                                                                                                                                       |
+| `open_hours`  | `hours text`           | FIELD NAME MISMATCH — JSON uses `open_hours`, SQL column is `hours`; the component reads `hospital.open_hours` so either the column must be `open_hours` or the API response must map it |
+| `certified`   | MISSING                | boolean, used for the "Certified" badge in the popup                                                                                                                                     |
+| `specialists` | MISSING                | text array (`text[]`), rendered as specialist tags in the popup                                                                                                                          |
+| `type`        | present in SQL         | NOT IN SOURCE DATA — the JSON has no `type` field; the DEFAULT 'hospital' covers it, but note the discrepancy                                                                            |
 
 The `certified` and `specialists` fields are actively rendered by `hospital-map.tsx`. If the database row omits them, the component will break silently — `hospital.certified` becomes undefined (falsy, badge disappears) and `hospital.specialists.length` throws a TypeError since `undefined.length` is a runtime error.
 
@@ -131,6 +131,7 @@ The JSON records have integer `id` fields (1, 2, 3, 4, 5). The SQL schema uses `
 2. **Use `open_hours` as the column name** (not `hours`) to match the JSON source and avoid a transformation layer in the API route or component.
 
 3. **Seed SQL format.** Write the seed as explicit INSERT statements with all 5 records rather than a data-copying script, so the migration is self-contained and reviewable. Example:
+
    ```sql
    INSERT INTO hospitals (name, address, lat, lng, phone, open_hours, certified, specialists) VALUES
    ('Bangkok Animal Hospital', '123 Rama I Rd...', 13.7563, 100.5018, '02-123-4567', '24 Hours', true, ARRAY['Surgery','Dental']),
@@ -161,6 +162,6 @@ With the three critical fixes applied the score rises back to 7/10. The PWA task
 
 ## Changelog
 
-| Version | Date | Author | Changes |
-|---|---|---|---|
-| v1.0 | 2026-04-05 | Guardian | Initial validation report |
+| Version | Date       | Author   | Changes                   |
+| ------- | ---------- | -------- | ------------------------- |
+| v1.0    | 2026-04-05 | Guardian | Initial validation report |

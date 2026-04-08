@@ -7,14 +7,14 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup | 1 | Not Started |
-| P1 | Hospital DB Migration | 5 | Not Started |
-| P2 | Hospital Frontend Update | 3 | Not Started |
-| P3 | E2E Setup + Unauthenticated Tests | 5 | Not Started |
-| P4 | E2E Authenticated Tests | 4 | Not Started |
-| P5 | PWA with Serwist | 4 | Not Started |
+| Phase | Description                       | Tasks | Status      |
+| ----- | --------------------------------- | ----- | ----------- |
+| P0    | Setup                             | 1     | Not Started |
+| P1    | Hospital DB Migration             | 5     | Not Started |
+| P2    | Hospital Frontend Update          | 3     | Not Started |
+| P3    | E2E Setup + Unauthenticated Tests | 5     | Not Started |
+| P4    | E2E Authenticated Tests           | 4     | Not Started |
+| P5    | PWA with Serwist                  | 4     | Not Started |
 
 ---
 
@@ -113,10 +113,7 @@ npx tsc --noEmit && npx vitest run && npm run build
 
 - [ ] P3.T3: Create unauthenticated E2E tests
       Files: `e2e/public-pages.spec.ts` (new)
-      Tests:
-      - Hospital map page loads (`/hospital`)
-      - Login page renders with email/password fields (`/`)
-      - Sign-up form validates empty submission
+      Tests: - Hospital map page loads (`/hospital`) - Login page renders with email/password fields (`/`) - Sign-up form validates empty submission
       Verify: `npx playwright test e2e/public-pages.spec.ts`
 
 - [ ] P3.T4: Run full test suite — verify no conflicts
@@ -142,17 +139,12 @@ npx vitest run && npx playwright test
 ### Tasks
 
 - [ ] P4.T1: Create E2E helpers for auth and API mocking
-      Files: `e2e/helpers/auth.ts` (new), `e2e/helpers/mock-api.ts` (new)
-      - `auth.ts`: sets Supabase auth cookies via `page.context().addCookies()`
-      - `mock-api.ts`: intercepts Supabase REST calls with `page.route()`, returns mock data
+      Files: `e2e/helpers/auth.ts` (new), `e2e/helpers/mock-api.ts` (new) - `auth.ts`: sets Supabase auth cookies via `page.context().addCookies()` - `mock-api.ts`: intercepts Supabase REST calls with `page.route()`, returns mock data
       Verify: `npx tsc --noEmit` (if tsconfig includes e2e)
 
 - [ ] P4.T2: Create authenticated E2E tests
       Files: `e2e/authenticated-flows.spec.ts` (new)
-      Tests:
-      - Authenticated user sees home feed
-      - Navigate to /pets when unauthenticated → redirected to /
-      - Create pet flow (with mocked API)
+      Tests: - Authenticated user sees home feed - Navigate to /pets when unauthenticated → redirected to / - Create pet flow (with mocked API)
       Verify: `npx playwright test e2e/authenticated-flows.spec.ts`
 
 - [ ] P4.T3: Run full E2E suite
@@ -228,12 +220,12 @@ P0.T1 (branch)
 
 ## Rollback Strategy
 
-| Phase | Rollback |
-|-------|----------|
-| P1 | Drop `hospitals` table in Supabase, revert `lib/types.ts` and delete API route |
-| P2 | Restore `import hospitalsData` in hospital-map.tsx |
-| P3-P4 | Remove `e2e/` folder, uninstall Playwright, remove test:e2e script |
-| P5 | Remove manifest.json, sw.ts, offline page, revert next.config.ts, uninstall Serwist |
+| Phase | Rollback                                                                            |
+| ----- | ----------------------------------------------------------------------------------- |
+| P1    | Drop `hospitals` table in Supabase, revert `lib/types.ts` and delete API route      |
+| P2    | Restore `import hospitalsData` in hospital-map.tsx                                  |
+| P3-P4 | Remove `e2e/` folder, uninstall Playwright, remove test:e2e script                  |
+| P5    | Remove manifest.json, sw.ts, offline page, revert next.config.ts, uninstall Serwist |
 
 ---
 

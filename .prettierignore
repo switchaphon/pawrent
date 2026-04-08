@@ -1,0 +1,14 @@
+.next/
+out/
+build/
+coverage/
+playwright-report/
+test-results/
+public/sw.js
+public/sw.js.map
+public/swe-worker-*.js
+node_modules/
+*.min.js
+tsconfig.tsbuildinfo
+package-lock.json
+PRPs/

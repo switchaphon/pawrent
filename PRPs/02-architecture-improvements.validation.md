@@ -9,6 +9,7 @@ The revised PRP is well-structured, addresses all 6 critical issues from the v1 
 ## Critical Fixes (Must resolve before implementation)
 
 **None.** All 6 critical issues from v1 have been resolved:
+
 - [x] SC vs TanStack Query conflict → resolved (dropped TanStack Query)
 - [x] PRP-01 dependency → declared as prerequisite
 - [x] API routes for reads → mutations only
@@ -55,10 +56,14 @@ The revised PRP is well-structured, addresses all 6 critical issues from the v1 
 ## Optimization Suggestions
 
 1. **Add `likedPosts` initialization code to Phase A** — Show the `useEffect` that calls `getUserLikes()` on mount:
+
    ```typescript
    useEffect(() => {
      if (user && posts.length > 0) {
-       getUserLikes(user.id, posts.map(p => p.id)).then(({ data }) => {
+       getUserLikes(
+         user.id,
+         posts.map((p) => p.id)
+       ).then(({ data }) => {
          setLikedPosts(new Set(data));
        });
      }

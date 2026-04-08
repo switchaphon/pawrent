@@ -16,22 +16,22 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 
 ## Scope Comparison
 
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| A.1: Zod schemas for all forms | Planned | ✅ Implemented | 8 schemas in `lib/validations.ts` |
-| A.1: File upload validation | Planned | ✅ Implemented | Image + video size/type checks |
-| A.1: Apply to 8 form files | Planned | ✅ Implemented | All 8 files updated |
-| A.2: `post_likes` table + RLS | Planned | ⚠️ SQL provided | User needs to run in Dashboard |
-| A.2: `toggle_like` function | Planned | ⚠️ SQL provided | User needs to run in Dashboard |
-| A.2: Refactor likes in page.tsx | Planned | ✅ Implemented | Toggle, optimistic, filled heart |
-| A.2: `getUserLikes` for persistence | Planned | ✅ Implemented | Fetched on post load |
-| C.1: API route client factory | Planned | ✅ Implemented | `lib/supabase-api.ts` |
-| C.1: Auth-forwarding fetch helper | Planned | ✅ Implemented | `lib/api.ts` |
-| C.1: 5 API routes | Planned | ✅ Implemented | pets, posts, posts/like, sos, feedback |
-| C.1: Update client components | Planned | ✅ Implemented | 6 components switched to `/api/*` |
-| B: Server Components | Descoped | ❌ Correctly skipped | Blocked by localStorage vs cookies |
-| B: providers.tsx extraction | Descoped | ❌ Correctly skipped | Only needed for SC |
-| TanStack Query | Descoped | ❌ Correctly skipped | No real need yet |
+| Requirement                         | PRP Status | Implementation Status | Notes                                  |
+| ----------------------------------- | ---------- | --------------------- | -------------------------------------- |
+| A.1: Zod schemas for all forms      | Planned    | ✅ Implemented        | 8 schemas in `lib/validations.ts`      |
+| A.1: File upload validation         | Planned    | ✅ Implemented        | Image + video size/type checks         |
+| A.1: Apply to 8 form files          | Planned    | ✅ Implemented        | All 8 files updated                    |
+| A.2: `post_likes` table + RLS       | Planned    | ⚠️ SQL provided       | User needs to run in Dashboard         |
+| A.2: `toggle_like` function         | Planned    | ⚠️ SQL provided       | User needs to run in Dashboard         |
+| A.2: Refactor likes in page.tsx     | Planned    | ✅ Implemented        | Toggle, optimistic, filled heart       |
+| A.2: `getUserLikes` for persistence | Planned    | ✅ Implemented        | Fetched on post load                   |
+| C.1: API route client factory       | Planned    | ✅ Implemented        | `lib/supabase-api.ts`                  |
+| C.1: Auth-forwarding fetch helper   | Planned    | ✅ Implemented        | `lib/api.ts`                           |
+| C.1: 5 API routes                   | Planned    | ✅ Implemented        | pets, posts, posts/like, sos, feedback |
+| C.1: Update client components       | Planned    | ✅ Implemented        | 6 components switched to `/api/*`      |
+| B: Server Components                | Descoped   | ❌ Correctly skipped  | Blocked by localStorage vs cookies     |
+| B: providers.tsx extraction         | Descoped   | ❌ Correctly skipped  | Only needed for SC                     |
+| TanStack Query                      | Descoped   | ❌ Correctly skipped  | No real need yet                       |
 
 **Planned: 11 | Implemented: 9 | Awaiting Dashboard: 2 | Descoped: 3**
 
@@ -39,13 +39,13 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Type errors | 0 | 0 | ✅ |
-| API routes return 401 unauth | Yes | Yes (both tested) | ✅ |
-| Zod `.issues` not `.errors` | Correct | Fixed during impl | ⚠️ |
-| Test coverage | 80% | 0% | ❌ No tests (PRP-04) |
-| `any` types introduced | 0 | 0 | ✅ |
+| Metric                       | Target  | Actual            | Status               |
+| ---------------------------- | ------- | ----------------- | -------------------- |
+| Type errors                  | 0       | 0                 | ✅                   |
+| API routes return 401 unauth | Yes     | Yes (both tested) | ✅                   |
+| Zod `.issues` not `.errors`  | Correct | Fixed during impl | ⚠️                   |
+| Test coverage                | 80%     | 0%                | ❌ No tests (PRP-04) |
+| `any` types introduced       | 0       | 0                 | ✅                   |
 
 ---
 
@@ -76,6 +76,7 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 ## Files Inventory
 
 ### Created (8)
+
 - `lib/validations.ts` — 8 Zod schemas for all form inputs
 - `lib/api.ts` — auth-forwarding fetch helper for API routes
 - `lib/supabase-api.ts` — per-request Supabase client for API route handlers
@@ -86,6 +87,7 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 - `app/api/feedback/route.ts` — POST submit (supports anonymous)
 
 ### Modified (12)
+
 - `app/page.tsx` — likes rewrite + API route for likes
 - `app/sos/page.tsx` — Zod validation + API route for SOS
 - `app/feedback/page.tsx` — Zod validation + API route for feedback
@@ -103,6 +105,7 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 ---
 
 ## Time & Effort
+
 - Phases completed: 5/5
 - Tasks completed: 18/18
 - Retries on validation gates: 1 (ZodError `.errors` → `.issues`)
@@ -112,6 +115,7 @@ The PRP predicted the implementation very accurately. The v3.0 refinement (post-
 ---
 
 ## Next Steps
+
 - [ ] Run likes SQL migration in Supabase Dashboard
 - [ ] Test all mutations end-to-end in browser
 - [ ] Proceed to PRP-03 (Quality Improvements) or PRP-04 (Nice-to-Have)

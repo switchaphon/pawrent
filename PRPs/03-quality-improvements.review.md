@@ -16,17 +16,17 @@ The v2.0 refinement (post-validation) made this PRP perfectly executable. Every 
 
 ## Scope Comparison
 
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 3.1: Root error.tsx, loading.tsx, not-found.tsx | Planned | ✅ Implemented | 3 files |
-| 3.1: Pets loading + error | Planned | ✅ Implemented | 2 files |
-| 3.1: Notifications + SOS loading | Planned | ✅ Implemented | 2 files |
-| 3.2: Replace 3 `<img>` with `next/image` | Planned | ✅ Implemented | 3 replacements, 1 kept (blob preview) |
-| 3.3: Extract 4 utility functions | Planned | ✅ Implemented | `lib/pet-utils.ts` |
-| 3.3: Extract VaccineStatusBar | Planned | ✅ Implemented | `components/vaccine-status-bar.tsx` |
-| 3.3: Pets page line reduction | Planned (~640) | ✅ 647 lines | Close to prediction |
-| 3.4: Avatar upload validation | Planned | ✅ Implemented | `profile/page.tsx` |
-| 3.4: Gallery upload validation | Planned | ✅ Implemented | Was in `pets/page.tsx` not `photo-gallery.tsx` |
+| Requirement                                     | PRP Status     | Implementation Status | Notes                                          |
+| ----------------------------------------------- | -------------- | --------------------- | ---------------------------------------------- |
+| 3.1: Root error.tsx, loading.tsx, not-found.tsx | Planned        | ✅ Implemented        | 3 files                                        |
+| 3.1: Pets loading + error                       | Planned        | ✅ Implemented        | 2 files                                        |
+| 3.1: Notifications + SOS loading                | Planned        | ✅ Implemented        | 2 files                                        |
+| 3.2: Replace 3 `<img>` with `next/image`        | Planned        | ✅ Implemented        | 3 replacements, 1 kept (blob preview)          |
+| 3.3: Extract 4 utility functions                | Planned        | ✅ Implemented        | `lib/pet-utils.ts`                             |
+| 3.3: Extract VaccineStatusBar                   | Planned        | ✅ Implemented        | `components/vaccine-status-bar.tsx`            |
+| 3.3: Pets page line reduction                   | Planned (~640) | ✅ 647 lines          | Close to prediction                            |
+| 3.4: Avatar upload validation                   | Planned        | ✅ Implemented        | `profile/page.tsx`                             |
+| 3.4: Gallery upload validation                  | Planned        | ✅ Implemented        | Was in `pets/page.tsx` not `photo-gallery.tsx` |
 
 **Planned: 9 | Implemented: 9 | Deferred: 0**
 
@@ -34,13 +34,13 @@ The v2.0 refinement (post-validation) made this PRP perfectly executable. Every 
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Type errors | 0 | 0 | ✅ |
-| Raw `<img>` in modified files | 0 | 0 | ✅ |
-| Pets page lines | ~640 | 647 | ✅ |
-| Retries | 0 | 0 | ✅ |
-| User interventions | 0 | 0 | ✅ |
+| Metric                        | Target | Actual | Status |
+| ----------------------------- | ------ | ------ | ------ |
+| Type errors                   | 0      | 0      | ✅     |
+| Raw `<img>` in modified files | 0      | 0      | ✅     |
+| Pets page lines               | ~640   | 647    | ✅     |
+| Retries                       | 0      | 0      | ✅     |
+| User interventions            | 0      | 0      | ✅     |
 
 ---
 
@@ -67,6 +67,7 @@ The v2.0 refinement (post-validation) made this PRP perfectly executable. Every 
 ## Files Inventory
 
 ### Created (9)
+
 - `app/error.tsx` — Root error boundary with retry
 - `app/loading.tsx` — Root loading spinner
 - `app/not-found.tsx` — Custom 404 with paw emoji
@@ -78,11 +79,13 @@ The v2.0 refinement (post-validation) made this PRP perfectly executable. Every 
 - `components/vaccine-status-bar.tsx` — Extracted component
 
 ### Modified (3)
+
 - `app/page.tsx` — 2 `<img>` → `next/image`
 - `app/pets/page.tsx` — 1 `<img>` → `next/image`, extracted functions, gallery upload validation
 - `app/profile/page.tsx` — avatar upload validation
 
 ### Commits (4)
+
 1. `e1244fd` — Error boundaries, loading skeletons, 404 page
 2. `e2d63e7` — `next/image` replacements
 3. `4760379` — Pets page decomposition
@@ -91,6 +94,7 @@ The v2.0 refinement (post-validation) made this PRP perfectly executable. Every 
 ---
 
 ## Time & Effort
+
 - Phases completed: 5/5
 - Tasks completed: 16/16
 - Retries on validation gates: 0

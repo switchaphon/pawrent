@@ -7,13 +7,13 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup | 1 | Not Started |
-| P1 | Core Migration (supabase.ts + auth-provider) | 4 | Not Started |
-| P2 | Proxy Redirects | 2 | Not Started |
-| P3 | Server Component POC + Auth Guard Cleanup | 3 | Not Started |
-| P4 | Tests + Final Verification | 4 | Not Started |
+| Phase | Description                                  | Tasks | Status      |
+| ----- | -------------------------------------------- | ----- | ----------- |
+| P0    | Setup                                        | 1     | Not Started |
+| P1    | Core Migration (supabase.ts + auth-provider) | 4     | Not Started |
+| P2    | Proxy Redirects                              | 2     | Not Started |
+| P3    | Server Component POC + Auth Guard Cleanup    | 3     | Not Started |
+| P4    | Tests + Final Verification                   | 4     | Not Started |
 
 ---
 
@@ -169,11 +169,11 @@ P0.T1 (branch)
 
 ## Rollback Strategy
 
-| Phase | Rollback |
-|-------|----------|
-| P1 | `git checkout lib/supabase.ts components/auth-provider.tsx` — reverts to localStorage client |
-| P2 | `git checkout proxy.ts` — removes redirect logic |
-| P3 | Restore `"use client"` to hospital page, restore auth guard to profile page |
+| Phase | Rollback                                                                                     |
+| ----- | -------------------------------------------------------------------------------------------- |
+| P1    | `git checkout lib/supabase.ts components/auth-provider.tsx` — reverts to localStorage client |
+| P2    | `git checkout proxy.ts` — removes redirect logic                                             |
+| P3    | Restore `"use client"` to hospital page, restore auth guard to profile page                  |
 
 ---
 

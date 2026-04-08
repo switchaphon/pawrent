@@ -16,11 +16,13 @@ Several features were deferred from PRP-04 as too large or needing their own PRP
 ## Scope
 
 **In scope:**
+
 - Hospital data migration from JSON to Supabase
 - E2E test suite with Playwright
 - PWA support investigation and implementation
 
 **Out of scope:**
+
 - Full Server Component migration (covered by PRP-07)
 - Dark mode (keep as-is — zero cost, preserves optionality)
 
@@ -42,6 +44,7 @@ The hospital/clinic page uses `data/hospitals.json` (5 records) imported statica
 - [ ] Keep `data/hospitals.json` as seed reference
 
 **Corrected schema** (matches actual JSON fields):
+
 ```sql
 CREATE TABLE IF NOT EXISTS hospitals (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -69,6 +72,7 @@ CREATE POLICY "Authenticated users can suggest hospitals"
 ```
 
 **Complete seed SQL (copy-paste ready):**
+
 ```sql
 INSERT INTO hospitals (name, address, lat, lng, phone, open_hours, certified, specialists) VALUES
 ('Bangkok Animal Hospital', '123 Rama I Rd, Pathum Wan, Bangkok 10330', 13.7563, 100.5018, '02-123-4567', '24 Hours', true, ARRAY['Surgery','Dental']),
@@ -79,6 +83,7 @@ INSERT INTO hospitals (name, address, lat, lng, phone, open_hours, certified, sp
 ```
 
 **Hospital TypeScript interface (add to `lib/types.ts`):**
+
 ```typescript
 export interface Hospital {
   id: string;
@@ -96,10 +101,12 @@ export interface Hospital {
 ```
 
 **Files to modify:**
+
 - `lib/types.ts` — add `Hospital` interface
 - `components/hospital-map.tsx` — replace JSON import with API fetch + loading/error states
 
 **Files to create:**
+
 - `app/api/hospitals/route.ts`
 
 ### 8.2 Add E2E Tests with Playwright
@@ -109,11 +116,13 @@ Unit tests cover validation and API routes, but no tests verify real user flows 
 **Test environment decision: Option C — Playwright `page.route()` for API mocking.**
 
 Why Option C over the others:
+
 - **Option A (separate Supabase project):** Requires paid plan or manual management of a second project. Test data pollution risk.
 - **Option B (local Supabase via `supabase start`):** Requires Docker, adds CI complexity, slow startup.
 - **Option C (network interception):** Zero external dependencies, fast, deterministic, works in CI. Playwright's `page.route()` intercepts Supabase API calls and returns mock data. Auth is simulated by setting cookies directly.
 
 **Phase 1 — Unauthenticated flows (no mocking needed):**
+
 - [ ] Install Playwright (`npm init playwright@latest`)
 - [ ] Add `test:e2e` script to `package.json`
 - [ ] Configure for CI (headless, Chromium only)
@@ -122,6 +131,7 @@ Why Option C over the others:
 - [ ] Test: Sign-up form validates empty fields
 
 **Phase 2 — Authenticated flows (with `page.route()` mocking):**
+
 - [ ] Create `e2e/helpers/auth.ts` — sets Supabase auth cookies directly via `page.context().addCookies()`
 - [ ] Create `e2e/helpers/mock-api.ts` — intercepts Supabase REST calls with `page.route()`
 - [ ] Test: Authenticated user sees home feed with posts
@@ -161,8 +171,8 @@ npm run build
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-05 | Initial PRP — 3 tasks: hospital DB, E2E tests, PWA investigation |
-| v1.1 | 2026-04-05 | Validation fixes: correct file name, add missing schema fields, target hospital-map.tsx, add Hospital type, fix RLS |
-| v1.2 | 2026-04-05 | Confidence boost: complete seed SQL from actual data, commit to Option C (page.route) for E2E, commit to Serwist for PWA, add Hospital interface template, split E2E into unauthenticated + authenticated phases |
+| Version | Date       | Changes                                                                                                                                                                                                          |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0    | 2026-04-05 | Initial PRP — 3 tasks: hospital DB, E2E tests, PWA investigation                                                                                                                                                 |
+| v1.1    | 2026-04-05 | Validation fixes: correct file name, add missing schema fields, target hospital-map.tsx, add Hospital type, fix RLS                                                                                              |
+| v1.2    | 2026-04-05 | Confidence boost: complete seed SQL from actual data, commit to Option C (page.route) for E2E, commit to Serwist for PWA, add Hospital interface template, split E2E into unauthenticated + authenticated phases |

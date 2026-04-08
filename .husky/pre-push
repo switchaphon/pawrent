@@ -1,0 +1,2 @@
+echo "Pre-push gate: type-check + full test suite..."
+npx tsc --noEmit && npm run test

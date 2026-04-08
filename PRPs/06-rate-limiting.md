@@ -12,6 +12,7 @@
 ## Problem
 
 All API routes accept unlimited requests. An attacker can:
+
 - Flood `/api/sos` with fake lost-pet alerts, triggering notifications to all nearby users
 - Spam `/api/feedback` (anonymous-safe) to fill the database with junk
 - Manipulate likes count via rapid toggling on `/api/posts/like`
@@ -29,19 +30,23 @@ Use **`@upstash/ratelimit`** with **Upstash Redis** (free tier). This is the onl
 Rate limiting is applied **per-route** (not in proxy.ts). Each route handler calls a shared `lib/rate-limit.ts` utility at the top.
 
 **IP extraction:** Use `x-real-ip` (Vercel's canonical header), with fallback:
+
 ```typescript
-const ip = request.headers.get("x-real-ip")
-  ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-  ?? "127.0.0.1";
+const ip =
+  request.headers.get("x-real-ip") ??
+  request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+  "127.0.0.1";
 ```
 
 **Identifier strategy:**
+
 - Anonymous routes (`/api/feedback`): per-IP
 - Authenticated routes: per-user ID (from JWT), fallback to IP
 
 ## Scope
 
 **In scope:**
+
 - `@upstash/ratelimit` + `@upstash/redis` installation
 - `lib/rate-limit.ts` utility with reusable limiter
 - Per-route rate limiting wrappers on all 13 mutation endpoints
@@ -49,6 +54,7 @@ const ip = request.headers.get("x-real-ip")
 - Environment variables: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 
 **Out of scope:**
+
 - DDoS protection (handled by Vercel/Cloudflare at infra level)
 - Per-user abuse detection or banning
 - Rate limiting on read-only routes (GET requests)
@@ -56,21 +62,21 @@ const ip = request.headers.get("x-real-ip")
 
 ## Rate Limit Tiers
 
-| Route | Auth | Limit | Window | Identifier |
-|-------|------|-------|--------|------------|
-| `POST /api/feedback` | Optional | 5 req | 1 min | IP |
-| `POST /api/sos` | Required | 3 req | 5 min | User ID |
-| `POST /api/posts/like` | Required | 30 req | 1 min | User ID |
-| `POST /api/posts` | Required | 10 req | 1 min | User ID |
-| `POST /api/pets` | Required | 10 req | 1 min | User ID |
-| `PUT /api/pets` | Required | 20 req | 1 min | User ID |
-| `DELETE /api/pets` | Required | 10 req | 1 min | User ID |
-| `PUT /api/sos` | Required | 10 req | 1 min | User ID |
-| `POST /api/vaccinations` | Required | 20 req | 1 min | User ID |
-| `POST /api/parasite-logs` | Required | 20 req | 1 min | User ID |
-| `POST /api/pet-photos` | Required | 20 req | 1 min | User ID |
-| `DELETE /api/pet-photos` | Required | 20 req | 1 min | User ID |
-| `PUT /api/profile` | Required | 10 req | 1 min | User ID |
+| Route                     | Auth     | Limit  | Window | Identifier |
+| ------------------------- | -------- | ------ | ------ | ---------- |
+| `POST /api/feedback`      | Optional | 5 req  | 1 min  | IP         |
+| `POST /api/sos`           | Required | 3 req  | 5 min  | User ID    |
+| `POST /api/posts/like`    | Required | 30 req | 1 min  | User ID    |
+| `POST /api/posts`         | Required | 10 req | 1 min  | User ID    |
+| `POST /api/pets`          | Required | 10 req | 1 min  | User ID    |
+| `PUT /api/pets`           | Required | 20 req | 1 min  | User ID    |
+| `DELETE /api/pets`        | Required | 10 req | 1 min  | User ID    |
+| `PUT /api/sos`            | Required | 10 req | 1 min  | User ID    |
+| `POST /api/vaccinations`  | Required | 20 req | 1 min  | User ID    |
+| `POST /api/parasite-logs` | Required | 20 req | 1 min  | User ID    |
+| `POST /api/pet-photos`    | Required | 20 req | 1 min  | User ID    |
+| `DELETE /api/pet-photos`  | Required | 20 req | 1 min  | User ID    |
+| `PUT /api/profile`        | Required | 10 req | 1 min  | User ID    |
 
 ## Tasks
 
@@ -135,6 +141,7 @@ export async function checkRateLimit(
 ```
 
 **Files to create:**
+
 - `lib/rate-limit.ts`
 
 ### 6.3 Apply rate limiting to high-risk routes
@@ -144,6 +151,7 @@ export async function checkRateLimit(
 - [ ] `/api/posts/like` POST — 30 req/min, keyed by user ID
 
 Usage pattern in each route:
+
 ```typescript
 import { createRateLimiter, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -157,6 +165,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **Files to modify:**
+
 - `app/api/feedback/route.ts`
 - `app/api/sos/route.ts`
 - `app/api/posts/like/route.ts`
@@ -172,6 +181,7 @@ export async function POST(request: NextRequest) {
 - [ ] `app/api/profile/route.ts` (PUT)
 
 For authenticated routes, use user ID as identifier:
+
 ```typescript
 const rateLimited = await checkRateLimit(limiter, auth.user.id);
 ```
@@ -192,7 +202,7 @@ npx vitest run
 # Manual: rapid curl requests to /api/feedback should return 429 after 5th
 curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/feedback \
   -H "Content-Type: application/json" \
-  -d '{"message":"test"}' 
+  -d '{"message":"test"}'
 # Run 6 times rapidly — 6th should return 429
 ```
 
@@ -210,7 +220,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/feedback \
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-05 | Initial PRP — rate limit tiers, 5 tasks |
-| v1.1 | 2026-04-05 | Validation fixes: commit to Upstash Redis, add IP extraction via x-real-ip, fix route count (9 files/13 endpoints), add code templates, specify Retry-After calculation, note test mocking requirement |
+| Version | Date       | Changes                                                                                                                                                                                                |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v1.0    | 2026-04-05 | Initial PRP — rate limit tiers, 5 tasks                                                                                                                                                                |
+| v1.1    | 2026-04-05 | Validation fixes: commit to Upstash Redis, add IP extraction via x-real-ip, fix route count (9 files/13 endpoints), add code templates, specify Retry-After calculation, note test mocking requirement |

@@ -6,14 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Dummy values for build — Supabase SDK requires these at build time
   NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
   NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
 jobs:
-  lint:
-    name: Lint
+  static-analysis:
+    name: Static Analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,10 +26,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run format:check
       - run: npm run lint
+      - run: npx tsc --noEmit
 
   test:
     name: Unit & Integration Tests
+    needs: [static-analysis]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +51,7 @@ jobs:
 
   build:
     name: Build
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +60,19 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('app/**', 'lib/**', 'components/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
       - run: npm run build
 
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,8 +80,14 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox
-      - run: npx playwright test
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium firefox
+      - run: npx playwright test --project=chromium --project=firefox
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

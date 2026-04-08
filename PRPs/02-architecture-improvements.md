@@ -28,6 +28,7 @@ The entire app is client-rendered with zero Server Components, no input validati
 ## Scope
 
 **In scope:**
+
 - `lib/validations.ts` — Zod schemas for all forms
 - `app/page.tsx` — likes system rewrite
 - `lib/db.ts` — toggleLike + getUserLikes functions
@@ -35,6 +36,7 @@ The entire app is client-rendered with zero Server Components, no input validati
 - 8 form components — client-side validation
 
 **Out of scope (deferred):**
+
 - Server Components (requires cookie-based client auth)
 - `providers.tsx` extraction (only needed for Server Components)
 - TanStack Query (revisit when there's a real need)
@@ -62,7 +64,7 @@ export const petSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   species: z.string().nullable(),
   breed: z.string().nullable(),
-  sex: z.enum(["Male", "Female"]).nullable(),  // Capitalized — matches create-pet-form.tsx
+  sex: z.enum(["Male", "Female"]).nullable(), // Capitalized — matches create-pet-form.tsx
   color: z.string().max(50).nullable(),
   weight_kg: z.number().min(0).max(500).nullable(),
   date_of_birth: z.string().nullable(),
@@ -104,22 +106,25 @@ export const parasiteLogSchema = z.object({
 // File upload validation — includes image/jpg for browser compatibility
 export const imageFileSchema = z.object({
   size: z.number().max(5 * 1024 * 1024, "Image must be under 5MB"),
-  type: z.string().refine(
-    (t) => ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(t),
-    { message: "Only JPEG, PNG, and WebP images allowed" }
-  ),
+  type: z
+    .string()
+    .refine((t) => ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(t), {
+      message: "Only JPEG, PNG, and WebP images allowed",
+    }),
 });
 
 export const videoFileSchema = z.object({
   size: z.number().max(50 * 1024 * 1024, "Video must be under 50MB"),
-  type: z.string().refine(
-    (t) => ["video/mp4", "video/quicktime"].includes(t),
-    { message: "Only MP4 and MOV videos allowed" }
-  ),
+  type: z
+    .string()
+    .refine((t) => ["video/mp4", "video/quicktime"].includes(t), {
+      message: "Only MP4 and MOV videos allowed",
+    }),
 });
 ```
 
 **Form files to modify (add Zod validation to `onSubmit`):**
+
 - `components/create-pet-form.tsx` — use `petSchema`
 - `components/edit-pet-form.tsx` — use `petSchema.partial()`
 - `components/create-post-form.tsx` — use `postSchema` + `imageFileSchema`
@@ -130,9 +135,11 @@ export const videoFileSchema = z.object({
 - `components/auth-form.tsx` — use `z.string().email()` + `z.string().min(6)`
 
 **Files to create:**
+
 - `lib/validations.ts`
 
 **Files to modify:**
+
 - `package.json` (add `zod`)
 - 8 form files listed above
 
@@ -292,6 +299,7 @@ const handleLike = async (postId: string) => {
 ```
 
 **Files to modify:**
+
 - `lib/db.ts` — add `toggleLike()`, `getUserLikes()`
 - `app/page.tsx` — refactor `handleLike`, add `likedPosts` state, fetch user likes on mount, update Heart icon
 - Supabase SQL Editor — run likes migration
@@ -352,7 +360,9 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
@@ -384,7 +394,9 @@ export async function POST(request: NextRequest) {
   if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const formData = await request.formData();
@@ -404,7 +416,9 @@ export async function POST(request: NextRequest) {
 ```typescript
 // Helper to call API routes with auth
 async function apiMutate(url: string, body: unknown) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -418,6 +432,7 @@ async function apiMutate(url: string, body: unknown) {
 ```
 
 **Files to create:**
+
 - `lib/supabase-api.ts` — API route client factory
 - `app/api/posts/route.ts`
 - `app/api/posts/like/route.ts`
@@ -426,6 +441,7 @@ async function apiMutate(url: string, body: unknown) {
 - `app/api/feedback/route.ts`
 
 **Files to modify (switch mutations from direct Supabase to API routes):**
+
 - `components/create-post-form.tsx`
 - `app/page.tsx` (like handler)
 - `app/sos/page.tsx`
@@ -482,6 +498,7 @@ curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3000/api/posts/l
 **Previous: 8.5/10 → Now: 9/10**
 
 Improvements:
+
 - Phase B descoped (blocked by auth mechanism mismatch discovered in PRP-01)
 - Sex field enum fixed to match actual form values (`"Male"`, `"Female"`)
 - `image/jpg` added to file validation
@@ -496,8 +513,8 @@ Remaining 1: Phase C's exact client-side auth forwarding pattern needs testing i
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-04 | Initial PRP — 5 tasks, single scope |
-| v2.0 | 2026-04-04 | Major revision: split into 3 phases, resolved SC vs TanStack Query conflict, added SQL/code |
-| v3.0 | 2026-04-05 | Post-PRP-01 refinement: descoped Phase B (auth mechanism mismatch), fixed sex enum casing, added image/jpg, added auth.uid() check to toggle_like, added likedPosts init code, updated API route auth pattern for localStorage client, accounted for codebase drift |
+| Version | Date       | Changes                                                                                                                                                                                                                                                             |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.0    | 2026-04-04 | Initial PRP — 5 tasks, single scope                                                                                                                                                                                                                                 |
+| v2.0    | 2026-04-04 | Major revision: split into 3 phases, resolved SC vs TanStack Query conflict, added SQL/code                                                                                                                                                                         |
+| v3.0    | 2026-04-05 | Post-PRP-01 refinement: descoped Phase B (auth mechanism mismatch), fixed sex enum casing, added image/jpg, added auth.uid() check to toggle_like, added likedPosts init code, updated API route auth pattern for localStorage client, accounted for codebase drift |

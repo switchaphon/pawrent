@@ -10,58 +10,61 @@ Three PRPs executed in one session: API rate limiting with Upstash Redis (PRP-06
 
 ## Accuracy Scores
 
-| PRP | Confidence | Accuracy | Delta |
-|-----|-----------|----------|-------|
-| PRP-06: Rate Limiting | 8/10 | **9/10** | +1 — smoother than expected |
-| PRP-07: Auth Migration | 8/10 | **8/10** | 0 — hospital SC deferred as predicted |
-| PRP-08: Nice-to-Have | 9/10 | **8/10** | -1 — Turbopack/webpack conflict required build flag change |
+| PRP                    | Confidence | Accuracy | Delta                                                      |
+| ---------------------- | ---------- | -------- | ---------------------------------------------------------- |
+| PRP-06: Rate Limiting  | 8/10       | **9/10** | +1 — smoother than expected                                |
+| PRP-07: Auth Migration | 8/10       | **8/10** | 0 — hospital SC deferred as predicted                      |
+| PRP-08: Nice-to-Have   | 9/10       | **8/10** | -1 — Turbopack/webpack conflict required build flag change |
 
 **Combined accuracy: 8.3/10**
 
 ## Scope Comparison
 
 ### PRP-06: Rate Limiting
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 6.1: Install Upstash deps | Planned | Done | |
-| 6.2: Create rate-limit utility | Planned | Done | Fixed `Duration` type import |
-| 6.3: High-risk routes | Planned | Done | feedback, sos, likes |
-| 6.4: Remaining routes | Planned | Done | All 13 endpoints covered |
-| 6.5: Tests | Planned | Done | 10 tests, mocked Redis class constructor |
-| Mock existing tests | Not planned | Done | Had to add rate-limit mock to 3 test files |
+
+| Requirement                    | PRP Status  | Implementation Status | Notes                                      |
+| ------------------------------ | ----------- | --------------------- | ------------------------------------------ |
+| 6.1: Install Upstash deps      | Planned     | Done                  |                                            |
+| 6.2: Create rate-limit utility | Planned     | Done                  | Fixed `Duration` type import               |
+| 6.3: High-risk routes          | Planned     | Done                  | feedback, sos, likes                       |
+| 6.4: Remaining routes          | Planned     | Done                  | All 13 endpoints covered                   |
+| 6.5: Tests                     | Planned     | Done                  | 10 tests, mocked Redis class constructor   |
+| Mock existing tests            | Not planned | Done                  | Had to add rate-limit mock to 3 test files |
 
 ### PRP-07: Auth Migration
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 7.1: Replace createClient | Planned | Done | 1-line swap |
-| 7.2: localStorage cleanup | Planned | Done | SIGNED_IN event handler |
-| 7.3: Proxy redirects | Planned | Done | 4 protected paths |
-| 7.4: Verify apiFetch (Option A) | Planned | Verified | Zero changes needed |
-| 7.5: Hospital SC POC | Planned | Deferred | dynamic(ssr:false) blocks SC conversion |
-| 7.6: Remove auth guards | Planned | Partial | Only profile had a guard |
-| 7.7: Tests | Planned | Partial | Existing tests pass; proxy tests skipped |
+
+| Requirement                     | PRP Status | Implementation Status | Notes                                    |
+| ------------------------------- | ---------- | --------------------- | ---------------------------------------- |
+| 7.1: Replace createClient       | Planned    | Done                  | 1-line swap                              |
+| 7.2: localStorage cleanup       | Planned    | Done                  | SIGNED_IN event handler                  |
+| 7.3: Proxy redirects            | Planned    | Done                  | 4 protected paths                        |
+| 7.4: Verify apiFetch (Option A) | Planned    | Verified              | Zero changes needed                      |
+| 7.5: Hospital SC POC            | Planned    | Deferred              | dynamic(ssr:false) blocks SC conversion  |
+| 7.6: Remove auth guards         | Planned    | Partial               | Only profile had a guard                 |
+| 7.7: Tests                      | Planned    | Partial               | Existing tests pass; proxy tests skipped |
 
 ### PRP-08: Nice-to-Have
-| Requirement | PRP Status | Implementation Status | Notes |
-|-------------|------------|----------------------|-------|
-| 8.1: Hospital DB migration | Planned | Done | SQL run by user in Dashboard |
-| 8.1: Hospital API route | Planned | Done | GET /api/hospitals |
-| 8.1: Hospital frontend update | Planned | Done | Fetch + loading/error states |
-| 8.2: Playwright setup | Planned | Done | 6 E2E tests for public pages |
-| 8.2: Authenticated E2E | Planned | Deferred | page.route() helpers — future work |
-| 8.3: PWA with Serwist | Planned | Done | manifest + SW + offline page |
-| Build flag for webpack | Not planned | Done | `--webpack` required for Serwist |
-| Vitest e2e exclusion | Not planned | Done | Vitest picked up Playwright files |
+
+| Requirement                   | PRP Status  | Implementation Status | Notes                              |
+| ----------------------------- | ----------- | --------------------- | ---------------------------------- |
+| 8.1: Hospital DB migration    | Planned     | Done                  | SQL run by user in Dashboard       |
+| 8.1: Hospital API route       | Planned     | Done                  | GET /api/hospitals                 |
+| 8.1: Hospital frontend update | Planned     | Done                  | Fetch + loading/error states       |
+| 8.2: Playwright setup         | Planned     | Done                  | 6 E2E tests for public pages       |
+| 8.2: Authenticated E2E        | Planned     | Deferred              | page.route() helpers — future work |
+| 8.3: PWA with Serwist         | Planned     | Done                  | manifest + SW + offline page       |
+| Build flag for webpack        | Not planned | Done                  | `--webpack` required for Serwist   |
+| Vitest e2e exclusion          | Not planned | Done                  | Vitest picked up Playwright files  |
 
 ## Quality Metrics
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Unit tests | All pass | 175/175 pass | Pass |
-| Rate-limit tests | New | 10/10 pass | Pass |
-| Type errors (source) | 0 | 0 | Pass |
-| Build | Clean | Clean (webpack mode) | Pass |
-| E2E tests | Written | 6 specs (need dev server to run) | Pass |
+| Metric               | Target   | Actual                           | Status |
+| -------------------- | -------- | -------------------------------- | ------ |
+| Unit tests           | All pass | 175/175 pass                     | Pass   |
+| Rate-limit tests     | New      | 10/10 pass                       | Pass   |
+| Type errors (source) | 0        | 0                                | Pass   |
+| Build                | Clean    | Clean (webpack mode)             | Pass   |
+| E2E tests            | Written  | 6 specs (need dev server to run) | Pass   |
 
 ## Lessons Learned
 
@@ -96,6 +99,7 @@ Three PRPs executed in one session: API rate limiting with Upstash Redis (PRP-06
 ## Files Inventory
 
 ### Created (12)
+
 - `lib/rate-limit.ts` — Upstash rate limiting utility
 - `__tests__/rate-limit.test.ts` — 10 rate limiting tests
 - `app/api/hospitals/route.ts` — Public GET endpoint for hospitals
@@ -110,6 +114,7 @@ Three PRPs executed in one session: API rate limiting with Upstash Redis (PRP-06
 - `public/manifest.json` — PWA manifest
 
 ### Modified (22)
+
 - `lib/supabase.ts` — createClient → createBrowserClient
 - `lib/types.ts` — +Hospital interface
 - `proxy.ts` — +protected route redirects

@@ -1,6 +1,7 @@
 # PRP-10: Social Features — Comments, Following, Nearby Pets
 
 ## Priority: MEDIUM
+
 ## Prerequisites: PRPs 01-09 complete
 
 ## Problem
@@ -10,11 +11,13 @@ The community feed currently supports photo posts and likes, but lacks deeper so
 ## Scope
 
 **In scope:**
+
 - Post comments system (add, view, delete own comments)
 - Pet following / pet parent following
 - Nearby pet parents discovery (using existing geolocation)
 
 **Out of scope:**
+
 - Direct messaging (future PRP)
 - Push notifications for social events (covered in PRP-11)
 - Content moderation / reporting (future PRP)
@@ -26,6 +29,7 @@ The community feed currently supports photo posts and likes, but lacks deeper so
 ### 10.1 Post Comments System
 
 **Database schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS comments (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -52,6 +56,7 @@ CREATE POLICY "Users can delete own comments"
 ```
 
 **TypeScript type (add to lib/types.ts):**
+
 ```typescript
 export interface Comment {
   id: string;
@@ -65,11 +70,13 @@ export interface Comment {
 ```
 
 **API routes:**
+
 - `GET /api/comments?postId=xxx` — fetch comments for a post (with profile join, ordered by created_at ASC, limit 50)
 - `POST /api/comments` — add comment (auth required, rate limit 20/min)
 - `DELETE /api/comments` — delete own comment (auth required)
 
 **Zod validation:**
+
 ```typescript
 export const commentSchema = z.object({
   post_id: z.string().uuid(),
@@ -78,15 +85,18 @@ export const commentSchema = z.object({
 ```
 
 **UI changes:**
+
 - Add comment icon + count below each post (next to like button)
 - Comment sheet/modal: shows comments list + input field
 - Each comment shows: avatar, name, content, time ago, delete button (own comments)
 
 **Files to create:**
+
 - `app/api/comments/route.ts`
 - `components/comment-sheet.tsx`
 
 **Files to modify:**
+
 - `lib/types.ts` — add Comment interface
 - `lib/validations.ts` — add commentSchema
 - `lib/db.ts` — add getComments, createComment, deleteComment
@@ -98,6 +108,7 @@ export const commentSchema = z.object({
 ### 10.2 Pet Following System
 
 **Database schema:**
+
 ```sql
 CREATE TABLE IF NOT EXISTS follows (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -126,18 +137,22 @@ CREATE POLICY "Users can unfollow"
 ```
 
 **API routes:**
+
 - `POST /api/follows` — follow/unfollow toggle (rate limit 30/min)
 - `GET /api/follows?userId=xxx` — get follower/following counts and list
 
 **UI changes:**
+
 - Follow button on post cards (next to pet name)
 - Following/followers count on profile page
 - "Following" feed filter tab (show only posts from followed users)
 
 **Files to create:**
+
 - `app/api/follows/route.ts`
 
 **Files to modify:**
+
 - `lib/types.ts` — add Follow interface
 - `lib/db.ts` — add toggleFollow, getFollowStatus, getFollowerCount
 - `app/page.tsx` — add follow button, feed filter
@@ -150,6 +165,7 @@ CREATE POLICY "Users can unfollow"
 **Approach:** Use the existing `LocationProvider` + `calculateDistance()` from `lib/db.ts` to show nearby users who opt-in to location sharing.
 
 **Database schema:**
+
 ```sql
 -- Add location fields to profiles table
 ALTER TABLE profiles
@@ -159,14 +175,17 @@ ALTER TABLE profiles
 ```
 
 **API route:**
+
 - `GET /api/nearby?lat=x&lng=y&radius=5` — fetch profiles within radius (km), only where location_visible=true
 
 **UI changes:**
+
 - Location sharing toggle on profile page
 - "Nearby" tab on feed or dedicated page showing pet parents within 5km
 - Each card shows: avatar, name, pets count, distance
 
 **Files to create:**
+
 - `app/api/nearby/route.ts`
 - `app/nearby/page.tsx` or integrate into feed
 

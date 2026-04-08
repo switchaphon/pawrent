@@ -19,21 +19,21 @@ The PRP correctly identifies the problem and has sound rate limit tiers, but it 
 
 The PRP claims "12 API routes exist under `app/api/`". The actual count is **9 route files** with **13 individual mutation endpoints** (some files export multiple methods). The "12" figure conflates files with endpoints.
 
-| PRP Table Entry | File Exists | Method in File |
-|-----------------|-------------|----------------|
-| `POST /api/feedback` | YES | YES |
-| `POST /api/sos` | YES | YES |
-| `PUT /api/sos` | YES | YES |
-| `POST /api/posts/like` | YES | YES |
-| `POST /api/posts` | YES | YES |
-| `POST /api/pets` | YES | YES |
-| `PUT /api/pets` | YES | YES |
-| `DELETE /api/pets` | YES | YES |
-| `POST /api/vaccinations` | YES | YES |
-| `POST /api/parasite-logs` | YES | YES |
-| `POST /api/pet-photos` | YES | YES |
-| `DELETE /api/pet-photos` | YES | YES |
-| `PUT /api/profile` | YES | YES |
+| PRP Table Entry           | File Exists | Method in File |
+| ------------------------- | ----------- | -------------- |
+| `POST /api/feedback`      | YES         | YES            |
+| `POST /api/sos`           | YES         | YES            |
+| `PUT /api/sos`            | YES         | YES            |
+| `POST /api/posts/like`    | YES         | YES            |
+| `POST /api/posts`         | YES         | YES            |
+| `POST /api/pets`          | YES         | YES            |
+| `PUT /api/pets`           | YES         | YES            |
+| `DELETE /api/pets`        | YES         | YES            |
+| `POST /api/vaccinations`  | YES         | YES            |
+| `POST /api/parasite-logs` | YES         | YES            |
+| `POST /api/pet-photos`    | YES         | YES            |
+| `DELETE /api/pet-photos`  | YES         | YES            |
+| `PUT /api/profile`        | YES         | YES            |
 
 All 13 mutation endpoints in the rate limit table exist on disk. No routes are missing from coverage.
 
@@ -77,21 +77,21 @@ Use `@upstash/ratelimit` with Upstash Redis free tier. If adding an external ser
 
 **Result: REASONABLE with one concern**
 
-| Route | Limit | Window | Assessment |
-|-------|-------|--------|------------|
-| `POST /api/feedback` | 5 req | 1 min | Correct. This is the highest-risk anonymous route. |
-| `POST /api/sos` | 3 req | 5 min | Appropriate. SOS alerts trigger notifications to nearby users — abuse is high-impact. |
-| `POST /api/posts/like` | 30 req | 1 min | Acceptable but slightly generous; 30 rapid likes in 60 seconds is still plausible for power users scrolling quickly. |
-| `POST /api/posts` | 10 req | 1 min | Fine for normal usage. |
-| `POST /api/pets` | 10 req | 1 min | Fine. |
-| `PUT /api/pets` | 20 req | 1 min | Fine. |
-| `DELETE /api/pets` | 10 req | 1 min | Fine. |
-| `PUT /api/sos` | 10 req | 1 min | Fine. A user resolving alerts won't hit 10/min. |
-| `POST /api/vaccinations` | 20 req | 1 min | Fine. |
-| `POST /api/parasite-logs` | 20 req | 1 min | Fine. |
-| `POST /api/pet-photos` | 20 req | 1 min | Fine. |
-| `DELETE /api/pet-photos` | 20 req | 1 min | Fine. |
-| `PUT /api/profile` | 10 req | 1 min | Fine. |
+| Route                     | Limit  | Window | Assessment                                                                                                           |
+| ------------------------- | ------ | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/feedback`      | 5 req  | 1 min  | Correct. This is the highest-risk anonymous route.                                                                   |
+| `POST /api/sos`           | 3 req  | 5 min  | Appropriate. SOS alerts trigger notifications to nearby users — abuse is high-impact.                                |
+| `POST /api/posts/like`    | 30 req | 1 min  | Acceptable but slightly generous; 30 rapid likes in 60 seconds is still plausible for power users scrolling quickly. |
+| `POST /api/posts`         | 10 req | 1 min  | Fine for normal usage.                                                                                               |
+| `POST /api/pets`          | 10 req | 1 min  | Fine.                                                                                                                |
+| `PUT /api/pets`           | 20 req | 1 min  | Fine.                                                                                                                |
+| `DELETE /api/pets`        | 10 req | 1 min  | Fine.                                                                                                                |
+| `PUT /api/sos`            | 10 req | 1 min  | Fine. A user resolving alerts won't hit 10/min.                                                                      |
+| `POST /api/vaccinations`  | 20 req | 1 min  | Fine.                                                                                                                |
+| `POST /api/parasite-logs` | 20 req | 1 min  | Fine.                                                                                                                |
+| `POST /api/pet-photos`    | 20 req | 1 min  | Fine.                                                                                                                |
+| `DELETE /api/pet-photos`  | 20 req | 1 min  | Fine.                                                                                                                |
+| `PUT /api/profile`        | 10 req | 1 min  | Fine.                                                                                                                |
 
 **Concern:** The PRP uses per-IP identification for anonymous routes and per-user for authenticated routes. The `x-forwarded-for` header is spoofable by clients and must not be trusted directly. On Vercel, the correct source of real client IP is `request.headers.get('x-real-ip')` or Vercel's `ipAddress()` helper from `@vercel/functions`. The PRP does not specify which header to use.
 
@@ -127,6 +127,7 @@ However, the PRP should explicitly state: "do not implement rate limiting in the
 Task 6.1 says "Evaluate... Choose based on: no external dependencies, works on Vercel serverless, simple setup — Document decision." The problem is that the only option satisfying "works on Vercel serverless" is Upstash (an external service), which contradicts "no external dependencies." This contradiction will cause an agent to either pick the wrong approach (in-memory) or halt.
 
 The remaining tasks (6.2 through 6.5) are well-specified and implementable once 6.1 is resolved:
+
 - Task 6.2: creating `lib/rate-limit.ts` is clearly described.
 - Task 6.3 and 6.4: route application is straightforward.
 - Task 6.5: test patterns are consistent with the existing `__tests__/` style (NextRequest + vi.mock, no jsdom issues for non-form routes).
@@ -150,8 +151,8 @@ The constraint "no external dependencies" is incompatible with stateful rate lim
 Task 6.2 must specify how to extract the real client IP. The correct approach on Vercel is:
 
 ```
-const ip = request.headers.get('x-real-ip') 
-        ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+const ip = request.headers.get('x-real-ip')
+        ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
         ?? '127.0.0.1';
 ```
 
@@ -200,6 +201,7 @@ The shared `apiFetch` utility throws on any non-2xx response but does not check 
 **4/10** (down from 7/10)
 
 The original score of 7/10 reflected awareness of the in-memory problem. The score drops further because:
+
 - The approach decision is structurally contradictory (serverless + no external deps + stateful counting is impossible)
 - The proxy.ts question is unanswered and requires investigation to confirm it does not apply
 - No Upstash credentials provisioning path is described
@@ -217,6 +219,6 @@ The PRP cannot be handed to an implementing agent in its current state. The core
 
 ## Changelog
 
-| Version | Date | Changes |
-|---------|------|---------|
-| v1.0 | 2026-04-05 | Initial validation |
+| Version | Date       | Changes            |
+| ------- | ---------- | ------------------ |
+| v1.0    | 2026-04-05 | Initial validation |

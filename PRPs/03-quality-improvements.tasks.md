@@ -7,28 +7,30 @@
 
 ## Progress Tracker
 
-| Phase | Description | Tasks | Status |
-|-------|-------------|-------|--------|
-| P0 | Setup | 1 | ⬜ Not Started |
-| P1 | Error/Loading/Not-Found Files | 4 | ⬜ Not Started |
-| P2 | Replace `<img>` with `next/image` | 3 | ⬜ Not Started |
-| P3 | Pets Page Decomposition | 4 | ⬜ Not Started |
-| P4 | Remaining Upload Validation | 4 | ⬜ Not Started |
+| Phase | Description                       | Tasks | Status         |
+| ----- | --------------------------------- | ----- | -------------- |
+| P0    | Setup                             | 1     | ⬜ Not Started |
+| P1    | Error/Loading/Not-Found Files     | 4     | ⬜ Not Started |
+| P2    | Replace `<img>` with `next/image` | 3     | ⬜ Not Started |
+| P3    | Pets Page Decomposition           | 4     | ⬜ Not Started |
+| P4    | Remaining Upload Validation       | 4     | ⬜ Not Started |
 
 ---
 
 ## Phase 0: Setup
+
 **Complexity:** Low | **Risk:** None
 
 ### Tasks
 
 - [ ] **P0.T1:** Create feature branch
-      ```bash
-      git checkout -b feature/quality-improvements
-      ```
+      `bash
+    git checkout -b feature/quality-improvements
+    `
       Verify: `git branch --show-current` → `feature/quality-improvements`
 
 ### Validation Gate
+
 ```bash
 git branch --show-current | grep "feature/quality-improvements"
 ```
@@ -36,6 +38,7 @@ git branch --show-current | grep "feature/quality-improvements"
 ---
 
 ## Phase 1: Error/Loading/Not-Found Route Files
+
 **Complexity:** Low | **Risk:** None — additive files, app works without them
 **Rollback:** Delete all created files
 
@@ -61,19 +64,21 @@ git branch --show-current | grep "feature/quality-improvements"
       Verify: `npx tsc --noEmit`
 
 - [ ] **P1.T4:** Verify route files work
-      ```bash
-      npx tsc --noEmit
-      curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/nonexistent
-      # Expected: 404
-      ```
+      `bash
+    npx tsc --noEmit
+    curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/nonexistent
+    # Expected: 404
+    `
       Verify: 404 page renders with paw emoji
 
 ### Validation Gate
+
 ```bash
 npx tsc --noEmit && echo "PASS"
 ```
 
 ### Commit Point
+
 ```bash
 git add app/error.tsx app/loading.tsx app/not-found.tsx \
   app/pets/loading.tsx app/pets/error.tsx \
@@ -88,6 +93,7 @@ Custom 404 with paw emoji."
 ---
 
 ## Phase 2: Replace `<img>` with `next/image`
+
 **Complexity:** Low | **Risk:** Low — `remotePatterns` already configured; may need CSS tweaks for `fill` + `relative`
 **Rollback:** Revert to `<img>` tags
 
@@ -95,10 +101,7 @@ Custom 404 with paw emoji."
 
 - [ ] **P2.T1:** Replace 2 `<img>` tags in `app/page.tsx`
       Files: `app/page.tsx`
-      Action:
-      1. Add `import Image from "next/image"` at top
-      2. Line ~155: pet avatar — replace `<img src={post.pets.photo_url}` with `<Image src={post.pets.photo_url} alt="" fill className="object-cover" />` and add `relative` to parent div
-      3. Line ~168: post image — replace `<img src={post.image_url}` with `<Image src={post.image_url} alt="" fill className="object-cover" />` and add `relative` to parent div
+      Action: 1. Add `import Image from "next/image"` at top 2. Line ~155: pet avatar — replace `<img src={post.pets.photo_url}` with `<Image src={post.pets.photo_url} alt="" fill className="object-cover" />` and add `relative` to parent div 3. Line ~168: post image — replace `<img src={post.image_url}` with `<Image src={post.image_url} alt="" fill className="object-cover" />` and add `relative` to parent div
       Depends on: P0.T1
       Verify: `npx tsc --noEmit`
 
@@ -109,14 +112,15 @@ Custom 404 with paw emoji."
       Verify: `npx tsc --noEmit`
 
 - [ ] **P2.T3:** Verify images render correctly
-      ```bash
-      npx tsc --noEmit
-      grep -n "<img " app/page.tsx app/pets/page.tsx
-      # Expected: no output
-      ```
+      `bash
+    npx tsc --noEmit
+    grep -n "<img " app/page.tsx app/pets/page.tsx
+    # Expected: no output
+    `
       Verify: Feed and pets pages show images correctly in browser
 
 ### Validation Gate
+
 ```bash
 npx tsc --noEmit && \
 ! grep -q "<img " app/page.tsx app/pets/page.tsx && \
@@ -124,6 +128,7 @@ echo "PASS: no <img> tags remain"
 ```
 
 ### Commit Point
+
 ```bash
 git add app/page.tsx app/pets/page.tsx && \
 git commit -m "perf: replace <img> with next/image for lazy loading and optimization
@@ -135,6 +140,7 @@ Uses fill prop with relative containers. remotePatterns already configured."
 ---
 
 ## Phase 3: Pets Page Incremental Decomposition
+
 **Complexity:** Medium | **Risk:** Medium — extracting from a large file could break imports/behavior
 **Rollback:** Move functions back inline, delete created files
 
@@ -142,44 +148,36 @@ Uses fill prop with relative containers. remotePatterns already configured."
 
 - [ ] **P3.T1:** Extract utility functions to `lib/pet-utils.ts`
       Files: `lib/pet-utils.ts` (new), `app/pets/page.tsx` (modify)
-      Action:
-      1. Create `lib/pet-utils.ts` with `calculateAge`, `calculateDaysLeft`, `formatDate`, `sortByDOB` (lines 36-77 of pets page)
-      2. Export all 4 functions
-      3. In `app/pets/page.tsx`: remove the 4 inline functions, add `import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils"`
+      Action: 1. Create `lib/pet-utils.ts` with `calculateAge`, `calculateDaysLeft`, `formatDate`, `sortByDOB` (lines 36-77 of pets page) 2. Export all 4 functions 3. In `app/pets/page.tsx`: remove the 4 inline functions, add `import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils"`
       Depends on: P0.T1
       Verify: `npx tsc --noEmit`
 
 - [ ] **P3.T2:** Extract `VaccineStatusBar` to `components/vaccine-status-bar.tsx`
       Files: `components/vaccine-status-bar.tsx` (new), `app/pets/page.tsx` (modify)
-      Action:
-      1. Create `components/vaccine-status-bar.tsx` with the `VaccineStatusBar` component + its `VaccineStatusBarProps` interface (lines 79-144 of pets page)
-      2. Add `"use client"` directive
-      3. In `app/pets/page.tsx`: remove inline component, add `import { VaccineStatusBar } from "@/components/vaccine-status-bar"`
+      Action: 1. Create `components/vaccine-status-bar.tsx` with the `VaccineStatusBar` component + its `VaccineStatusBarProps` interface (lines 79-144 of pets page) 2. Add `"use client"` directive 3. In `app/pets/page.tsx`: remove inline component, add `import { VaccineStatusBar } from "@/components/vaccine-status-bar"`
       Depends on: P3.T1
       Verify: `npx tsc --noEmit`
 
 - [ ] **P3.T3:** Verify pets page works identically
-      Action: Open pets page in browser, verify:
-      - Pet list renders
-      - Vaccine status bars show
-      - Age displays correctly
-      - Date formatting works
+      Action: Open pets page in browser, verify: - Pet list renders - Vaccine status bars show - Age displays correctly - Date formatting works
       Depends on: P3.T2
       Verify: All pets page features work
 
 - [ ] **P3.T4:** Check line count reduction
-      ```bash
-      wc -l app/pets/page.tsx
-      # Expected: ~640 lines (down from 748)
-      ```
+      `bash
+    wc -l app/pets/page.tsx
+    # Expected: ~640 lines (down from 748)
+    `
       Verify: Meaningful reduction
 
 ### Validation Gate
+
 ```bash
 npx tsc --noEmit && echo "PASS"
 ```
 
 ### Commit Point
+
 ```bash
 git add lib/pet-utils.ts components/vaccine-status-bar.tsx app/pets/page.tsx && \
 git commit -m "refactor: extract utilities and VaccineStatusBar from pets page
@@ -192,6 +190,7 @@ Pets page reduced by ~100 lines. Full PetsContent decomposition deferred."
 ---
 
 ## Phase 4: Remaining Upload Validation
+
 **Complexity:** Low | **Risk:** None — additive validation
 **Rollback:** Remove validation calls
 
@@ -200,13 +199,13 @@ Pets page reduced by ~100 lines. Full PetsContent decomposition deferred."
 - [ ] **P4.T1:** Add image validation to profile avatar upload
       Files: `app/profile/page.tsx`
       Action: Import `imageFileSchema` from `lib/validations`. Before the `uploadProfileAvatar()` call, validate the file:
-      ```typescript
-      const fileResult = imageFileSchema.safeParse({ size: file.size, type: file.type });
-      if (!fileResult.success) {
-        alert(fileResult.error.issues[0].message);
-        return;
-      }
-      ```
+      `typescript
+    const fileResult = imageFileSchema.safeParse({ size: file.size, type: file.type });
+    if (!fileResult.success) {
+      alert(fileResult.error.issues[0].message);
+      return;
+    }
+    `
       Depends on: P0.T1
       Verify: `npx tsc --noEmit`
 
@@ -217,9 +216,9 @@ Pets page reduced by ~100 lines. Full PetsContent decomposition deferred."
       Verify: `npx tsc --noEmit`
 
 - [ ] **P4.T3:** Verify TypeScript
-      ```bash
-      npx tsc --noEmit
-      ```
+      `bash
+    npx tsc --noEmit
+    `
       Verify: Exit code 0
 
 - [ ] **P4.T4:** Test upload validation
@@ -228,11 +227,13 @@ Pets page reduced by ~100 lines. Full PetsContent decomposition deferred."
       Verify: Error message appears
 
 ### Validation Gate
+
 ```bash
 npx tsc --noEmit && echo "PASS"
 ```
 
 ### Commit Point
+
 ```bash
 git add app/profile/page.tsx components/photo-gallery.tsx && \
 git commit -m "feat: add file validation to avatar and gallery uploads
