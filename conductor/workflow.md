@@ -54,17 +54,17 @@ Write failing test -> Implement minimum to pass -> Refactor -> Repeat
 - Never commit without a passing test for the changed code
 - Coverage thresholds: 90% statements/functions, 85% branches, per-file enforced, 100% security files
 
-## PRP Workflow (full lifecycle)
+## PRP Workflow (Pipeline)
 
-```
-Create PRP -> Validate -> Refine -> Split (if needed) -> Execute -> Review -> Finalize
-```
+Every PRP follows the pipeline defined in `conductor/pipeline.md`.
 
-- Use `/create-prp` to scaffold new PRPs
-- Use `/validate-prp` before execution to catch gaps
-- Use `/status-prp` to track execution progress
-- Use `/review-prp` after all tasks complete
-- Use `/finalize-prp` for user sign-off
+Quick start: `/ship-prp PRPs/PRP-XX.md`
+
+Individual steps: `/validate-prp`, `/refine-prp`, `/plan-prp`, `/execute-prp`, `/review-prp`, `/finalize-prp`
+
+Pipeline state: `conductor/pipeline-status.md` — check on session start to resume interrupted pipelines.
+
+Use `/create-prp` to scaffold new PRPs before entering the pipeline.
 
 ## Commit Convention (enforced by CommitLint)
 
