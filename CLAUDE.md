@@ -23,6 +23,7 @@ npm run type-check       # tsc --noEmit
 
 ## Architecture Rules
 
+- **Mobile-first development** — target users open via Line OA Rich Menu on mobile. Design and test mobile viewport first, then ensure desktop works. Not desktop-first.
 - Default **Server Components**; add `"use client"` only for hooks/events
 - Three Supabase clients — use the correct one:
   - `lib/supabase.ts` — Client Components only
@@ -81,10 +82,11 @@ npm run type-check       # tsc --noEmit
 1. Format all touched files: `npm run format`
 2. Tests pass: `npm run test`
 3. Commit or `wip:` prefix if incomplete
-4. Update PRP task checklist (mark completed tasks)
-5. Update `conductor/state.md` if PRP status changed
-6. Update `conductor/active-tasks.md` — mark task complete or release claim
-7. Append architectural decisions to `conductor/decisions.md` if any
+4. Update `CHANGELOG.md` — document any release, change, fix, or improvement
+5. Update PRP task checklist (mark completed tasks)
+6. Update `conductor/state.md` if PRP status changed
+7. Update `conductor/active-tasks.md` — mark task complete or release claim
+8. Append architectural decisions to `conductor/decisions.md` if any
 
 ## Commit Convention (enforced by CommitLint)
 
@@ -127,6 +129,7 @@ fix/short-desc    — hotfixes off main
 
 ## Agent Teams Protocol
 
+- **Always use git worktrees** for parallel agent work — each teammate operates in an isolated worktree to prevent code conflicts. Use `isolation: "worktree"` when spawning agents.
 - Teammates inherit lead's permissions — pre-approve all read/exploration commands
 - Assign explicit file ownership — no two teammates edit the same file
 - Shared files (`lib/types/`, `lib/validations/`, `package.json`) serialized through lead

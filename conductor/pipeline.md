@@ -167,7 +167,7 @@ Owns: **tests**/feature_, e2e/feature\*
 1. Create branch: `feature/prp-XX-description`
 2. Run `npm run test` — confirm baseline green
 3. Claim tasks in `conductor/active-tasks.md`
-4. If agent team: spawn teammates per approved topology, enable delegate mode
+4. If agent team: spawn teammates in **git worktrees** (`isolation: "worktree"`) per approved topology, enable delegate mode
 5. If single agent: execute tasks sequentially following TDD (RED -> GREEN -> REFACTOR)
 6. Tester writes failing tests first (RED phase)
 7. Implementers make tests pass (GREEN phase)
@@ -263,11 +263,12 @@ If any check fails, the agent fixes and re-runs. No human gate — iterate until
 **Agent does (automated):**
 
 1. Ensure all commits follow conventional format
-2. Update `conductor/state.md` — mark PRP as complete
-3. Update `conductor/active-tasks.md` — release all claims
-4. Append any architectural decisions to `conductor/decisions.md`
-5. Stage all changes
-6. Prepare final commit message
+2. Update `CHANGELOG.md` — document changes, fixes, and improvements from this PRP
+3. Update `conductor/state.md` — mark PRP as complete
+4. Update `conductor/active-tasks.md` — release all claims
+5. Append any architectural decisions to `conductor/decisions.md`
+6. Stage all changes
+7. Prepare final commit message
 
 **FINAL GATE — Agent pauses and asks:**
 
