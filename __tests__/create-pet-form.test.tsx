@@ -40,7 +40,13 @@ vi.mock("@/lib/db", () => ({
 // Mock sub-components
 // ---------------------------------------------------------------------------
 vi.mock("@/components/image-cropper", () => ({
-  ImageCropper: ({ onCropComplete, onCancel }: { onCropComplete: (b: Blob) => void; onCancel: () => void }) => (
+  ImageCropper: ({
+    onCropComplete,
+    onCancel,
+  }: {
+    onCropComplete: (b: Blob) => void;
+    onCancel: () => void;
+  }) => (
     <div data-testid="image-cropper">
       <button onClick={() => onCropComplete(new Blob(["img"], { type: "image/jpeg" }))}>
         Crop
@@ -51,7 +57,15 @@ vi.mock("@/components/image-cropper", () => ({
 }));
 
 vi.mock("@/components/searchable-select", () => ({
-  SearchableSelect: ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => (
+  SearchableSelect: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+  }) => (
     <select
       data-testid={`searchable-select-${placeholder}`}
       value={value}
@@ -72,7 +86,11 @@ vi.mock("@/data/species.json", () => ({
 }));
 
 vi.mock("@/data/breeds.json", () => ({
-  default: { dog: ["Golden Retriever", "Labrador"], cat: ["Persian", "Siamese"], other: ["Mixed Breed"] },
+  default: {
+    dog: ["Golden Retriever", "Labrador"],
+    cat: ["Persian", "Siamese"],
+    other: ["Mixed Breed"],
+  },
 }));
 
 import { CreatePetForm } from "@/components/create-pet-form";

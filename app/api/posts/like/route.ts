@@ -9,7 +9,9 @@ export async function POST(request: NextRequest) {
   if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const rateLimited = await checkRateLimit(limiter, user.id);

@@ -37,7 +37,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
   const [error, setError] = useState<string | null>(null);
 
   const vaccines = getVaccinesBySpecies(petSpecies);
-  const vaccineNames = vaccines.map(v => v.name);
+  const vaccineNames = vaccines.map((v) => v.name);
   const selectedVaccineInfo = selectedVaccine ? getVaccineInfo(selectedVaccine, petSpecies) : null;
 
   // Auto-calculate next due date when injection date and vaccine are selected
@@ -114,10 +114,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
           <Syringe className="w-5 h-5 text-primary" />
           Add Vaccination Record
         </h3>
-        <button
-          onClick={onCancel}
-          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-        >
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
           <X className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
@@ -136,9 +133,14 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
             <div className="flex items-start gap-2 p-2 bg-primary/5 rounded-lg text-sm">
               <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
               <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{selectedVaccineInfo.brand}</span> by {selectedVaccineInfo.manufacturer}
+                <span className="font-medium text-foreground">{selectedVaccineInfo.brand}</span> by{" "}
+                {selectedVaccineInfo.manufacturer}
                 <span className="mx-1">•</span>
-                <span className={selectedVaccineInfo.category === "core" ? "text-green-600" : "text-blue-600"}>
+                <span
+                  className={
+                    selectedVaccineInfo.category === "core" ? "text-green-600" : "text-blue-600"
+                  }
+                >
                   {selectedVaccineInfo.category === "core" ? "Core vaccine" : "Non-core vaccine"}
                 </span>
               </div>
@@ -178,16 +180,15 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
           />
           {selectedVaccineInfo && injectionDate && (
             <p className="text-xs text-muted-foreground">
-              Auto-calculated based on typical {selectedVaccineInfo.typicalDurationMonths}-month duration
+              Auto-calculated based on typical {selectedVaccineInfo.typicalDurationMonths}-month
+              duration
             </p>
           )}
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
-            {error}
-          </div>
+          <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">{error}</div>
         )}
 
         {/* Action Buttons */}
@@ -206,11 +207,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
             className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90"
             disabled={saving || !selectedVaccine || !injectionDate || !nextDueDate}
           >
-            {saving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              "Save Vaccine"
-            )}
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Vaccine"}
           </Button>
         </div>
       </form>

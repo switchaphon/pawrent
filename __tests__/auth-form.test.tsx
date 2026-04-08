@@ -105,10 +105,7 @@ describe("AuthForm", () => {
     fireEvent.submit(screen.getByRole("button", { name: /sign in/i }).closest("form")!);
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        expect.stringContaining("email"),
-        "error"
-      );
+      expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining("email"), "error");
     });
   });
 
@@ -123,10 +120,7 @@ describe("AuthForm", () => {
     fireEvent.submit(screen.getByRole("button", { name: /sign in/i }).closest("form")!);
 
     await waitFor(() => {
-      expect(mockShowToast).toHaveBeenCalledWith(
-        "Password must be at least 6 characters",
-        "error"
-      );
+      expect(mockShowToast).toHaveBeenCalledWith("Password must be at least 6 characters", "error");
     });
   });
 

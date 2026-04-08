@@ -11,7 +11,9 @@ import { render, screen } from "@testing-library/react";
 // Mock next/link to render a plain anchor
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
-    <a href={href} {...props}>{children}</a>
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }));
 

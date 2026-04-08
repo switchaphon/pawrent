@@ -14,21 +14,59 @@ vi.mock("@/lib/api", () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...
 
 vi.mock("@/data/vaccines", () => ({
   getVaccinesBySpecies: () => [
-    { name: "Rabies", brand: "Imrab", manufacturer: "Boehringer", category: "core", typicalDurationMonths: 12 },
-    { name: "DHPP", brand: "Vanguard", manufacturer: "Zoetis", category: "core", typicalDurationMonths: 12 },
+    {
+      name: "Rabies",
+      brand: "Imrab",
+      manufacturer: "Boehringer",
+      category: "core",
+      typicalDurationMonths: 12,
+    },
+    {
+      name: "DHPP",
+      brand: "Vanguard",
+      manufacturer: "Zoetis",
+      category: "core",
+      typicalDurationMonths: 12,
+    },
   ],
   getVaccineInfo: (name: string, _species?: string | null) => {
-    if (name === "Rabies") return { brand: "Imrab", manufacturer: "Boehringer", category: "core", typicalDurationMonths: 12 };
-    if (name === "DHPP") return { brand: "Vanguard", manufacturer: "Zoetis", category: "core", typicalDurationMonths: 12 };
+    if (name === "Rabies")
+      return {
+        brand: "Imrab",
+        manufacturer: "Boehringer",
+        category: "core",
+        typicalDurationMonths: 12,
+      };
+    if (name === "DHPP")
+      return {
+        brand: "Vanguard",
+        manufacturer: "Zoetis",
+        category: "core",
+        typicalDurationMonths: 12,
+      };
     return null;
   },
 }));
 
 vi.mock("@/components/searchable-select", () => ({
-  SearchableSelect: ({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string }) => (
+  SearchableSelect: ({
+    value,
+    onChange,
+    options,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    options: string[];
+    placeholder: string;
+  }) => (
     <select data-testid="vaccine-select" value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">{placeholder}</option>
-      {options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+      {options.map((o: string) => (
+        <option key={o} value={o}>
+          {o}
+        </option>
+      ))}
     </select>
   ),
 }));
@@ -47,7 +85,9 @@ const defaultProps = {
 // ---------------------------------------------------------------------------
 
 describe("AddVaccineForm", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders the form with vaccine select and date fields", () => {
     render(<AddVaccineForm {...defaultProps} />);

@@ -23,11 +23,11 @@ interface MapPickerProps {
 // Component to re-center map when location changes
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
-  
+
   useEffect(() => {
     map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 });
   }, [map, lat, lng]);
-  
+
   return null;
 }
 
@@ -47,9 +47,7 @@ function LocationMarker({
     },
   });
 
-  return position === null ? null : (
-    <Marker position={position} icon={customIcon} />
-  );
+  return position === null ? null : <Marker position={position} icon={customIcon} />;
 }
 
 export function MapPicker({

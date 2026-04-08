@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
   if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
   const rateLimited = await checkRateLimit(limiter, user.id);
@@ -38,9 +40,7 @@ export async function POST(request: NextRequest) {
   // Upload image
   const fileExt = file.name.split(".").pop();
   const fileName = `posts/${user.id}-${Date.now()}.${fileExt}`;
-  const { error: uploadError } = await supabase.storage
-    .from("pet-photos")
-    .upload(fileName, file);
+  const { error: uploadError } = await supabase.storage.from("pet-photos").upload(fileName, file);
 
   if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 

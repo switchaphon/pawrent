@@ -155,7 +155,12 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
         {/* Actions */}
         <div className="flex gap-3 pt-2">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1 h-12 rounded-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1 h-12 rounded-xl"
+            >
               Cancel
             </Button>
           )}

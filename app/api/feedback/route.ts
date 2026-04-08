@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
 
   if (authHeader) {
     const supabase = createApiClient(authHeader);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     userId = user?.id || null;
   }
 

@@ -32,7 +32,9 @@ vi.mock("@/lib/supabase", () => ({
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
     },
   },
 }));
@@ -51,11 +53,7 @@ async function signIn(
   return { error: error as Error | null };
 }
 
-async function signUp(
-  supabaseSignUp: typeof mockSignUp,
-  email: string,
-  password: string
-) {
+async function signUp(supabaseSignUp: typeof mockSignUp, email: string, password: string) {
   const { error, data } = await supabaseSignUp({ email, password });
 
   const emailAlreadyExists = Boolean(

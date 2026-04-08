@@ -26,34 +26,46 @@ describe("ImageCropper", () => {
   const onCropComplete = vi.fn();
   const onCancel = vi.fn();
 
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("renders modal with 'Adjust Photo' heading", () => {
-    render(<ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />);
+    render(
+      <ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />
+    );
     expect(screen.getByText("Adjust Photo")).toBeInTheDocument();
   });
 
   it("renders the Cropper component", () => {
-    render(<ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />);
+    render(
+      <ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />
+    );
     expect(screen.getByTestId("cropper-component")).toBeInTheDocument();
   });
 
   it("has zoom slider", () => {
-    render(<ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />);
+    render(
+      <ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />
+    );
     const slider = document.querySelector('input[type="range"]');
     expect(slider).toBeTruthy();
   });
 
   it("calls onCancel when Cancel button is clicked", async () => {
-    render(<ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />);
+    render(
+      <ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />
+    );
     await userEvent.click(screen.getByText("Cancel"));
     expect(onCancel).toHaveBeenCalled();
   });
 
   it("has an Apply button that triggers crop flow", async () => {
-    render(<ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />);
+    render(
+      <ImageCropper imageSrc="blob:test" onCropComplete={onCropComplete} onCancel={onCancel} />
+    );
     // Wait for cropper mock to fire onCropComplete callback
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
 
     const applyBtn = screen.getByText("Apply");
     expect(applyBtn).toBeInTheDocument();

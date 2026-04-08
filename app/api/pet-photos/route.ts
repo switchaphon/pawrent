@@ -19,7 +19,9 @@ async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!authHeader) return null;
   const supabase = createApiClient(authHeader);
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user ? { user, supabase } : null;
 }
 
@@ -83,10 +85,7 @@ export async function DELETE(request: NextRequest) {
 
   if (!photo) return NextResponse.json({ error: "Photo not found" }, { status: 404 });
 
-  const { error } = await auth.supabase
-    .from("pet_photos")
-    .delete()
-    .eq("id", result.data.photoId);
+  const { error } = await auth.supabase.from("pet_photos").delete().eq("id", result.data.photoId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

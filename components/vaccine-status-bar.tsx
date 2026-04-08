@@ -49,11 +49,12 @@ export function VaccineStatusBar({ name, brandName, status, percentage }: Vaccin
     }
   };
 
-  const displayText = brandName && status !== "none"
-    ? `${name} • ${brandName}`
-    : status === "none"
-      ? `${name} • Not recorded`
-      : name;
+  const displayText =
+    brandName && status !== "none"
+      ? `${name} • ${brandName}`
+      : status === "none"
+        ? `${name} • Not recorded`
+        : name;
 
   return (
     <div className="relative h-8 bg-gray-100 rounded-full overflow-hidden">

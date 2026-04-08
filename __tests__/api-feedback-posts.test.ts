@@ -89,28 +89,26 @@ function makeFormRequest(
 }
 
 /** Build a fresh supabase client mock for feedback/anonymous tests. */
-function makeFeedbackClient(
-  overrides: { rpcResult?: { data: unknown; error: unknown } } = {}
-) {
-  const rpc = vi.fn().mockResolvedValue(
-    overrides.rpcResult ?? { data: { id: "fb-1" }, error: null }
-  );
+function makeFeedbackClient(overrides: { rpcResult?: { data: unknown; error: unknown } } = {}) {
+  const rpc = vi
+    .fn()
+    .mockResolvedValue(overrides.rpcResult ?? { data: { id: "fb-1" }, error: null });
   const getUser = vi.fn().mockResolvedValue({ data: { user: null } });
   createApiClientMock.mockReturnValue({ auth: { getUser }, rpc });
   return { rpc, getUser };
 }
 
 /** Build a fresh supabase client mock for posts tests. */
-function makePostsClient(opts: {
-  user?: { id: string } | null;
-  uploadError?: { message: string } | null;
-  insertResult?: { data: unknown; error: unknown };
-} = {}) {
+function makePostsClient(
+  opts: {
+    user?: { id: string } | null;
+    uploadError?: { message: string } | null;
+    insertResult?: { data: unknown; error: unknown };
+  } = {}
+) {
   const user = opts.user !== undefined ? opts.user : { id: "user-1" };
   const getUser = vi.fn().mockResolvedValue({ data: { user } });
-  const mockSingle = vi.fn().mockResolvedValue(
-    opts.insertResult ?? { data: null, error: null }
-  );
+  const mockSingle = vi.fn().mockResolvedValue(opts.insertResult ?? { data: null, error: null });
   const mockFrom = vi.fn().mockReturnValue({
     insert: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({ single: mockSingle }),
@@ -134,15 +132,15 @@ function makePostsClient(opts: {
 }
 
 /** Build a fresh supabase client mock for like tests. */
-function makeLikeClient(opts: {
-  user?: { id: string } | null;
-  rpcResult?: { data: unknown; error: unknown };
-} = {}) {
+function makeLikeClient(
+  opts: {
+    user?: { id: string } | null;
+    rpcResult?: { data: unknown; error: unknown };
+  } = {}
+) {
   const user = opts.user !== undefined ? opts.user : { id: "user-1" };
   const getUser = vi.fn().mockResolvedValue({ data: { user } });
-  const rpc = vi.fn().mockResolvedValue(
-    opts.rpcResult ?? { data: 0, error: null }
-  );
+  const rpc = vi.fn().mockResolvedValue(opts.rpcResult ?? { data: 0, error: null });
   createApiClientMock.mockReturnValue({ auth: { getUser }, rpc });
   return { getUser, rpc };
 }
@@ -165,11 +163,7 @@ describe("POST /api/feedback", () => {
 
   it("should accept an anonymous request with a valid message", async () => {
     makeFeedbackClient();
-    const req = makeJsonRequest(
-      "http://localhost/api/feedback",
-      { message: "Great app!" },
-      false
-    );
+    const req = makeJsonRequest("http://localhost/api/feedback", { message: "Great app!" }, false);
     const res = await feedbackPOST(req);
     expect(res.status).toBe(200);
   });
@@ -198,11 +192,7 @@ describe("POST /api/feedback", () => {
 
   it("should pass null image_url to the RPC when not provided", async () => {
     const { rpc } = makeFeedbackClient();
-    const req = makeJsonRequest(
-      "http://localhost/api/feedback",
-      { message: "No image" },
-      false
-    );
+    const req = makeJsonRequest("http://localhost/api/feedback", { message: "No image" }, false);
     await feedbackPOST(req);
     expect(rpc).toHaveBeenCalledWith(
       "submit_anonymous_feedback",
@@ -212,11 +202,7 @@ describe("POST /api/feedback", () => {
 
   it("should return 500 when the RPC returns an error", async () => {
     makeFeedbackClient({ rpcResult: { data: null, error: { message: "RPC failure" } } });
-    const req = makeJsonRequest(
-      "http://localhost/api/feedback",
-      { message: "Test" },
-      false
-    );
+    const req = makeJsonRequest("http://localhost/api/feedback", { message: "Test" }, false);
     const res = await feedbackPOST(req);
     expect(res.status).toBe(500);
   });

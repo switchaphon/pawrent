@@ -56,11 +56,7 @@ export function PetCard({
       {/* Hero Image */}
       <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20">
         {photoUrl ? (
-          <img
-            src={photoUrl}
-            alt={name}
-            className="w-full h-full object-cover"
-          />
+          <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
@@ -80,9 +76,7 @@ export function PetCard({
           </div>
           <div className="flex flex-col items-center">
             <QrCode className="w-10 h-10 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground mt-1">
-              Microchip
-            </span>
+            <span className="text-xs text-muted-foreground mt-1">Microchip</span>
           </div>
         </div>
       </div>
@@ -95,14 +89,8 @@ export function PetCard({
         </h3>
         <div className="space-y-2">
           {vaccines.map((vaccine) => (
-            <div
-              key={vaccine.name}
-              className="flex items-center justify-between"
-            >
-              <Badge
-                variant="outline"
-                className="bg-primary/10 text-primary border-primary/20"
-              >
+            <div key={vaccine.name} className="flex items-center justify-between">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                 {vaccine.name}
               </Badge>
               <Badge
@@ -122,9 +110,7 @@ export function PetCard({
       {/* Parasite Prevention */}
       {parasiteDaysLeft !== undefined && (
         <div className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">
-            Parasite Prevention Log
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground mb-3">Parasite Prevention Log</h3>
           <div className="flex items-center gap-4">
             <div className="relative w-16 h-16">
               <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
@@ -150,9 +136,7 @@ export function PetCard({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-bold text-foreground">
-                  {parasiteDaysLeft}
-                </span>
+                <span className="text-lg font-bold text-foreground">{parasiteDaysLeft}</span>
                 <span className="text-xs text-muted-foreground">Days</span>
               </div>
             </div>

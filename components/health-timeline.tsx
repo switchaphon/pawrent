@@ -2,14 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Syringe,
-  Stethoscope,
-  Calendar,
-  Check,
-  AlertTriangle,
-  FileText,
-} from "lucide-react";
+import { Syringe, Stethoscope, Calendar, Check, AlertTriangle, FileText } from "lucide-react";
 import Image from "next/image";
 
 export interface HealthEvent {
@@ -101,15 +94,11 @@ export function HealthTimeline({ events }: HealthTimelineProps) {
             <Card className="flex-1 p-4 rounded-xl">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`p-1.5 rounded-lg ${getEventColor(event.type)}`}
-                  >
+                  <div className={`p-1.5 rounded-lg ${getEventColor(event.type)}`}>
                     {getEventIcon(event.type)}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-foreground">
-                      {event.title}
-                    </h4>
+                    <h4 className="font-semibold text-foreground">{event.title}</h4>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> {event.date}
                     </p>
@@ -119,27 +108,19 @@ export function HealthTimeline({ events }: HealthTimelineProps) {
               </div>
 
               {event.description && (
-                <p className="text-sm text-muted-foreground mb-2">
-                  {event.description}
-                </p>
+                <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
               )}
 
               {event.imageUrl && (
                 <div className="relative h-32 rounded-lg overflow-hidden mb-2">
-                  <Image
-                    src={event.imageUrl}
-                    alt={event.title}
-                    fill
-                    className="object-cover"
-                  />
+                  <Image src={event.imageUrl} alt={event.title} fill className="object-cover" />
                 </div>
               )}
 
               {event.ownerNote && (
                 <div className="bg-secondary/30 rounded-lg p-2 mt-2">
                   <p className="text-xs text-secondary-foreground">
-                    <span className="font-medium">Owner note:</span>{" "}
-                    {event.ownerNote}
+                    <span className="font-medium">Owner note:</span> {event.ownerNote}
                   </p>
                 </div>
               )}

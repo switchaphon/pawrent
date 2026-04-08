@@ -12,10 +12,20 @@ import { EditPetForm } from "@/components/edit-pet-form";
 import { PetProfileCard } from "@/components/pet-profile-card";
 import { AddVaccineForm } from "@/components/add-vaccine-form";
 import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
-import { getCoreVaccineTypesBySpecies, matchesVaccineType, isOptionalVaccine } from "@/data/vaccines";
+import {
+  getCoreVaccineTypesBySpecies,
+  matchesVaccineType,
+  isOptionalVaccine,
+} from "@/data/vaccines";
 import { calculateAge, calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
-import { getPets, getPetWithDetails, getActiveSOSAlertForPet, getPetPhotos, uploadPetGalleryImage } from "@/lib/db";
+import {
+  getPets,
+  getPetWithDetails,
+  getActiveSOSAlertForPet,
+  getPetPhotos,
+  uploadPetGalleryImage,
+} from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
@@ -40,7 +50,7 @@ function PetsContent() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const petIdFromUrl = searchParams.get('pet');
+  const petIdFromUrl = searchParams.get("pet");
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
@@ -54,7 +64,7 @@ function PetsContent() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeSOSAlert, setActiveSOSAlert] = useState<SOSAlert | null>(null);
-  
+
   // Photo Gallery State
   const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
   const [showPhotoCropper, setShowPhotoCropper] = useState(false);
@@ -74,14 +84,14 @@ function PetsContent() {
       // If preserving selection, try to find the currently selected pet in the new list
       const currentPetId = selectedPet?.id;
       let petToSelect;
-      
+
       if (urlPetId) {
         // First priority: pet from URL parameter
-        petToSelect = sortedPets.find(p => p.id === urlPetId);
+        petToSelect = sortedPets.find((p) => p.id === urlPetId);
       }
       if (!petToSelect && preserveSelection && currentPetId) {
         // Second priority: currently selected pet
-        petToSelect = sortedPets.find(p => p.id === currentPetId);
+        petToSelect = sortedPets.find((p) => p.id === currentPetId);
       }
       if (!petToSelect) {
         // Fallback: first pet
@@ -106,7 +116,7 @@ function PetsContent() {
     // Fetch active SOS alert for this pet
     const { data: sosAlert } = await getActiveSOSAlertForPet(petId);
     setActiveSOSAlert(sosAlert || null);
-    
+
     // Fetch pet photos for gallery
     const { data: photos } = await getPetPhotos(petId);
     setPetPhotos(photos || []);
@@ -181,22 +191,27 @@ function PetsContent() {
 
   // Get status for a specific core vaccine type
   const getCoreVaccineStatus = (vaccineTypeId: string) => {
-    const vaccineType = coreVaccineTypes.find(t => t.id === vaccineTypeId);
+    const vaccineType = coreVaccineTypes.find((t) => t.id === vaccineTypeId);
     if (!vaccineType) return { status: "none" as const, percentage: 0, brandName: undefined };
 
-    const matchingVaccine = vaccinations.find(v => matchesVaccineType(v.name, vaccineType));
+    const matchingVaccine = vaccinations.find((v) => matchesVaccineType(v.name, vaccineType));
     if (!matchingVaccine) return { status: "none" as const, percentage: 0, brandName: undefined };
 
     return {
       status: matchingVaccine.status,
-      percentage: matchingVaccine.status === "protected" ? 100 : matchingVaccine.status === "due_soon" ? 70 : 30,
+      percentage:
+        matchingVaccine.status === "protected"
+          ? 100
+          : matchingVaccine.status === "due_soon"
+            ? 70
+            : 30,
       brandName: matchingVaccine.name,
     };
   };
 
   // Get optional vaccines that have records
-  const optionalVaccinesWithRecords = vaccinations.filter(v =>
-    selectedPet && isOptionalVaccine(v.name, selectedPet.species)
+  const optionalVaccinesWithRecords = vaccinations.filter(
+    (v) => selectedPet && isOptionalVaccine(v.name, selectedPet.species)
   );
 
   // Get status for optional vaccines (aggregate)
@@ -204,17 +219,18 @@ function PetsContent() {
     if (optionalVaccinesWithRecords.length === 0) return null;
 
     // Find the worst status among optional vaccines
-    const hasOverdue = optionalVaccinesWithRecords.some(v => v.status === "overdue");
-    const hasDueSoon = optionalVaccinesWithRecords.some(v => v.status === "due_soon");
+    const hasOverdue = optionalVaccinesWithRecords.some((v) => v.status === "overdue");
+    const hasDueSoon = optionalVaccinesWithRecords.some((v) => v.status === "due_soon");
 
     // Get brand names (limit to first 2 to avoid overflow)
     const brandNames = optionalVaccinesWithRecords
       .slice(0, 2)
-      .map(v => v.name)
+      .map((v) => v.name)
       .join(", ");
-    const brandName = optionalVaccinesWithRecords.length > 2
-      ? `${brandNames} +${optionalVaccinesWithRecords.length - 2} more`
-      : brandNames;
+    const brandName =
+      optionalVaccinesWithRecords.length > 2
+        ? `${brandNames} +${optionalVaccinesWithRecords.length - 2} more`
+        : brandNames;
 
     if (hasOverdue) return { status: "overdue" as const, percentage: 30, brandName };
     if (hasDueSoon) return { status: "due_soon" as const, percentage: 70, brandName };
@@ -253,9 +269,12 @@ function PetsContent() {
                 <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
                   <Trash2 className="w-8 h-8 text-destructive" />
                 </div>
-                <h2 className="text-xl font-bold text-foreground mb-2">Delete {selectedPet.name}?</h2>
+                <h2 className="text-xl font-bold text-foreground mb-2">
+                  Delete {selectedPet.name}?
+                </h2>
                 <p className="text-muted-foreground mb-6">
-                  This will permanently delete this pet profile and all associated data. This action cannot be undone.
+                  This will permanently delete this pet profile and all associated data. This action
+                  cannot be undone.
                 </p>
                 <div className="flex gap-3">
                   <Button
@@ -271,11 +290,7 @@ function PetsContent() {
                     className="flex-1 h-12 rounded-xl bg-destructive hover:bg-destructive/90"
                     disabled={deleting}
                   >
-                    {deleting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      "Delete"
-                    )}
+                    {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Delete"}
                   </Button>
                 </div>
               </div>
@@ -366,38 +381,44 @@ function PetsContent() {
         ) : (
           <>
             {/* Pet Selector Chips */}
-            <div className={`flex gap-2 pb-2 ${pets.length > 3 ? 'overflow-x-auto hide-scrollbar -mx-4 px-4' : ''}`}>
+            <div
+              className={`flex gap-2 pb-2 ${pets.length > 3 ? "overflow-x-auto hide-scrollbar -mx-4 px-4" : ""}`}
+            >
               {pets.map((pet, index) => {
                 // For 1-3 pets: flex-1 to fill width
                 // For 4+ pets: fixed smaller size, last visible one partially cut off
                 const isSmallChips = pets.length > 3;
-                
+
                 return (
                   <button
                     key={pet.id}
                     onClick={() => handleSelectPet(pet)}
                     className={`flex items-center gap-2 rounded-full whitespace-nowrap transition-all ${
-                      isSmallChips 
-                        ? 'px-2.5 py-1.5 flex-shrink-0' 
-                        : 'px-3 py-2 flex-1 justify-center'
+                      isSmallChips
+                        ? "px-2.5 py-1.5 flex-shrink-0"
+                        : "px-3 py-2 flex-1 justify-center"
                     } ${
                       selectedPet?.id === pet.id
                         ? "bg-primary text-white shadow-md"
                         : "bg-white text-foreground border border-border hover:border-primary"
                     }`}
-                    style={isSmallChips ? { minWidth: 'calc(30% - 8px)' } : undefined}
+                    style={isSmallChips ? { minWidth: "calc(30% - 8px)" } : undefined}
                   >
-                    <div className={`rounded-full bg-primary/10 overflow-hidden flex-shrink-0 relative ${
-                      isSmallChips ? 'w-7 h-7' : 'w-8 h-8'
-                    }`}>
+                    <div
+                      className={`rounded-full bg-primary/10 overflow-hidden flex-shrink-0 relative ${
+                        isSmallChips ? "w-7 h-7" : "w-8 h-8"
+                      }`}
+                    >
                       {pet.photo_url ? (
                         <Image src={pet.photo_url} alt={pet.name} fill className="object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm">🐕</div>
+                        <div className="w-full h-full flex items-center justify-center text-sm">
+                          🐕
+                        </div>
                       )}
                     </div>
-                    <span className={`font-medium ${isSmallChips ? 'text-xs' : 'text-sm'}`}>
-                      {isSmallChips && pet.name.length > 6 ? pet.name.slice(0, 6) + '…' : pet.name}
+                    <span className={`font-medium ${isSmallChips ? "text-xs" : "text-sm"}`}>
+                      {isSmallChips && pet.name.length > 6 ? pet.name.slice(0, 6) + "…" : pet.name}
                     </span>
                   </button>
                 );
@@ -416,7 +437,7 @@ function PetsContent() {
                   onPetFound={handlePetFound}
                   onGiveUp={handleGiveUp}
                   onAddPhoto={() => {
-                    document.getElementById('photo-upload-input')?.click();
+                    document.getElementById("photo-upload-input")?.click();
                   }}
                   onDeletePhoto={async (photoId) => {
                     try {
@@ -433,7 +454,7 @@ function PetsContent() {
                     }
                   }}
                 />
-                
+
                 {/* Hidden file input for photo upload */}
                 <input
                   id="photo-upload-input"
@@ -449,7 +470,7 @@ function PetsContent() {
                     e.target.value = "";
                   }}
                 />
-                
+
                 {/* Photo Cropper Modal */}
                 {showPhotoCropper && photoToCrop && (
                   <ImageCropper
@@ -458,21 +479,30 @@ function PetsContent() {
                       if (!selectedPet) return;
                       setUploadingPhoto(true);
                       try {
-                        const file = new File([croppedBlob], "gallery-photo.jpg", { type: "image/jpeg" });
-                        const fileResult = imageFileSchema.safeParse({ size: file.size, type: file.type });
+                        const file = new File([croppedBlob], "gallery-photo.jpg", {
+                          type: "image/jpeg",
+                        });
+                        const fileResult = imageFileSchema.safeParse({
+                          size: file.size,
+                          type: file.type,
+                        });
                         if (!fileResult.success) {
                           alert(fileResult.error.issues[0].message);
                           setUploadingPhoto(false);
                           return;
                         }
                         const photoId = `${Date.now()}`;
-                        const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(file, selectedPet.id, photoId);
-                        
+                        const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(
+                          file,
+                          selectedPet.id,
+                          photoId
+                        );
+
                         if (uploadError) {
                           console.error("Storage upload error:", uploadError);
                           return;
                         }
-                        
+
                         if (photoUrl) {
                           const currentCount = petPhotos.length;
                           await apiFetch("/api/pet-photos", {
@@ -502,7 +532,6 @@ function PetsContent() {
                     aspectRatio={1}
                     cropShape="rect"
                   />
-
                 )}
 
                 {/* Vaccine ePassport */}
@@ -531,10 +560,7 @@ function PetsContent() {
                     ))}
                     {/* Optional vaccines - only show if there are records */}
                     {optionalVaccinesWithRecords.length > 0 && (
-                      <VaccineStatusBar
-                        name="Optional"
-                        {...getOptionalVaccineStatus()!}
-                      />
+                      <VaccineStatusBar name="Optional" {...getOptionalVaccineStatus()!} />
                     )}
                   </div>
                 </Card>
@@ -584,7 +610,9 @@ function PetsContent() {
                         </defs>
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-foreground">{daysLeft ?? "–"}</span>
+                        <span className="text-2xl font-bold text-foreground">
+                          {daysLeft ?? "–"}
+                        </span>
                         <span className="text-xs text-muted-foreground">Days</span>
                       </div>
                     </div>
@@ -615,7 +643,8 @@ function PetsContent() {
                   <div className="text-center py-6 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-xl">
                     <Calendar className="w-10 h-10 text-primary/50 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      Coming soon: Connect with clinics for<br />
+                      Coming soon: Connect with clinics for
+                      <br />
                       medical records & appointments
                     </p>
                   </div>

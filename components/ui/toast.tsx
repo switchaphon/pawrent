@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, variant: Toast["variant"] = "info", persistent = false) => {
       const id = Math.random().toString(36).substring(2, 9);
       const newToast: Toast = { id, message, variant, persistent };
-      
+
       setToasts((prev) => [...prev, newToast]);
 
       if (!persistent) {
@@ -75,26 +75,16 @@ function ToastContainer({
   );
 }
 
-function ToastItem({
-  toast,
-  onDismiss,
-}: {
-  toast: Toast;
-  onDismiss: (id: string) => void;
-}) {
+function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const Icon =
-    toast.variant === "success"
-      ? CheckCircle2
-      : toast.variant === "error"
-      ? AlertTriangle
-      : Info;
+    toast.variant === "success" ? CheckCircle2 : toast.variant === "error" ? AlertTriangle : Info;
 
   const bgClass =
     toast.variant === "success"
       ? "bg-success/10 border-success/30 text-success"
       : toast.variant === "error"
-      ? "bg-destructive/10 border-destructive/30 text-destructive"
-      : "bg-primary/10 border-primary/30 text-primary";
+        ? "bg-destructive/10 border-destructive/30 text-destructive"
+        : "bg-primary/10 border-primary/30 text-primary";
 
   return (
     <div

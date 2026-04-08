@@ -38,7 +38,11 @@ describe("LocationProvider", () => {
       );
     }
 
-    render(<LocationProvider><Consumer /></LocationProvider>);
+    render(
+      <LocationProvider>
+        <Consumer />
+      </LocationProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("lat").textContent).toBe("35.68");
@@ -49,9 +53,17 @@ describe("LocationProvider", () => {
   });
 
   it("sets error and Bangkok fallback on permission denied", async () => {
-    mockGetCurrentPosition.mockImplementation((_s: PositionCallback, error: PositionErrorCallback) => {
-      error({ code: 1, message: "Denied", PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
-    });
+    mockGetCurrentPosition.mockImplementation(
+      (_s: PositionCallback, error: PositionErrorCallback) => {
+        error({
+          code: 1,
+          message: "Denied",
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        } as GeolocationPositionError);
+      }
+    );
 
     const { LocationProvider, useLocation } = await import("@/components/location-provider");
 
@@ -65,7 +77,11 @@ describe("LocationProvider", () => {
       );
     }
 
-    render(<LocationProvider><Consumer /></LocationProvider>);
+    render(
+      <LocationProvider>
+        <Consumer />
+      </LocationProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("error").textContent).not.toBe("none");
@@ -75,9 +91,17 @@ describe("LocationProvider", () => {
   });
 
   it("sets error on timeout", async () => {
-    mockGetCurrentPosition.mockImplementation((_s: PositionCallback, error: PositionErrorCallback) => {
-      error({ code: 3, message: "Timeout", PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
-    });
+    mockGetCurrentPosition.mockImplementation(
+      (_s: PositionCallback, error: PositionErrorCallback) => {
+        error({
+          code: 3,
+          message: "Timeout",
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        } as GeolocationPositionError);
+      }
+    );
 
     const { LocationProvider, useLocation } = await import("@/components/location-provider");
 
@@ -86,7 +110,11 @@ describe("LocationProvider", () => {
       return <span data-testid="error">{error ?? "none"}</span>;
     }
 
-    render(<LocationProvider><Consumer /></LocationProvider>);
+    render(
+      <LocationProvider>
+        <Consumer />
+      </LocationProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("error").textContent).toContain("timed out");
@@ -108,7 +136,11 @@ describe("LocationProvider", () => {
       return <span data-testid="error">{error ?? "none"}</span>;
     }
 
-    render(<LocationProvider><Consumer /></LocationProvider>);
+    render(
+      <LocationProvider>
+        <Consumer />
+      </LocationProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("error").textContent).toContain("not supported");

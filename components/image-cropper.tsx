@@ -15,13 +15,10 @@ interface ImageCropperProps {
 }
 
 // Helper function to create cropped image
-async function getCroppedImg(
-  imageSrc: string,
-  pixelCrop: Area
-): Promise<Blob> {
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
   const image = new Image();
   image.src = imageSrc;
-  
+
   await new Promise((resolve) => {
     image.onload = resolve;
   });
@@ -87,12 +84,9 @@ export function ImageCropper({
     setZoom(newZoom);
   }, []);
 
-  const onCropCompleteHandler = useCallback(
-    (_croppedArea: Area, croppedAreaPixels: Area) => {
-      setCroppedAreaPixels(croppedAreaPixels);
-    },
-    []
-  );
+  const onCropCompleteHandler = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   const handleSave = async () => {
     if (!croppedAreaPixels) return;

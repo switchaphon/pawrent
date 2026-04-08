@@ -19,7 +19,9 @@ test.describe("Bottom navigation (on public pages)", () => {
     await page.waitForURL("/", { timeout: 5000 });
   });
 
-  test("clicking Pets from hospital page navigates (may redirect to / if unauthed)", async ({ page }) => {
+  test("clicking Pets from hospital page navigates (may redirect to / if unauthed)", async ({
+    page,
+  }) => {
     await page.goto("/hospital");
     const nav = page.locator("nav");
     await expect(nav).toBeVisible({ timeout: 10000 });

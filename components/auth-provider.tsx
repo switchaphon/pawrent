@@ -8,7 +8,14 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null; needsEmailVerification?: boolean; emailAlreadyExists?: boolean }>;
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{
+    error: Error | null;
+    needsEmailVerification?: boolean;
+    emailAlreadyExists?: boolean;
+  }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -29,38 +36,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
 
-        // Clean up orphaned localStorage entry from pre-cookie migration
-        if (_event === "SIGNED_IN") {
-          const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/\/\/([^.]+)/)?.[1];
-          if (projectRef) {
-            localStorage.removeItem(`sb-${projectRef}-auth-token`);
-          }
+      // Clean up orphaned localStorage entry from pre-cookie migration
+      if (_event === "SIGNED_IN") {
+        const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/\/\/([^.]+)/)?.[1];
+        if (projectRef) {
+          localStorage.removeItem(`sb-${projectRef}-auth-token`);
         }
       }
-    );
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
     const { error, data } = await supabase.auth.signUp({ email, password });
-    
+
     // Check if email already exists - Supabase returns user with empty identities
     const emailAlreadyExists = Boolean(
       !error && data.user && data.user.identities && data.user.identities.length === 0
     );
-    
+
     // If user was created but needs email verification
     const needsEmailVerification = Boolean(
       !error && data.user && !data.session && !emailAlreadyExists
     );
-    
+
     return { error: error as Error | null, needsEmailVerification, emailAlreadyExists };
   };
 

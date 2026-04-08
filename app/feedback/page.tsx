@@ -16,7 +16,7 @@ function FeedbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAnonymous = searchParams.get("anonymous") === "true";
-  
+
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackImage, setFeedbackImage] = useState<File | null>(null);
   const [feedbackImagePreview, setFeedbackImagePreview] = useState<string | null>(null);
@@ -34,7 +34,10 @@ function FeedbackContent() {
     }
 
     if (feedbackImage) {
-      const fileResult = imageFileSchema.safeParse({ size: feedbackImage.size, type: feedbackImage.type });
+      const fileResult = imageFileSchema.safeParse({
+        size: feedbackImage.size,
+        type: feedbackImage.type,
+      });
       if (!fileResult.success) {
         alert(fileResult.error.issues[0].message);
         return;
@@ -44,17 +47,20 @@ function FeedbackContent() {
     setSubmitting(true);
     try {
       let imageUrl: string | null = null;
-      
+
       // Upload image if attached
       if (feedbackImage) {
-        const { data: uploadedUrl, error: uploadError } = await uploadFeedbackImage(feedbackImage, userId);
+        const { data: uploadedUrl, error: uploadError } = await uploadFeedbackImage(
+          feedbackImage,
+          userId
+        );
         if (uploadError) {
           console.error("Failed to upload image:", uploadError);
         } else {
           imageUrl = uploadedUrl;
         }
       }
-      
+
       // Submit feedback via API route
       try {
         await apiFetch("/api/feedback", {
@@ -123,11 +129,10 @@ function FeedbackContent() {
             <div className="py-8 text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-foreground mb-2">Thank You!</h2>
-              <p className="text-muted-foreground mb-6">Your feedback has been submitted successfully.</p>
-              <Button 
-                onClick={() => setSuccess(false)}
-                className="bg-primary hover:bg-primary/90"
-              >
+              <p className="text-muted-foreground mb-6">
+                Your feedback has been submitted successfully.
+              </p>
+              <Button onClick={() => setSuccess(false)} className="bg-primary hover:bg-primary/90">
                 Submit Another Feedback
               </Button>
             </div>
@@ -137,18 +142,19 @@ function FeedbackContent() {
                 <MessageSquare className="w-8 h-8 text-primary" />
                 <h2 className="text-xl font-bold text-foreground">Send Feedback</h2>
               </div>
-              
+
               <p className="text-sm text-muted-foreground mb-4">
-                Help us improve Pawrent! Share your experience, report issues, or suggest new features.
+                Help us improve Pawrent! Share your experience, report issues, or suggest new
+                features.
               </p>
-          
+
               <textarea
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
                 placeholder="Describe your feedback, issue, or suggestion..."
                 className="w-full h-32 p-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               />
-              
+
               {/* Image Upload */}
               <div className="mt-4">
                 {feedbackImagePreview ? (
@@ -171,7 +177,9 @@ function FeedbackContent() {
                 ) : (
                   <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
                     <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Attach screenshot (optional)</span>
+                    <span className="text-sm text-muted-foreground">
+                      Attach screenshot (optional)
+                    </span>
                     <input
                       type="file"
                       accept="image/*"
@@ -187,7 +195,7 @@ function FeedbackContent() {
                   </label>
                 )}
               </div>
-              
+
               {/* Submit Button */}
               <Button
                 onClick={handleSubmit}

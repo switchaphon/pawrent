@@ -18,7 +18,12 @@ interface AddParasiteLogFormProps {
   onCancel: () => void;
 }
 
-export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: AddParasiteLogFormProps) {
+export function AddParasiteLogForm({
+  petId,
+  petSpecies,
+  onSuccess,
+  onCancel,
+}: AddParasiteLogFormProps) {
   const [selectedProduct, setSelectedProduct] = useState("");
   const [administeredDate, setAdministeredDate] = useState(new Date().toISOString().split("T")[0]);
   const [reminderMonths, setReminderMonths] = useState(3);
@@ -46,11 +51,11 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
   };
 
   const handleIncrement = () => {
-    setReminderMonths(prev => Math.min(prev + 1, 12));
+    setReminderMonths((prev) => Math.min(prev + 1, 12));
   };
 
   const handleDecrement = () => {
-    setReminderMonths(prev => Math.max(prev - 1, 1));
+    setReminderMonths((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,10 +107,7 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
           <PillIcon className="w-5 h-5 text-primary" />
           Add Parasite Prevention
         </h3>
-        <button
-          onClick={onCancel}
-          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-        >
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
           <X className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
@@ -124,7 +126,8 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
             <div className="flex items-start gap-2 p-2 bg-primary/5 rounded-lg text-sm">
               <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
               <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{selectedProductInfo.brand}</span> by {selectedProductInfo.manufacturer}
+                <span className="font-medium text-foreground">{selectedProductInfo.brand}</span> by{" "}
+                {selectedProductInfo.manufacturer}
                 <span className="mx-1">•</span>
                 <span className="text-primary">{selectedProductInfo.description}</span>
               </div>
@@ -150,9 +153,7 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
 
         {/* Reminder Months Stepper */}
         <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            Next Reminder
-          </Label>
+          <Label className="flex items-center gap-2">Next Reminder</Label>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -164,7 +165,9 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
             </button>
             <div className="flex-1 text-center">
               <span className="text-2xl font-bold text-foreground">{reminderMonths}</span>
-              <span className="text-sm text-muted-foreground ml-2">month{reminderMonths !== 1 ? "s" : ""}</span>
+              <span className="text-sm text-muted-foreground ml-2">
+                month{reminderMonths !== 1 ? "s" : ""}
+              </span>
             </div>
             <button
               type="button"
@@ -177,7 +180,8 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
           </div>
           {selectedProductInfo && (
             <p className="text-xs text-muted-foreground text-center">
-              Recommended: {selectedProductInfo.durationMonths} month{selectedProductInfo.durationMonths !== 1 ? "s" : ""} for {selectedProductInfo.name}
+              Recommended: {selectedProductInfo.durationMonths} month
+              {selectedProductInfo.durationMonths !== 1 ? "s" : ""} for {selectedProductInfo.name}
             </p>
           )}
         </div>
@@ -199,9 +203,7 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
-            {error}
-          </div>
+          <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">{error}</div>
         )}
 
         {/* Action Buttons */}
@@ -220,11 +222,7 @@ export function AddParasiteLogForm({ petId, petSpecies, onSuccess, onCancel }: A
             className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90"
             disabled={saving || !selectedProduct || !administeredDate}
           >
-            {saving ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              "Save Log"
-            )}
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Log"}
           </Button>
         </div>
       </form>
