@@ -52,18 +52,20 @@ npm run type-check       # tsc --noEmit
 
 1. Read this file (auto-loaded)
 2. Read `conductor/index.md` — current status, active PRP
-3. Read the target PRP file — task list and dependencies
-4. Run `npm run test` — confirm baseline is green
-5. Check `git status` — understand current branch state
-6. Check `conductor/active-tasks.md` — claim your task before starting
+3. Check `conductor/pipeline-status.md` — if active pipeline exists, ask: "Resume PRP-XX from [step]?"
+4. Read the target PRP file — task list and dependencies
+5. Run `npm run test` — confirm baseline is green
+6. Check `git status` — understand current branch state
+7. Check `conductor/active-tasks.md` — claim your task before starting
 
 ## Session Protocol (Agent Team — Lead)
 
 1. Read this file + `conductor/index.md` + `conductor/agent-teams.md`
-2. Read the target PRP — identify parallelizable tasks
-3. Spawn teammates with explicit scope boundaries per task
-4. Enable delegate mode — coordinate only, do not implement
-5. Monitor via tmux — coordinate commits when all complete
+2. Check `conductor/pipeline-status.md` — if active pipeline exists, ask: "Resume PRP-XX from [step]?"
+3. Read the target PRP — identify parallelizable tasks
+4. Spawn teammates with explicit scope boundaries per task
+5. Enable delegate mode — coordinate only, do not implement
+6. Monitor via tmux — coordinate commits when all complete
 
 ## Session Protocol (Agent Team — Teammate)
 
@@ -158,3 +160,59 @@ PDPA incidents: notify privacy@pawrent.app within 1 hour. Regulator within 72 ho
 
 See `conductor/` for deep context: product.md, tech-stack.md, workflow.md,
 agent-teams.md, code_styleguides/, state.md, active-tasks.md, decisions.md.
+
+## Custom Commands
+
+Every PRP follows the pipeline defined in `conductor/pipeline.md`.
+Use `/ship-prp` for the full lifecycle, or individual commands for specific steps.
+
+### `/ship-prp <path>`
+
+Full PRP pipeline: validate -> refine (if needed) -> plan -> execute -> review -> finalize.
+Pauses at 5 human gates. Read `conductor/pipeline.md` for the full spec.
+
+1. Read `conductor/pipeline.md`
+2. Run `/validate-prp` — produce validation report, pause at G1
+3. If G1 = "fix", run `/refine-prp` and loop until clean
+4. If G1 = "proceed", skip to `/plan-prp`
+5. Run `/plan-prp` — propose execution topology, pause at G3
+6. If G3 = "go"/"single", run `/execute-prp` — TDD with auto quality gates (G4)
+7. Run `/review-prp` — produce review report, pause at G5
+8. If G5 = "merge", run `/finalize-prp` — prepare commit, pause at Final
+9. Update `conductor/pipeline-status.md` at every step transition
+
+### `/validate-prp <path>`
+
+Validate PRP against actual codebase. Cross-reference file paths, code patterns,
+task dependencies, active-task conflicts, PDPA checklist. Produce structured report
+with Critical/Medium/Low issues and confidence score. Pause at G1.
+
+### `/refine-prp <path>`
+
+Fix issues from validation report (critical first, then medium). Re-validate after
+fixes. Show diff summary. Pause at G2.
+
+### `/plan-prp <path>`
+
+Plan execution strategy. Default to single agent unless 4+ independent task groups.
+Map file ownership, identify shared file risks. Pause at G3.
+
+### `/execute-prp <path>`
+
+Execute PRP using approved plan. Create branch, TDD cycle, run quality pipeline.
+G4 is automated — agent iterates until all checks green.
+
+### `/review-prp <path>`
+
+Post-execution review. Verify every PRP task is implemented, run full quality
+pipeline, check PDPA, generate review report. Pause at G5.
+
+### `/finalize-prp <path>`
+
+Prepare final commit. Update conductor state files, stage changes, present commit
+message for approval. Agent does NOT create PR — human creates via GitHub UI.
+
+### `/status-prp`
+
+Show pipeline state for all active PRPs. Reads `conductor/pipeline-status.md`,
+`conductor/active-tasks.md`, and `conductor/state.md`.

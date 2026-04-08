@@ -16,6 +16,8 @@ Navigation hub for all project context artifacts. Read this first in any session
 | [decisions.md](decisions.md)                                               | Architecture decision log                                  | Before making arch decisions                  |
 | [../PRPs/ROADMAP.md](../PRPs/ROADMAP.md)                                   | Feature roadmap, execution order                           | Planning features                             |
 | [../PRPs/00-tdd-quality-framework.md](../PRPs/00-tdd-quality-framework.md) | Quality gates, coverage rules, PDPA                        | Before every PR                               |
+| [pipeline.md](pipeline.md)                                                 | PRP development pipeline — gates, steps, commands          | Running `/ship-prp` or any pipeline step      |
+| [pipeline-status.md](pipeline-status.md)                                   | Active pipeline state — enables session resume             | Every session start                           |
 | [../CLAUDE.md](../CLAUDE.md)                                               | Claude Code instructions — commands, conventions, warnings | Every session (auto-loaded)                   |
 | [../.env.example](../.env.example)                                         | Required environment variables                             | Setting up environment                        |
 
