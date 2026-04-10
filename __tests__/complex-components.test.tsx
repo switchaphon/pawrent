@@ -12,16 +12,22 @@ import userEvent from "@testing-library/user-event";
 const mockApiFetch = vi.fn();
 const mockGetPets = vi.fn();
 
-vi.mock("@/components/auth-provider", () => ({
+vi.mock("@/components/liff-provider", () => ({
   useAuth: () => ({
-    user: { id: "user-1" },
-    session: { access_token: "fake" },
+    user: {
+      id: "user-1",
+      email: null,
+      full_name: null,
+      avatar_url: null,
+      line_user_id: "U123",
+      line_display_name: "Test",
+      created_at: "",
+    },
     loading: false,
-    signIn: vi.fn(),
-    signUp: vi.fn(),
+    isInLiff: false,
     signOut: vi.fn(),
   }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LiffProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("@/lib/api", () => ({

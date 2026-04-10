@@ -3,6 +3,33 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-04-10
+
+### Added
+
+- **LINE LIFF authentication** — replaces email/password with LINE Login via LIFF SDK (PRP-01)
+  - `lib/liff.ts` — LIFF SDK singleton with init, profile, token, login/logout helpers
+  - `components/liff-provider.tsx` — LiffProvider + useAuth() hook
+  - `app/api/auth/line/route.ts` — LINE ID token verification + Supabase JWT exchange (jose)
+  - `lib/auth-token.ts` — module-level JWT token store for apiFetch
+  - `lib/validations/auth.ts` — Zod schema for LINE auth request
+  - LIFF environment detection (in-app vs external browser, auto-login redirect)
+- **Profile type extended** — `line_user_id` and `line_display_name` fields
+- **383 tests** across 33 files
+
+### Changed
+
+- `lib/api.ts` — apiFetch reads JWT from auth-token store instead of Supabase session
+- `app/layout.tsx` — LiffProvider replaces AuthProvider
+- `app/page.tsx` — LINE login flow replaces AuthForm
+- `app/profile/page.tsx` — displays LINE display name instead of email
+- `.env.example` — added NEXT_PUBLIC_LIFF_ID, LINE_CHANNEL_ID, SUPABASE_JWT_SECRET
+
+### Removed
+
+- `components/auth-form.tsx` — email/password form (replaced by LIFF auto-login)
+- `components/auth-provider.tsx` — Supabase email auth provider (replaced by LiffProvider)
+
 ## [0.2.2] - 2026-04-06
 
 ### Added

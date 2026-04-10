@@ -1,14 +1,12 @@
-import { supabase } from "./supabase";
+import { getAuthToken } from "./auth-token";
 
 export async function apiFetch(url: string, options: RequestInit = {}) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const token = getAuthToken();
   const headers: Record<string, string> = {
     ...((options.headers as Record<string, string>) || {}),
   };
-  if (session?.access_token) {
-    headers["Authorization"] = `Bearer ${session.access_token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   if (!(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";

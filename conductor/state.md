@@ -2,9 +2,9 @@
 
 ## Active PRPs
 
-| PRP     | Branch                              | Status      | Last Updated |
-| ------- | ----------------------------------- | ----------- | ------------ |
-| PRP-00b | feature/prp-00-agent-workflow-setup | in-progress | 2026-04-08   |
+| PRP    | Branch                        | Status   | Last Updated |
+| ------ | ----------------------------- | -------- | ------------ |
+| PRP-01 | feature/prp-01-line-liff-auth | complete | 2026-04-10   |
 
 ## Blocked PRPs
 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth-provider";
+import { useAuth } from "@/components/liff-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

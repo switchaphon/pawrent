@@ -10,5 +10,6 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Completed Pipelines
 
-| PRP | Started | Completed | Commits |
-| --- | ------- | --------- | ------- |
+| PRP    | Started    | Completed  | Commits                              |
+| ------ | ---------- | ---------- | ------------------------------------ |
+| PRP-01 | 2026-04-10 | 2026-04-10 | feat(auth): implement LINE LIFF auth |
