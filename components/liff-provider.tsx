@@ -27,12 +27,13 @@ export function LiffProvider({ children }: { children: ReactNode }) {
         await initializeLiff();
         if (cancelled) return;
 
-        setIsInLiff(isInLiffBrowser());
+        const inLiff = isInLiffBrowser();
+        setIsInLiff(inLiff);
 
         const idToken = getLiffIdToken();
         if (!idToken) {
           // In external browser, redirect to LINE Login
-          if (!isInLiffBrowser()) {
+          if (!inLiff) {
             liffLogin();
           }
           setLoading(false);

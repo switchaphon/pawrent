@@ -8,7 +8,7 @@ const limiter = createRateLimiter(10, "1 m");
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 async function verifyLineIdToken(
@@ -76,10 +76,25 @@ export async function POST(request: NextRequest) {
   if (existingProfile) {
     profile = existingProfile;
   } else {
-    // Create new profile via upsert
-    const { data: newProfile, error: upsertError } = await supabaseAdmin
+    // Create auth.users entry first (profiles.id FK references auth.users.id)
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: `${lineProfile.sub}@line.local`,
+      email_confirm: true,
+      user_metadata: {
+        line_user_id: lineProfile.sub,
+        line_display_name: lineProfile.name,
+      },
+    });
+
+    if (authError || !authUser.user) {
+      return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+    }
+
+    // Create the profile linked to the auth user
+    const { data: newProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .upsert({
+        id: authUser.user.id,
         line_user_id: lineProfile.sub,
         line_display_name: lineProfile.name,
         avatar_url: lineProfile.picture,
@@ -87,7 +102,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (upsertError || !newProfile) {
+    if (profileError || !newProfile) {
       return NextResponse.json({ error: "Failed to create profile" }, { status: 500 });
     }
     profile = newProfile;

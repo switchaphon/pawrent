@@ -7,6 +7,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["*.ngrok-free.dev"],
   images: {
     remotePatterns: [
       {
