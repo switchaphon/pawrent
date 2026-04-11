@@ -206,11 +206,12 @@ If any check fails, the agent fixes and re-runs. No human gate — iterate until
 1. Read the PRP again — check every task is implemented
 2. Run full test suite one more time
 3. Check coverage per file on changed files
-4. Verify PDPA checklist (if applicable)
-5. Verify commit messages follow convention
-6. Check `conductor/decisions.md` for any new entries needed
-7. Check `conductor/state.md` is updated
-8. Generate review report
+4. **Review and update E2E tests** — if PRP changed UI, auth flow, or page behavior, update `e2e/` specs to match. Run `npm run test:e2e` locally if possible, or verify E2E specs reference current components/flows (not removed ones)
+5. Verify PDPA checklist (if applicable)
+6. Verify commit messages follow convention
+7. Check `conductor/decisions.md` for any new entries needed
+8. Check `conductor/state.md` is updated
+9. Generate review report
 
 **Report format:**
 
