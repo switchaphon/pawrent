@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth-provider";
+import { useAuth } from "@/components/liff-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -521,13 +521,13 @@ function ProfileContent() {
               <Avatar className="w-20 h-20 mx-auto mb-4">
                 {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} /> : null}
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-                  {user?.email ? getInitials(user.email) : "?"}
+                  {user?.line_display_name ? getInitials(user.line_display_name) : "?"}
                 </AvatarFallback>
               </Avatar>
               <h2 className="text-xl font-bold text-foreground">
-                {profile?.full_name || user?.email?.split("@")[0] || "Pet Parent"}
+                {profile?.full_name || user?.line_display_name || "Pet Parent"}
               </h2>
-              <p className="text-muted-foreground">{user?.email}</p>
+              <p className="text-muted-foreground">{user?.line_display_name}</p>
               <div className="flex justify-center gap-6 mt-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-primary">{pets.length}</p>

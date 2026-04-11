@@ -1,25 +1,26 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public pages (no auth required)", () => {
-  test("login page renders with email and password fields", async ({ page }) => {
+  test("home page shows LINE login state when unauthenticated", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator('input[type="email"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
-  });
-
-  test("login page has sign-in button", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+    // Without LIFF environment, the unauthenticated page shows signing-in message
+    await expect(page.getByText(/signing in with line/i)).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("hospital page loads", async ({ page }) => {
     await page.goto("/hospital");
-    await expect(page.locator(".leaflet-container")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".leaflet-container")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("hospital page shows title overlay", async ({ page }) => {
     await page.goto("/hospital");
-    await expect(page.getByText("Nearby Hospital")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Nearby Hospital")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("unauthenticated user is redirected from /pets to /", async ({ page }) => {

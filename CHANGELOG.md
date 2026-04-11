@@ -3,6 +3,59 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.1] - 2026-04-11
+
+### Added
+
+- **Dev/prod environment separation** — separate LINE Login channels for dev (ngrok) and prod (Vercel) (PRP-01b)
+  - `Docs/environment-setup.md` — full env var matrix and Vercel CLI guide
+  - `__tests__/next-config.test.ts` — dynamic hostname extraction tests
+  - Vercel env vars configured per environment (Production, Preview, Development)
+- **Auth user recovery** — `/api/auth/line` now recovers when profile is deleted but auth.users entry remains
+  - Case-insensitive email matching for GoTrue compatibility
+  - 3 new test cases for recovery scenarios
+- **PRP-01c** — future PRP for LIFF email scope (real email instead of synthetic)
+
+### Changed
+
+- `next.config.ts` — Supabase image hostname derived dynamically from `NEXT_PUBLIC_SUPABASE_URL`
+- `next.config.ts` — restored `allowedDevOrigins` for ngrok HMR
+- `.env.example` — section headers with environment annotations
+- `Docs/line-liff-auth-setup.md` — added environment separation section
+- **390 tests** across 34 files (was 384/33)
+
+### Fixed
+
+- Auth route crash when `profiles` row deleted but `auth.users` entry remains (orphaned user recovery)
+- Case-sensitivity mismatch between LINE user IDs (uppercase `U`) and GoTrue stored emails (lowercase)
+
+## [0.3.0] - 2026-04-10
+
+### Added
+
+- **LINE LIFF authentication** — replaces email/password with LINE Login via LIFF SDK (PRP-01)
+  - `lib/liff.ts` — LIFF SDK singleton with init, profile, token, login/logout helpers
+  - `components/liff-provider.tsx` — LiffProvider + useAuth() hook
+  - `app/api/auth/line/route.ts` — LINE ID token verification + Supabase JWT exchange (jose)
+  - `lib/auth-token.ts` — module-level JWT token store for apiFetch
+  - `lib/validations/auth.ts` — Zod schema for LINE auth request
+  - LIFF environment detection (in-app vs external browser, auto-login redirect)
+- **Profile type extended** — `line_user_id` and `line_display_name` fields
+- **383 tests** across 33 files
+
+### Changed
+
+- `lib/api.ts` — apiFetch reads JWT from auth-token store instead of Supabase session
+- `app/layout.tsx` — LiffProvider replaces AuthProvider
+- `app/page.tsx` — LINE login flow replaces AuthForm
+- `app/profile/page.tsx` — displays LINE display name instead of email
+- `.env.example` — added NEXT_PUBLIC_LIFF_ID, LINE_CHANNEL_ID, SUPABASE_JWT_SECRET
+
+### Removed
+
+- `components/auth-form.tsx` — email/password form (replaced by LIFF auto-login)
+- `components/auth-provider.tsx` — Supabase email auth provider (replaced by LiffProvider)
+
 ## [0.2.2] - 2026-04-06
 
 ### Added

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/components/auth-provider";
+import { useAuth } from "@/components/liff-provider";
 import { getPets } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/auth-provider";
-import { AuthForm } from "@/components/auth-form";
+import { useAuth } from "@/components/liff-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
@@ -221,7 +220,14 @@ export default function HomePage() {
   }
 
   if (!user) {
-    return <AuthForm />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Signing in with LINE...</p>
+        </div>
+      </div>
+    );
   }
 
   return <FeedContent />;
