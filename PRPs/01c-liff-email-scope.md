@@ -42,9 +42,9 @@ Currently, Pawrent creates Supabase auth users with synthetic emails (`{line_use
 
 ### 1c.2 Update LINE Token Verification
 
-- [ ] Update `verifyLineIdToken()` in `app/api/auth/line/route.ts` to extract `email` from the verify response
+- [ ] Update `verifyLineIdToken()` in `app/api/auth/line/route.ts` to extract optional `email` from the verify response (add `email?: string` to return type)
 - [ ] Use real email when available: `email || \`${sub}@line.local\``
-- [ ] On returning user login, update auth user email if real email is now available (backfill)
+- [ ] On returning user login, update auth user email if real email is now available (backfill via `admin.updateUserById()`)
 
 ### 1c.3 Update Tests
 
@@ -55,15 +55,15 @@ Currently, Pawrent creates Supabase auth users with synthetic emails (`{line_use
 ### 1c.4 Update Documentation
 
 - [ ] Update `Docs/line-liff-auth-setup.md` — note email scope requirement
-- [ ] Update `.env.example` if any new env vars needed (unlikely)
+- [x] ~~Update `.env.example`~~ — no new env vars needed (email scope configured in LINE Developers Console)
 
 ---
 
 ## PDPA Checklist
 
-- [ ] Email is personal data — ensure it's included in data export (`/api/me/data-export`)
-- [ ] Email must be deleted on account deletion (cascade from auth.users handles this)
-- [ ] User must consent to email collection (LINE's LIFF consent screen handles this)
+- [ ] Email is personal data — ensure it's included in data export (`/api/me/data-export`) — **DEFERRED: endpoint not yet implemented; email will be included when built**
+- [x] Email must be deleted on account deletion (cascade from auth.users handles this)
+- [x] User must consent to email collection (LINE's LIFF consent screen handles this)
 
 ---
 

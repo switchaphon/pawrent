@@ -15,7 +15,7 @@ function getSupabaseAdmin() {
 
 async function verifyLineIdToken(
   idToken: string
-): Promise<{ sub: string; name: string; picture: string } | null> {
+): Promise<{ sub: string; name: string; picture: string; email?: string } | null> {
   const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -32,6 +32,7 @@ async function verifyLineIdToken(
     sub: payload.sub,
     name: payload.name,
     picture: payload.picture,
+    ...(payload.email ? { email: payload.email } : {}),
   };
 }
 
@@ -79,12 +80,30 @@ export async function POST(request: NextRequest) {
 
   if (existingProfile) {
     profile = existingProfile;
+
+    // Backfill real email for returning users who previously had synthetic email
+    if (lineProfile.email) {
+      const { data: listData } = await supabase.auth.admin.listUsers({
+        perPage: 1000,
+      });
+      const authUser = listData?.users?.find(
+        (u) => u.email?.toLowerCase() === `${lineProfile.sub.toLowerCase()}@line.local`
+      );
+      if (authUser) {
+        await supabase.auth.admin.updateUserById(authUser.id, {
+          email: lineProfile.email,
+        });
+      }
+    }
   } else {
     let userId: string;
 
+    // Use real LINE email when available, fall back to synthetic
+    const userEmail = lineProfile.email || `${lineProfile.sub}@line.local`;
+
     // Create auth.users entry first (profiles.id FK references auth.users.id)
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: `${lineProfile.sub}@line.local`,
+      email: userEmail,
       email_confirm: true,
       user_metadata: {
         line_user_id: lineProfile.sub,
