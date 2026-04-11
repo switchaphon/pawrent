@@ -3,6 +3,29 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.2] - 2026-04-11
+
+### Added
+
+- **LIFF email scope** — extract real LINE email for auth users when available, fall back to synthetic `@line.local` (PRP-01c)
+  - `verifyLineIdToken()` now extracts optional `email` from LINE verify response
+  - New users get real LINE email when available instead of synthetic email
+  - Returning users with synthetic email get backfilled with real email on next login
+  - Cross-provider account recovery — LINE login with email matching existing auth user reuses that account
+  - Profile upsert now populates `email`, `full_name` fields
+  - Auth user metadata includes `full_name` and `auth_provider: "line"` for Dashboard visibility
+  - 4 new test cases for email extraction, fallback, backfill, and cross-provider recovery
+
+### Fixed
+
+- `listUsers` recovery used unfiltered pagination — now uses `filter` parameter for reliable user lookup
+- Orphaned auth user recovery failed when `listUsers({ perPage: 1000 })` didn't return all users
+
+### Changed
+
+- `Docs/line-liff-auth-setup.md` — added `email` scope to LIFF setup, updated auth flow diagram
+- **394 tests** across 34 files (was 390/34)
+
 ## [0.3.1] - 2026-04-11
 
 ### Added

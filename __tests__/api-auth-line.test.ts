@@ -47,6 +47,7 @@ vi.mock("jose", () => {
 const {
   mockCreateUser,
   mockListUsers,
+  mockUpdateUserById,
   mockUpsertSingle,
   mockUpsertSelect,
   mockUpsert,
@@ -62,9 +63,11 @@ const {
   const mockSelect = vi.fn(() => ({ eq: mockSelectEq }));
   const mockCreateUser = vi.fn();
   const mockListUsers = vi.fn();
+  const mockUpdateUserById = vi.fn();
   return {
     mockCreateUser,
     mockListUsers,
+    mockUpdateUserById,
     mockUpsertSingle,
     mockUpsertSelect,
     mockUpsert,
@@ -80,6 +83,7 @@ vi.mock("@supabase/supabase-js", () => ({
       admin: {
         createUser: mockCreateUser,
         listUsers: mockListUsers,
+        updateUserById: mockUpdateUserById,
       },
     },
     from: vi.fn(() => ({
@@ -125,6 +129,20 @@ function mockLineVerifySuccess() {
       sub: "U1234567890",
       name: "Test User",
       picture: "https://example.com/avatar.jpg",
+      iss: "https://access.line.me",
+      aud: process.env.LINE_CHANNEL_ID,
+    }),
+  });
+}
+
+function mockLineVerifySuccessWithEmail(email: string) {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      sub: "U1234567890",
+      name: "Test User",
+      picture: "https://example.com/avatar.jpg",
+      email,
       iss: "https://access.line.me",
       aud: process.env.LINE_CHANNEL_ID,
     }),
@@ -240,9 +258,15 @@ describe("POST /api/auth/line", () => {
       error: { message: "A user with this email address has already been registered" },
     });
 
-    // listUsers returns all users; route filters by email
+    // listUsers returns users; route filters by email
     mockListUsers.mockResolvedValueOnce({
       data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
+      error: null,
+    });
+
+    // updateUserById updates metadata with LINE identity
+    mockUpdateUserById.mockResolvedValueOnce({
+      data: { user: { id: "uuid-orphan" } },
       error: null,
     });
 
@@ -296,6 +320,117 @@ describe("POST /api/auth/line", () => {
     expect(body.error).toBe("Failed to create profile");
   });
 
+  it("recovers when LINE email matches existing auth user from another provider", async () => {
+    mockLineVerifySuccessWithEmail("user@example.com");
+
+    // Profile lookup returns null (new LINE user)
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    // createUser fails — email already registered (from email/password signup)
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: { message: "A user with this email address has already been registered" },
+    });
+
+    // First listUsers (real email) finds the existing user
+    mockListUsers.mockResolvedValueOnce({
+      data: { users: [{ id: "uuid-email-user", email: "user@example.com" }] },
+      error: null,
+    });
+
+    // updateUserById updates metadata with LINE identity
+    mockUpdateUserById.mockResolvedValueOnce({
+      data: { user: { id: "uuid-email-user" } },
+      error: null,
+    });
+
+    // Profile upsert links LINE identity to existing auth user
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: {
+        ...mockProfile,
+        id: "uuid-email-user",
+        email: "user@example.com",
+        full_name: "Test User",
+      },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.user.id).toBe("uuid-email-user");
+
+    // Verify user_metadata was updated with LINE identity
+    expect(mockUpdateUserById).toHaveBeenCalledWith(
+      "uuid-email-user",
+      expect.objectContaining({
+        user_metadata: {
+          line_user_id: "U1234567890",
+          line_display_name: "Test User",
+          full_name: "Test User",
+          auth_provider: "line",
+        },
+      })
+    );
+  });
+
+  it("uses real LINE email for new user when available", async () => {
+    mockLineVerifySuccessWithEmail("user@example.com");
+    mockNewUserFlow();
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    expect(mockCreateUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "user@example.com",
+        email_confirm: true,
+      })
+    );
+  });
+
+  it("falls back to synthetic email for new user when LINE email not available", async () => {
+    mockLineVerifySuccess();
+    mockNewUserFlow();
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    expect(mockCreateUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "U1234567890@line.local",
+        email_confirm: true,
+      })
+    );
+  });
+
+  it("backfills real email for returning user with synthetic email", async () => {
+    mockLineVerifySuccessWithEmail("user@example.com");
+
+    // Profile lookup returns existing user with synthetic email
+    mockSelectSingle.mockResolvedValueOnce({
+      data: { ...mockProfile, id: "uuid-existing", email: null },
+      error: null,
+    });
+
+    // Mock listUsers to find the auth user with synthetic email
+    mockListUsers.mockResolvedValueOnce({
+      data: { users: [{ id: "uuid-existing", email: "u1234567890@line.local" }] },
+      error: null,
+    });
+
+    // Mock updateUserById for email backfill
+    mockUpdateUserById.mockResolvedValueOnce({
+      data: { user: { id: "uuid-existing" } },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    expect(mockUpdateUserById).toHaveBeenCalledWith(
+      "uuid-existing",
+      expect.objectContaining({ email: "user@example.com" })
+    );
+  });
+
   it("returns 500 when profile upsert fails for recovered user", async () => {
     mockLineVerifySuccess();
     mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
@@ -307,6 +442,11 @@ describe("POST /api/auth/line", () => {
     // listUsers returns users; route filters by email
     mockListUsers.mockResolvedValueOnce({
       data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
+      error: null,
+    });
+    // updateUserById for metadata
+    mockUpdateUserById.mockResolvedValueOnce({
+      data: { user: { id: "uuid-orphan" } },
       error: null,
     });
     // Profile upsert fails

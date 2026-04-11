@@ -2,9 +2,10 @@
 
 ## Active PRPs
 
-| PRP    | Branch                        | Status   | Last Updated |
-| ------ | ----------------------------- | -------- | ------------ |
-| PRP-01 | feature/prp-01-line-liff-auth | complete | 2026-04-10   |
+| PRP     | Branch                           | Status   | Last Updated |
+| ------- | -------------------------------- | -------- | ------------ |
+| PRP-01  | feature/prp-01-line-liff-auth    | complete | 2026-04-10   |
+| PRP-01c | feature/prp-01c-liff-email-scope | complete | 2026-04-11   |
 
 ## Blocked PRPs
 

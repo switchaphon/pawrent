@@ -23,7 +23,7 @@ This guide covers the manual steps required to make LINE LIFF authentication wor
 5. Click **Add** to create a LIFF app:
    - Size: **Full**
    - Endpoint URL: your production Vercel URL (e.g. `https://pawrent.vercel.app`)
-   - Scope: check **profile** and **openid**
+   - Scope: check **profile**, **openid**, and **email**
    - Bot link feature: **Off** (handled separately via LINE OA)
 6. Note down:
    - **LIFF ID** — looks like `1234567890-abcdefgh` (from the LIFF tab)
@@ -189,13 +189,16 @@ liff.getIDToken()
 POST /api/auth/line { idToken }
     |
     v
-Server: verify token with LINE API
+Server: verify token with LINE API (extracts sub, name, picture, email)
     |
     v
 Server: lookup profile by line_user_id
+    |  (if existing user with synthetic email + real email now available)
+    v
+Server: backfill real email via admin.updateUserById()
     |  (if new user)
     v
-Server: admin.createUser() in auth.users (service role key)
+Server: admin.createUser() in auth.users (real email or synthetic fallback)
     |
     v
 Server: upsert profile (id = auth user id, line_user_id, line_display_name)
@@ -233,7 +236,7 @@ See `Docs/environment-setup.md` for the full environment variable matrix and Ver
 | Issue                                        | Cause                                  | Fix                                                                                                          |
 | -------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | "Signing in with LINE..." stuck on localhost | LIFF requires HTTPS                    | Use ngrok or test on deployed URL                                                                            |
-| 401 from `/api/auth/line`                    | Invalid or expired LINE ID token       | Ensure LIFF scopes include `openid`; check `LINE_CHANNEL_ID` matches                                         |
+| 401 from `/api/auth/line`                    | Invalid or expired LINE ID token       | Ensure LIFF scopes include `openid` and `email`; check `LINE_CHANNEL_ID` matches                             |
 | "LIFF init failed" in console                | Wrong LIFF ID or endpoint URL mismatch | Verify `NEXT_PUBLIC_LIFF_ID` and LIFF endpoint URL in LINE console                                           |
 | JWT rejected by Supabase RLS                 | Wrong JWT secret                       | Verify `SUPABASE_JWT_SECRET` matches the one in Supabase Settings > API > Legacy JWT Secret                  |
 | Profile columns missing                      | Migration not run                      | Run the SQL from Step 2 in Supabase SQL Editor                                                               |
