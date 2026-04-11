@@ -2,7 +2,7 @@
 
 ## Project Identity
 
-Pawrent v0.2.2 — B2C pet health OS for Thai pet owners. Line OA / LIFF web app.
+Pawrent v0.3.1 — B2C pet health OS for Thai pet owners. Line OA / LIFF web app.
 PDPA-regulated data (pet health records, user profiles). Thailand deployment.
 
 ## Quick Commands
@@ -81,12 +81,13 @@ npm run type-check       # tsc --noEmit
 
 1. Format all touched files: `npm run format`
 2. Tests pass: `npm run test`
-3. Commit or `wip:` prefix if incomplete
-4. Update `CHANGELOG.md` — document any release, change, fix, or improvement
-5. Update PRP task checklist (mark completed tasks)
-6. Update `conductor/state.md` if PRP status changed
-7. Update `conductor/active-tasks.md` — mark task complete or release claim
-8. Append architectural decisions to `conductor/decisions.md` if any
+3. **Review E2E tests** — if PRP changed UI, auth flow, or page behavior, update `e2e/` specs to match. Run `npm run test:e2e` to verify. E2E tests that reference removed components or changed flows WILL fail CI.
+4. Commit or `wip:` prefix if incomplete
+5. Update `CHANGELOG.md` — document any release, change, fix, or improvement
+6. Update PRP task checklist (mark completed tasks)
+7. Update `conductor/state.md` if PRP status changed
+8. Update `conductor/active-tasks.md` — mark task complete or release claim
+9. Append architectural decisions to `conductor/decisions.md` if any
 
 ## Commit Convention (enforced by CommitLint)
 

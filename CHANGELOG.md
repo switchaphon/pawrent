@@ -3,6 +3,32 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.1] - 2026-04-11
+
+### Added
+
+- **Dev/prod environment separation** — separate LINE Login channels for dev (ngrok) and prod (Vercel) (PRP-01b)
+  - `Docs/environment-setup.md` — full env var matrix and Vercel CLI guide
+  - `__tests__/next-config.test.ts` — dynamic hostname extraction tests
+  - Vercel env vars configured per environment (Production, Preview, Development)
+- **Auth user recovery** — `/api/auth/line` now recovers when profile is deleted but auth.users entry remains
+  - Case-insensitive email matching for GoTrue compatibility
+  - 3 new test cases for recovery scenarios
+- **PRP-01c** — future PRP for LIFF email scope (real email instead of synthetic)
+
+### Changed
+
+- `next.config.ts` — Supabase image hostname derived dynamically from `NEXT_PUBLIC_SUPABASE_URL`
+- `next.config.ts` — restored `allowedDevOrigins` for ngrok HMR
+- `.env.example` — section headers with environment annotations
+- `Docs/line-liff-auth-setup.md` — added environment separation section
+- **390 tests** across 34 files (was 384/33)
+
+### Fixed
+
+- Auth route crash when `profiles` row deleted but `auth.users` entry remains (orphaned user recovery)
+- Case-sensitivity mismatch between LINE user IDs (uppercase `U`) and GoTrue stored emails (lowercase)
+
 ## [0.3.0] - 2026-04-10
 
 ### Added

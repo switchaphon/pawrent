@@ -215,6 +215,19 @@ API routes: supabase.auth.getUser() validates JWT via RLS
 
 ---
 
+## Environment Separation (Dev vs Prod)
+
+Pawrent uses **separate LINE Login channels** for dev and prod so that the LIFF endpoint URL can differ:
+
+- **Production LIFF** → endpoint points to the Vercel production URL
+- **Dev LIFF** → endpoint points to the ngrok URL (changes per session on free plan)
+
+Supabase and Redis are shared across environments (free-tier constraint).
+
+See `Docs/environment-setup.md` for the full environment variable matrix and Vercel CLI commands.
+
+---
+
 ## Troubleshooting
 
 | Issue                                        | Cause                                  | Fix                                                                                                          |

@@ -80,6 +80,8 @@ export async function POST(request: NextRequest) {
   if (existingProfile) {
     profile = existingProfile;
   } else {
+    let userId: string;
+
     // Create auth.users entry first (profiles.id FK references auth.users.id)
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: `${lineProfile.sub}@line.local`,
@@ -91,14 +93,34 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError || !authUser.user) {
-      return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+      // Auth user may already exist (e.g. profile was deleted but auth.users wasn't).
+      // Look up the existing auth user by email and recover.
+      const email = `${lineProfile.sub}@line.local`;
+      const { data: listData, error: listError } = await supabase.auth.admin.listUsers({
+        perPage: 1000,
+      });
+
+      if (listError) {
+        return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+      }
+
+      const emailLower = email.toLowerCase();
+      const existingAuthUser = listData?.users?.find((u) => u.email?.toLowerCase() === emailLower);
+
+      if (!existingAuthUser) {
+        return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+      }
+
+      userId = existingAuthUser.id;
+    } else {
+      userId = authUser.user.id;
     }
 
     // Create the profile linked to the auth user
     const { data: newProfile, error: profileError } = await supabase
       .from("profiles")
       .upsert({
-        id: authUser.user.id,
+        id: userId,
         line_user_id: lineProfile.sub,
         line_display_name: lineProfile.name,
         avatar_url: lineProfile.picture,

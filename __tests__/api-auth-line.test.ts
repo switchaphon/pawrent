@@ -46,6 +46,7 @@ vi.mock("jose", () => {
 // ---------------------------------------------------------------------------
 const {
   mockCreateUser,
+  mockListUsers,
   mockUpsertSingle,
   mockUpsertSelect,
   mockUpsert,
@@ -60,8 +61,10 @@ const {
   const mockSelectEq = vi.fn(() => ({ single: mockSelectSingle }));
   const mockSelect = vi.fn(() => ({ eq: mockSelectEq }));
   const mockCreateUser = vi.fn();
+  const mockListUsers = vi.fn();
   return {
     mockCreateUser,
+    mockListUsers,
     mockUpsertSingle,
     mockUpsertSelect,
     mockUpsert,
@@ -76,6 +79,7 @@ vi.mock("@supabase/supabase-js", () => ({
     auth: {
       admin: {
         createUser: mockCreateUser,
+        listUsers: mockListUsers,
       },
     },
     from: vi.fn(() => ({
@@ -224,12 +228,48 @@ describe("POST /api/auth/line", () => {
     expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
-  it("returns 500 when auth.admin.createUser fails", async () => {
+  it("recovers when auth user exists but profile was deleted", async () => {
+    mockLineVerifySuccess();
+
+    // Profile lookup returns null (deleted)
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    // createUser fails — email already exists
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: { message: "A user with this email address has already been registered" },
+    });
+
+    // listUsers returns all users; route filters by email
+    mockListUsers.mockResolvedValueOnce({
+      data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
+      error: null,
+    });
+
+    // Profile re-creation succeeds
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: { ...mockProfile, id: "uuid-orphan" },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.access_token).toBe("mock-supabase-jwt");
+    expect(body.user.id).toBe("uuid-orphan");
+  });
+
+  it("returns 500 when auth.admin.createUser fails and no existing user found", async () => {
     mockLineVerifySuccess();
     mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
     mockCreateUser.mockResolvedValueOnce({
       data: { user: null },
       error: { message: "Auth error" },
+    });
+    // listUsers returns users but none match the email
+    mockListUsers.mockResolvedValueOnce({
+      data: { users: [{ id: "uuid-other", email: "other@line.local" }] },
+      error: null,
     });
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
@@ -238,13 +278,38 @@ describe("POST /api/auth/line", () => {
     expect(body.error).toBe("Failed to create user");
   });
 
-  it("returns 500 when profile upsert fails", async () => {
+  it("returns 500 when profile upsert fails for new user", async () => {
     mockLineVerifySuccess();
     mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
     mockCreateUser.mockResolvedValueOnce({
       data: { user: { id: "uuid-123" } },
       error: null,
     });
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: "DB error" },
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Failed to create profile");
+  });
+
+  it("returns 500 when profile upsert fails for recovered user", async () => {
+    mockLineVerifySuccess();
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+    // createUser fails (email exists)
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: { message: "A user with this email address has already been registered" },
+    });
+    // listUsers returns users; route filters by email
+    mockListUsers.mockResolvedValueOnce({
+      data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
+      error: null,
+    });
+    // Profile upsert fails
     mockUpsertSingle.mockResolvedValueOnce({
       data: null,
       error: { message: "DB error" },
