@@ -6,10 +6,12 @@ import { createRateLimiter, checkRateLimit, getClientIp } from "@/lib/rate-limit
 
 const limiter = createRateLimiter(10, "1 m");
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function verifyLineIdToken(
   idToken: string
@@ -64,8 +66,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid LINE token" }, { status: 401 });
   }
 
+  const supabase = getSupabaseAdmin();
+
   // Look up existing profile by line_user_id
-  const { data: existingProfile } = await supabaseAdmin
+  const { data: existingProfile } = await supabase
     .from("profiles")
     .select()
     .eq("line_user_id", lineProfile.sub)
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
     profile = existingProfile;
   } else {
     // Create auth.users entry first (profiles.id FK references auth.users.id)
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: `${lineProfile.sub}@line.local`,
       email_confirm: true,
       user_metadata: {
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the profile linked to the auth user
-    const { data: newProfile, error: profileError } = await supabaseAdmin
+    const { data: newProfile, error: profileError } = await supabase
       .from("profiles")
       .upsert({
         id: authUser.user.id,
