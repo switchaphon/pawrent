@@ -125,6 +125,27 @@ describe("POST /api/line/webhook", () => {
     expect(mockValidateSignature).toHaveBeenCalledWith(body, "the-signature", "test-secret");
   });
 
+  it("handles unknown event types via default case", async () => {
+    mockValidateSignature.mockReturnValue(true);
+    mockParseWebhookEvents.mockReturnValue([
+      {
+        type: "postback",
+        source: { type: "user", userId: "U9999" },
+        timestamp: 1234567890,
+      },
+    ]);
+
+    const body = JSON.stringify({
+      events: [{ type: "postback", source: { type: "user", userId: "U9999" } }],
+    });
+    const req = makeRequest(body, "valid-sig");
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.received).toBe(1);
+  });
+
   it("handles empty events array", async () => {
     mockValidateSignature.mockReturnValue(true);
     mockParseWebhookEvents.mockReturnValue([]);

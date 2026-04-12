@@ -4,7 +4,7 @@
  * Strategy: use real crypto (no mocks) to validate signature logic.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createHmac } from "crypto";
 import { validateSignature, parseWebhookEvents } from "@/lib/line/webhook";
 
@@ -33,6 +33,30 @@ describe("validateSignature", () => {
     const body = '{"events":[]}';
 
     expect(validateSignature(body, "invalid-signature", TEST_SECRET)).toBe(false);
+  });
+
+  it("returns false when timingSafeEqual throws (length mismatch edge case)", () => {
+    const body = '{"events":[]}';
+    // Signature that decodes to a different length than expected
+    const shortSig = Buffer.from("short").toString("base64");
+
+    expect(validateSignature(body, shortSig, TEST_SECRET)).toBe(false);
+  });
+
+  it("returns false when Buffer.from throws inside try block", () => {
+    const body = '{"events":[]}';
+    const originalFrom = Buffer.from.bind(Buffer);
+    let callCount = 0;
+    // Buffer.from is called: 1) for digest result at line 14 (outside try),
+    // 2) for signature at line 17 (inside try). We throw on the 2nd call.
+    const spy = vi.spyOn(Buffer, "from").mockImplementation((...args: unknown[]) => {
+      callCount++;
+      if (callCount === 2) throw new TypeError("Invalid input");
+      return originalFrom(...(args as [string, BufferEncoding]));
+    });
+
+    expect(validateSignature(body, "valid-looking-sig", TEST_SECRET)).toBe(false);
+    spy.mockRestore();
   });
 
   it("returns false for empty signature", () => {
@@ -105,6 +129,12 @@ describe("parseWebhookEvents", () => {
 
   it("returns empty array for body with no events", () => {
     const body = JSON.stringify({ events: [] });
+    const events = parseWebhookEvents(body);
+    expect(events).toEqual([]);
+  });
+
+  it("returns empty array when events key is missing from payload", () => {
+    const body = JSON.stringify({ destination: "U123" });
     const events = parseWebhookEvents(body);
     expect(events).toEqual([]);
   });
