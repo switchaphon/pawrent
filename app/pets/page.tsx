@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/components/liff-provider";
-import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreatePetForm } from "@/components/create-pet-form";
@@ -674,8 +673,6 @@ function PetsContent() {
           <span className="font-semibold">Pet</span>
         </button>
       )}
-
-      <BottomNav />
     </div>
   );
 }
