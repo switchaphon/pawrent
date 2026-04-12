@@ -34,19 +34,18 @@ Users interact with Pawrent through LINE OA's Rich Menu — the persistent botto
 
 ### 2.1 Rich Menu Design
 
-- [ ] Design 4-panel Rich Menu layout:
+- [x] Design 3-panel Rich Menu layout (modified from 4-panel):
   - `Home` (🏠) → `/` (dashboard)
   - `Lost & Found` (🚨) → `/sos` (lost/found hub)
   - `My Pets` (🐾) → `/pets` (pet management)
-  - `Community` (📍) → `/community` (feed + map)
-- [ ] Create Rich Menu image (2500x1686px or 2500x843px)
-- [ ] Define tap area coordinates for each panel
+- [ ] Create Rich Menu image (2500x1686px or 2500x843px) — using text menu via LINE OA Manager for now
+- [x] Define tap area coordinates for each panel (via LINE OA Manager)
 
 ### 2.2 LINE Bot SDK Setup
 
-- [ ] Install `@line/bot-sdk`
-- [ ] Create `/api/line/rich-menu/route.ts` — CRUD for Rich Menu via LINE API
-- [ ] Create `/api/line/webhook/route.ts` — LINE webhook receiver (follow/unfollow events)
+- [x] Install `@line/bot-sdk`
+- [x] Create `/api/line/rich-menu/route.ts` — CRUD for Rich Menu via LINE API
+- [x] Create `/api/line/webhook/route.ts` — LINE webhook receiver (follow/unfollow events)
 
 ```bash
 npm install @line/bot-sdk
@@ -54,25 +53,25 @@ npm install @line/bot-sdk
 
 ### 2.3 Rich Menu Lifecycle
 
-- [ ] Upload Rich Menu image on deployment (or via admin script)
-- [ ] Set default Rich Menu for all LINE OA followers
-- [ ] Swap Rich Menu on auth state: guest menu (limited tabs) vs authenticated menu (full tabs)
-- [ ] Handle Rich Menu deep links: `https://liff.line.me/{liffId}/sos`, `/pets`, etc.
+- [x] Upload Rich Menu image on deployment (or via admin script) — API ready, initial menu via LINE OA Manager
+- [x] Set default Rich Menu for all LINE OA followers — set via LINE OA Manager
+- [ ] Swap Rich Menu on auth state: guest menu (limited tabs) vs authenticated menu (full tabs) — deferred (single menu for MVP)
+- [x] Handle Rich Menu deep links: `https://liff.line.me/{liffId}/sos`, `/pets`, etc. — verified working
 
 ### 2.4 Navigation Shell Component
 
-- [ ] Create `components/navigation-shell.tsx` — conditional rendering:
-  - In LIFF: hide bottom nav (Rich Menu handles it), show minimal top bar only
+- [x] Create `components/navigation-shell.tsx` — conditional rendering:
+  - In LIFF: hide bottom nav (Rich Menu handles it)
   - In external browser: show full bottom nav bar
-- [ ] Update `app/layout.tsx` to use NavigationShell
-- [ ] Ensure back navigation works in LIFF (push history entries)
+- [x] Update `app/layout.tsx` to use NavigationShell
+- [ ] Ensure back navigation works in LIFF (push history entries) — not yet tested
 
 ### 2.5 LINE Webhook Handler
 
-- [ ] Verify webhook signature using `LINE_CHANNEL_SECRET`
-- [ ] Handle `follow` event: create/update profile, assign authenticated Rich Menu
-- [ ] Handle `unfollow` event: mark user as inactive (do not delete — PDPA retention)
-- [ ] Handle `postback` events from Rich Menu actions
+- [x] Verify webhook signature using `LINE_CHANNEL_SECRET`
+- [x] Handle `follow` event: log new follower (profile create deferred to PRP-06)
+- [x] Handle `unfollow` event: log unfollowed (PDPA retention handled)
+- [x] Handle `postback` events from Rich Menu actions (default case logs event type)
 
 ---
 
@@ -83,13 +82,13 @@ npm run test
 npm run type-check
 ```
 
-- [ ] Rich Menu appears for LINE OA followers
-- [ ] Each Rich Menu area navigates to correct LIFF page
-- [ ] Guest Rich Menu shows limited options
-- [ ] Authenticated Rich Menu shows all tabs
-- [ ] External browser fallback shows bottom navigation
-- [ ] Webhook receives follow/unfollow events correctly
-- [ ] Webhook signature validation rejects tampered requests
+- [x] Rich Menu appears for LINE OA followers
+- [x] Each Rich Menu area navigates to correct LIFF page (verified: Home, Lost & Found, My Pets)
+- [ ] Guest Rich Menu shows limited options (deferred — single menu for MVP)
+- [ ] Authenticated Rich Menu shows all tabs (deferred — single menu for MVP)
+- [x] External browser fallback shows bottom navigation
+- [x] Webhook receives follow/unfollow events correctly (verified via LINE webhook verify)
+- [x] Webhook signature validation rejects tampered requests (unit tested)
 
 ---
 

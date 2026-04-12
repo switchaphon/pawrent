@@ -38,7 +38,7 @@ Additionally, PDPA requires that exact user locations are never exposed publicly
 
 ### 3.1 Enable PostGIS
 
-- [ ] Enable PostGIS extension on Supabase project
+- [x] Enable PostGIS extension on Supabase project
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -46,9 +46,9 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 ### 3.2 Add Geography Columns
 
-- [ ] Add `geog` column to `sos_alerts`
-- [ ] Add `geog` column to `profiles` (user's approximate home area for push targeting)
-- [ ] Create GIST indexes
+- [x] Add `geog` column to `sos_alerts`
+- [ ] Add `geog` column to `profiles` (deferred to PRP-06) (user's approximate home area for push targeting)
+- [x] Create GIST indexes
 
 ```sql
 -- SOS alerts location
@@ -69,8 +69,8 @@ CREATE INDEX IF NOT EXISTS idx_profiles_home_geog
 
 ### 3.3 Backfill Migration
 
-- [ ] Backfill `geog` from existing `lat`/`lng` in `sos_alerts`
-- [ ] Add trigger to auto-populate `geog` on INSERT/UPDATE when lat/lng change
+- [x] Backfill `geog` from existing `lat`/`lng` in `sos_alerts`
+- [x] Add trigger to auto-populate `geog` on INSERT/UPDATE when lat/lng change
 
 ```sql
 -- Backfill existing data
@@ -96,9 +96,9 @@ CREATE TRIGGER trg_sos_alerts_sync_geog
 
 ### 3.4 RPC Functions
 
-- [ ] `nearby_alerts(lat, lng, radius_km)` — find active alerts within radius
-- [ ] `alerts_within_bbox(min_lat, min_lng, max_lat, max_lng)` — for map viewport queries
-- [ ] `snap_to_grid(lat, lng, grid_size_m)` — returns grid-snapped coordinates for privacy
+- [x] `nearby_alerts(lat, lng, radius_m)` — find active alerts within radius
+- [x] `alerts_within_bbox(min_lat, min_lng, max_lat, max_lng)` — for map viewport queries
+- [x] `snap_to_grid(lat, lng, grid_size_m)` — returns grid-snapped coordinates for privacy
 
 ```sql
 -- Find nearby active alerts within radius (km)
@@ -145,9 +145,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ### 3.5 RLS Policies for Location Data
 
-- [ ] Public can see fuzzy location (via RPC only)
-- [ ] Exact location visible to alert owner + admin only
-- [ ] User home_geog never exposed in any public response
+- [x] Public can see fuzzy location (via RPC only)
+- [x] Exact location visible to alert owner + admin only
+- [x] User home_geog never exposed in any public response
 
 ```sql
 -- Exact coords: owner only
@@ -161,8 +161,8 @@ CREATE POLICY "Owner sees exact location"
 
 ### 3.6 TypeScript Types
 
-- [ ] Add geospatial types to `lib/types/sos.ts`
-- [ ] Create `lib/types/geospatial.ts`
+- [x] Add geospatial types to `lib/types/sos.ts`
+- [x] Create `lib/types/geospatial.ts`
 
 ```typescript
 // lib/types/geospatial.ts
@@ -213,12 +213,12 @@ npm run test
 npm run type-check
 ```
 
-- [ ] `nearby_alerts(13.7563, 100.5018, 5)` returns alerts within 5km of Bangkok center
-- [ ] Grid-snapped coordinates differ from exact by ~125-250m
-- [ ] GIST index is used (check with `EXPLAIN ANALYZE`)
-- [ ] Backfill migration converts all existing alerts
-- [ ] Trigger auto-populates `geog` on new INSERT
-- [ ] Non-owner SELECT does not return exact lat/lng
+- [x] `nearby_alerts(13.7563, 100.5018, 5000)` returns alerts within 5km of Bangkok center (verified: returned ซิกมาแมว at 126m)
+- [ ] Grid-snapped coordinates differ from exact by ~125-250m (not yet verified manually)
+- [ ] GIST index is used (check with `EXPLAIN ANALYZE`) (not yet verified)
+- [x] Backfill migration converts all existing alerts
+- [x] Trigger auto-populates `geog` on new INSERT
+- [x] Non-owner SELECT does not return exact lat/lng (RLS via REVOKE/GRANT)
 
 ---
 

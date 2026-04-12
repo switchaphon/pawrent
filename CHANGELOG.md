@@ -3,6 +3,40 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] - 2026-04-12
+
+### Added
+
+- **PostGIS geospatial infrastructure** (PRP-03)
+  - PostGIS extension enabled on Supabase
+  - `geography(Point, 4326)` columns on `sos_alerts` and `hospitals` with GIST indexes
+  - Backfill trigger: auto-populates `geog` from `lat`/`lng` on INSERT/UPDATE
+  - 3 RPC functions: `nearby_alerts()`, `alerts_within_bbox()`, `snap_to_grid()`
+  - RLS policies: RPC functions restricted to authenticated users only
+  - TypeScript types: `GeoPoint`, `GeoBoundingBox`, `NearbyAlertResult`, `SnapToGridResult`, RPC params
+  - 20 new tests (geospatial types + RPC mocks)
+- **LINE Rich Menu & Navigation Shell** (PRP-02)
+  - `@line/bot-sdk` integration with `MessagingApiClient` factory
+  - `/api/line/rich-menu` — POST (upload image + create) and DELETE (remove)
+  - `/api/line/webhook` — LINE webhook handler with HMAC-SHA256 signature validation
+  - Follow/unfollow event handling
+  - `NavigationShell` component — hides bottom nav in LIFF (Rich Menu handles it), shows in browser
+  - Rich Menu created via LINE OA Manager (3 panels: Home / Lost & Found / My Pets)
+  - 43 new tests (API routes, webhook, signature validation, navigation shell)
+- **Mandatory validation gate** added to CLAUDE.md — `test:coverage` + `test:e2e` + `type-check` before every commit
+
+### Fixed
+
+- `proxy.ts` was redirecting LIFF-authenticated users from `/sos`, `/pets`, `/profile` to `/` — removed server-side redirect since auth is handled client-side by LiffProvider
+- E2E tests updated to match client-side auth model (no more proxy redirect expectations)
+
+### Changed
+
+- Bottom navigation centralized in `NavigationShell` (removed per-page `BottomNav` imports from 7 pages)
+- Old v0.2 PRPs archived to `PRPs/archive/v0.2/`, new v0.3 Lost & Found PRPs (00-13) added
+- `.env.example` — added `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`, Vercel CLI docs
+- **467 tests** across 42 files (was 394/34)
+
 ## [0.3.2] - 2026-04-11
 
 ### Added
