@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/liff-provider";
-import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { uploadFeedbackImage } from "@/lib/db";
@@ -208,9 +207,6 @@ function FeedbackContent() {
           )}
         </Card>
       </main>
-
-      {/* Only show bottom nav for logged-in users */}
-      {user && <BottomNav />}
     </div>
   );
 }

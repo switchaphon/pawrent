@@ -12,5 +12,6 @@ export interface SOSAlert {
   is_active: boolean;
   resolved_at: string | null;
   resolution_status?: "found" | "given_up" | null;
+  geog?: string | null;
   created_at: string;
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/liff-provider";
-import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { getUserLikes } from "@/lib/db";
@@ -202,8 +201,6 @@ function FeedContent() {
           <Plus className="w-6 h-6" />
         </button>
       )}
-
-      <BottomNav />
     </div>
   );
 }

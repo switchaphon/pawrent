@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/liff-provider";
-import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,7 +136,6 @@ function SOSFormContent() {
             Create Another Alert
           </Button>
         </main>
-        <BottomNav />
       </div>
     );
   }
@@ -236,9 +234,6 @@ function SOSFormContent() {
           </Button>
         </form>
       </main>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
     </div>
   );
 }
