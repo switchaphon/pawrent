@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { BottomNav } from "@/components/bottom-nav";
 import { Loader2 } from "lucide-react";
 
 // Dynamically import map component to avoid SSR issues
@@ -21,7 +20,6 @@ export default function HospitalPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
       <HospitalMap />
-      <BottomNav />
     </div>
   );
 }

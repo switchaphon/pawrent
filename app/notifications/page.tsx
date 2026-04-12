@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/liff-provider";
-import { BottomNav } from "@/components/bottom-nav";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getActiveSOSAlerts, getRecentlyFoundPets, calculateDistance } from "@/lib/db";
@@ -219,8 +218,6 @@ function NotificationsContent() {
           </>
         ) : null}
       </main>
-
-      <BottomNav />
     </div>
   );
 }

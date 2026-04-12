@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { LiffProvider } from "@/components/liff-provider";
 import { LocationProvider } from "@/components/location-provider";
+import { NavigationShell } from "@/components/navigation-shell";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
@@ -33,7 +34,9 @@ export default function RootLayout({
       <body className={`${nunito.variable} font-sans antialiased`}>
         <ToastProvider>
           <LiffProvider>
-            <LocationProvider>{children}</LocationProvider>
+            <LocationProvider>
+              <NavigationShell>{children}</NavigationShell>
+            </LocationProvider>
           </LiffProvider>
         </ToastProvider>
       </body>
