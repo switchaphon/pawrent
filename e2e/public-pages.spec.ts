@@ -23,15 +23,18 @@ test.describe("Public pages (no auth required)", () => {
     });
   });
 
-  test("unauthenticated user is redirected from /pets to /", async ({ page }) => {
+  test("unauthenticated user sees login state on /pets", async ({ page }) => {
     await page.goto("/pets");
-    await page.waitForURL("/", { timeout: 5000 });
-    expect(page.url()).toContain("/");
+    // Auth is handled client-side — page renders but shows login prompt
+    await expect(page.getByText(/signing in with line/i)).toBeVisible({
+      timeout: 10000,
+    });
   });
 
-  test("unauthenticated user is redirected from /profile to /", async ({ page }) => {
+  test("unauthenticated user sees login state on /profile", async ({ page }) => {
     await page.goto("/profile");
-    await page.waitForURL("/", { timeout: 5000 });
-    expect(page.url()).toContain("/");
+    await expect(page.getByText(/signing in with line/i)).toBeVisible({
+      timeout: 10000,
+    });
   });
 });

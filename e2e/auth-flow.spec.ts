@@ -14,8 +14,10 @@ test.describe("Authentication flow (unauthenticated via LIFF)", () => {
 
     for (const route of protectedRoutes) {
       await page.goto(route);
-      // Should redirect to / or show loading/login state
-      await page.waitForURL("/", { timeout: 5000 });
+      // Auth is handled client-side by LiffProvider — page renders but shows login state
+      await expect(page.getByText(/signing in with line/i)).toBeVisible({
+        timeout: 10000,
+      });
     }
   });
 });
