@@ -75,13 +75,18 @@ npm run type-check       # tsc --noEmit
 3. Run `npm run test` — confirm baseline is green
 4. Claim your assigned files in `conductor/active-tasks.md`
 5. Follow TDD: RED → GREEN → REFACTOR → GATE
-6. Message the lead when complete — do NOT commit (lead coordinates)
+6. Before reporting complete, run full validation: `npm run test:coverage && npm run type-check`
+7. If your changes affect UI/routing/auth, review and update `e2e/` specs
+8. Message the lead when complete — do NOT commit (lead coordinates)
 
 ## Session End Protocol
 
 1. Format all touched files: `npm run format`
-2. Tests pass: `npm run test`
-3. **Review E2E tests** — if PRP changed UI, auth flow, or page behavior, update `e2e/` specs to match. Run `npm run test:e2e` to verify. E2E tests that reference removed components or changed flows WILL fail CI.
+2. **Full validation gate (ALL THREE must pass before commit):**
+   - `npm run test:coverage` — unit & integration tests + coverage thresholds
+   - `npm run test:e2e` — Playwright E2E tests (Chromium + Firefox)
+   - `npm run type-check` — TypeScript strict mode
+3. **Review E2E tests** — if PRP changed UI, auth flow, routing, or page behavior, update `e2e/` specs to match. E2E tests that reference removed behavior WILL fail CI. This is the #1 cause of CI failures.
 4. Commit or `wip:` prefix if incomplete
 5. Update `CHANGELOG.md` — document any release, change, fix, or improvement
 6. Update PRP task checklist (mark completed tasks)
@@ -104,6 +109,16 @@ Reference PRP in body: `Implements PRP-XX Task XX.Y`
 
 RED → GREEN → REFACTOR → GATE for every task.
 Write the test BEFORE the implementation. Never commit without a passing test.
+
+**Pre-commit validation (mandatory — CI will reject if skipped):**
+
+```bash
+npm run test:coverage   # Unit + integration + per-file coverage thresholds
+npm run test:e2e        # Playwright E2E (Chromium + Firefox)
+npm run type-check      # TypeScript strict mode
+```
+
+If any code change affects routing, auth flow, or page behavior, update `e2e/` specs BEFORE committing. Lesson learned: E2E tests that expect old behavior are the #1 CI failure cause.
 
 ## Coverage Thresholds
 

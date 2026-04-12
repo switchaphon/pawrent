@@ -28,11 +28,10 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Redirect unauthenticated users from protected routes
-  const protectedPaths = ["/pets", "/profile", "/sos", "/notifications"];
-  if (!user && protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // 2. Auth protection is handled client-side by LiffProvider.
+  // LIFF uses a custom JWT (not Supabase session cookies), so
+  // supabase.auth.getUser() returns null for authenticated LIFF users.
+  // Do NOT redirect based on cookie-based auth state here.
 
   return supabaseResponse;
 }

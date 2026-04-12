@@ -23,15 +23,16 @@ test.describe("Public pages (no auth required)", () => {
     });
   });
 
-  test("unauthenticated user is redirected from /pets to /", async ({ page }) => {
+  test("unauthenticated user stays on /pets without crash", async ({ page }) => {
     await page.goto("/pets");
-    await page.waitForURL("/", { timeout: 5000 });
-    expect(page.url()).toContain("/");
+    // Without LIFF auth, page renders loading state — no crash or redirect
+    await expect(page).toHaveURL(/\/pets/);
+    await expect(page.locator("body")).toBeVisible();
   });
 
-  test("unauthenticated user is redirected from /profile to /", async ({ page }) => {
+  test("unauthenticated user stays on /profile without crash", async ({ page }) => {
     await page.goto("/profile");
-    await page.waitForURL("/", { timeout: 5000 });
-    expect(page.url()).toContain("/");
+    await expect(page).toHaveURL(/\/profile/);
+    await expect(page.locator("body")).toBeVisible();
   });
 });
