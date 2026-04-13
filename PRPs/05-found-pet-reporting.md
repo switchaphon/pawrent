@@ -8,7 +8,7 @@
 
 ## Problem
 
-When a stranger finds a wandering pet, they need a low-friction way to report it — ideally just a photo and a location pin. Unlike lost pet reports (owner knows everything), found pet reports require the reporter to describe an unfamiliar animal. The current SOS system has no "found" flow, no anonymous reporting, and no way for finders and owners to communicate safely without exposing personal information.
+When a stranger finds a wandering pet, they need a low-friction way to report it — ideally just a photo and a location pin. Unlike lost pet reports (owner knows everything), found pet reports require the reporter to describe an unfamiliar animal. The current pet report system has no "found" flow, no anonymous reporting, and no way for finders and owners to communicate safely without exposing personal information.
 
 ---
 
@@ -16,14 +16,16 @@ When a stranger finds a wandering pet, they need a low-friction way to report it
 
 **In scope:**
 
-- "Report Found Pet" quick-post form (photo + location + description)
-- New `found_reports` table (separate from `sos_alerts`)
+- "Report Found Pet" quick-post form (photo + location + description) at `/post/found`
+- New `found_reports` table (separate from `pet_reports`)
 - Anonymous reporting: LINE userId stored but not exposed, no Pawrent account required
 - AI-assisted description: auto-suggest species/breed/color from photo (Claude API)
 - Stray/injured rescue mode (no owner claim expected)
-- Found pet listing page
+- Populate "Found" tab in community hub (`/post` page, PRP-04 built the tab structure)
+- Found reports show 🟢 FOUND dominant chip in listing cards
 - Anonymized contact bridge (chat between finder and potential owner)
 - Sighting reports on existing lost alerts ("I saw this pet" button)
+- Share card generation for found reports (reuse PRP-04.1 infrastructure)
 
 **Out of scope:**
 
@@ -31,6 +33,7 @@ When a stranger finds a wandering pet, they need a low-friction way to report it
 - Cross-matching logic (PRP-07)
 - AI image similarity (PRP-09)
 - GrabPet deep-link for injured (Phase III)
+- Community hub tab structure (PRP-04 builds it; PRP-05 populates the "Found" tab)
 
 ---
 
@@ -39,7 +42,7 @@ When a stranger finds a wandering pet, they need a low-friction way to report it
 ### 5.1 Database — Found Reports Table
 
 - [ ] Create `found_reports` table
-- [ ] Create `sos_sightings` table (for sighting reports on lost alerts)
+- [ ] Create `pet_sightings` table (for sighting reports on lost alerts)
 - [ ] Enable RLS with anonymous insert policy
 
 ```sql
@@ -91,9 +94,9 @@ CREATE POLICY "Reporter can update own report"
   ON found_reports FOR UPDATE USING (reporter_id = auth.uid());
 
 -- Sighting reports (quick "I saw this pet" on lost alerts)
-CREATE TABLE IF NOT EXISTS sos_sightings (
+CREATE TABLE IF NOT EXISTS pet_sightings (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  alert_id    uuid NOT NULL REFERENCES sos_alerts(id) ON DELETE CASCADE,
+  alert_id    uuid NOT NULL REFERENCES pet_reports(id) ON DELETE CASCADE,
   reporter_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   lat         double precision NOT NULL,
   lng         double precision NOT NULL,
@@ -103,16 +106,16 @@ CREATE TABLE IF NOT EXISTS sos_sightings (
   created_at  timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_sos_sightings_alert ON sos_sightings(alert_id, created_at DESC);
-CREATE INDEX idx_sos_sightings_geog ON sos_sightings USING GIST (geog);
+CREATE INDEX idx_pet_sightings_alert ON pet_sightings(alert_id, created_at DESC);
+CREATE INDEX idx_pet_sightings_geog ON pet_sightings USING GIST (geog);
 
 CREATE TRIGGER trg_sightings_sync_geog
-  BEFORE INSERT OR UPDATE OF lat, lng ON sos_sightings
+  BEFORE INSERT OR UPDATE OF lat, lng ON pet_sightings
   FOR EACH ROW EXECUTE FUNCTION sync_geog_from_latlng();
 
-ALTER TABLE sos_sightings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view sightings" ON sos_sightings FOR SELECT USING (true);
-CREATE POLICY "Authenticated can report sighting" ON sos_sightings FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+ALTER TABLE pet_sightings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view sightings" ON pet_sightings FOR SELECT USING (true);
+CREATE POLICY "Authenticated can report sighting" ON pet_sightings FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 ```
 
 ### 5.2 Contact Bridge — Conversations & Messages
@@ -124,7 +127,7 @@ CREATE POLICY "Authenticated can report sighting" ON sos_sightings FOR INSERT WI
 ```sql
 CREATE TABLE IF NOT EXISTS conversations (
   id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  alert_id        uuid REFERENCES sos_alerts(id) ON DELETE CASCADE,
+  alert_id        uuid REFERENCES pet_reports(id) ON DELETE CASCADE,
   found_report_id uuid REFERENCES found_reports(id) ON DELETE CASCADE,
   owner_id        uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   finder_id       uuid REFERENCES profiles(id) ON DELETE SET NULL,
@@ -198,13 +201,14 @@ export const messageSchema = z.object({
 ### 5.4 API Routes
 
 - [ ] Create `app/api/found-reports/route.ts` — POST (create), GET (list)
+- [ ] Integrate found reports into `app/api/alerts/route.ts` GET — so community hub "Found" tab can query both
 - [ ] Create `app/api/sightings/route.ts` — POST (report sighting on lost alert)
 - [ ] Create `app/api/conversations/route.ts` — POST (initiate), GET (list)
 - [ ] Create `app/api/conversations/[id]/messages/route.ts` — POST, GET
 
 ### 5.5 Found Pet Report Form
 
-- [ ] Create `app/sos/found/page.tsx` — quick-post interface
+- [ ] Create `app/post/found/page.tsx` — quick-post interface (route aligned with PRP-04)
 - [ ] Photo upload (1-5 photos) with camera option
 - [ ] Location auto-detect (GPS) or manual pin drop
 - [ ] Species/breed/color quick-select (with AI auto-suggest from photo)
@@ -217,7 +221,16 @@ export const messageSchema = z.object({
   - Prevents pet flipping and reward scams
 - [ ] Submit: "AI will help search and notify the owner automatically"
 
-### 5.6 Sighting Report Flow
+### 5.6 Community Hub — Found Tab Integration
+
+- [ ] Populate "Found 🟢" tab in community hub (`app/report/page.tsx`)
+- [ ] Found report cards show 🟢 FOUND dominant chip
+- [ ] Card content: found pet photo, species/breed guess, location, time found, custody status badge
+- [ ] Cards link to found report detail page: `app/report/found/[id]/page.tsx`
+- [ ] "Report Found Pet" floating CTA on Found tab (links to `/post/found`)
+- [ ] Found reports queryable in community hub API via `alert_type=found` filter
+
+### 5.7 Sighting Report Flow
 
 - [ ] Add "I Saw This Pet" button on lost alert detail (PRP-04)
 - [ ] One-tap: photo (optional) + auto-GPS + short note
@@ -271,7 +284,7 @@ export const messageSchema = z.object({
 
 ## Rollback Plan
 
-1. Drop `found_reports`, `sos_sightings`, `conversations`, `messages` tables
+1. Drop `found_reports`, `pet_sightings`, `conversations`, `messages` tables
 2. Remove API routes and pages
 3. Lost pet flow (PRP-04) continues to work independently
 
@@ -279,11 +292,27 @@ export const messageSchema = z.object({
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] Found report form labels/placeholders in Thai
+- [ ] Sighting report UI in Thai ("ฉันเห็นน้อง!")
+- [ ] Contact bridge chat UI in Thai
+- [ ] Scam prevention modal in Thai
+- [ ] Custody status labels in Thai ("อยู่กับผู้พบ", "ส่งสถานสงเคราะห์", "ยังเดินอยู่")
+- [ ] 🟢 FOUND chip label in Thai ("พบ")
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
-npm run lint
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for found report API, sighting API, conversation API
+- [ ] E2E specs: found report flow, sighting flow, contact bridge
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] User can create found pet report with photo and GPS location
 - [ ] Found report appears in listing with fuzzy location
@@ -317,3 +346,5 @@ npm run lint
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — Found pet reporting, sightings, contact bridge |
 | v1.1 | 2026-04-09 | Added: custody_status, secret_verification_detail, shelter fields, ownership verification flow, scam prevention education — per gap analysis |
+| v2.0 | 2026-04-13 | Route alignment: `/sos/found` → `/post/found`. Added Found tab integration in community hub (PRP-04). Added 🟢 FOUND dominant chip. Added share card support via PRP-04.1 |
+| v2.1 | 2026-04-13 | Table naming: `sos_alerts` → `pet_reports`, `sos_sightings` → `pet_sightings` per PRP-03.1 |

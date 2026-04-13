@@ -4,7 +4,7 @@ import type {
   Vaccination,
   ParasiteLog,
   HealthEvent,
-  SOSAlert,
+  PetReport,
   Profile,
   Feedback,
   PetPhoto,
@@ -118,72 +118,72 @@ export async function uploadPetPhoto(file: File, petId: string) {
   return { url: data.publicUrl, error: null };
 }
 
-// SOS Operations
-export async function getActiveSOSAlerts() {
+// Pet Report Operations
+export async function getActivePetReports() {
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .select("*, pets(*)")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
-  return { data: data as (SOSAlert & { pets: Pet })[] | null, error };
+  return { data: data as (PetReport & { pets: Pet })[] | null, error };
 }
 
 // Get recently found pets (resolved within last 7 days)
-export async function getRecentlyFoundPets() {
+export async function getRecentlyFoundReports() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .select("*, pets(*)")
     .eq("is_active", false)
     .eq("resolution_status", "found")
     .gte("resolved_at", sevenDaysAgo.toISOString())
     .order("resolved_at", { ascending: false });
-  return { data: data as (SOSAlert & { pets: Pet })[] | null, error };
+  return { data: data as (PetReport & { pets: Pet })[] | null, error };
 }
 
-export async function createSOSAlert(
-  alert: Omit<SOSAlert, "id" | "created_at" | "is_active" | "resolved_at">
+export async function createPetReport(
+  alert: Omit<PetReport, "id" | "created_at" | "is_active" | "resolved_at">
 ) {
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .insert({ ...alert, is_active: true })
     .select()
     .single();
-  return { data: data as SOSAlert | null, error };
+  return { data: data as PetReport | null, error };
 }
 
-export async function uploadSOSVideo(file: File, alertId: string) {
+export async function uploadReportVideo(file: File, alertId: string) {
   const fileExt = file.name.split(".").pop();
   const fileName = `${alertId}-${Date.now()}.${fileExt}`;
   const filePath = `${fileName}`;
 
-  const { error: uploadError } = await supabase.storage.from("sos-videos").upload(filePath, file);
+  const { error: uploadError } = await supabase.storage.from("report-media").upload(filePath, file);
 
   if (uploadError) return { url: null, error: uploadError };
 
-  const { data } = supabase.storage.from("sos-videos").getPublicUrl(filePath);
+  const { data } = supabase.storage.from("report-media").getPublicUrl(filePath);
   return { url: data.publicUrl, error: null };
 }
 
-// Get active SOS alert for a specific pet
-export async function getActiveSOSAlertForPet(petId: string) {
+// Get active pet report for a specific pet
+export async function getActivePetReportForPet(petId: string) {
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .select("*")
     .eq("pet_id", petId)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return { data: data as SOSAlert | null, error };
+  return { data: data as PetReport | null, error };
 }
 
-// Resolve an SOS alert (pet found or give up)
-export async function resolveSOSAlert(alertId: string, resolution: "found" | "given_up") {
+// Resolve a pet report (pet found or give up)
+export async function resolvePetReport(alertId: string, resolution: "found" | "given_up") {
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .update({
       is_active: false,
       resolved_at: new Date().toISOString(),
@@ -194,10 +194,10 @@ export async function resolveSOSAlert(alertId: string, resolution: "found" | "gi
     .maybeSingle();
 
   if (error) {
-    console.error("Error resolving SOS alert:", error);
+    console.error("Error resolving pet report:", error);
   }
 
-  return { data: data as SOSAlert | null, error };
+  return { data: data as PetReport | null, error };
 }
 
 // Haversine Distance Calculation

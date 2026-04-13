@@ -1,5 +1,5 @@
 import { createApiClient } from "@/lib/supabase-api";
-import { sosAlertSchema, resolveAlertSchema } from "@/lib/validations";
+import { petReportSchema, resolveReportSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -20,13 +20,13 @@ export async function POST(request: NextRequest) {
   if (rateLimited) return rateLimited;
 
   const body = await request.json();
-  const result = sosAlertSchema.safeParse(body);
+  const result = petReportSchema.safeParse(body);
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .insert({
       ...result.data,
       owner_id: user.id,
@@ -54,13 +54,13 @@ export async function PUT(request: NextRequest) {
   if (rateLimited) return rateLimited;
 
   const body = await request.json();
-  const result = resolveAlertSchema.safeParse(body);
+  const result = resolveReportSchema.safeParse(body);
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
   const { data, error } = await supabase
-    .from("sos_alerts")
+    .from("pet_reports")
     .update({
       is_active: false,
       resolved_at: new Date().toISOString(),
@@ -72,6 +72,6 @@ export async function PUT(request: NextRequest) {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Alert not found" }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "Report not found" }, { status: 404 });
   return NextResponse.json(data);
 }

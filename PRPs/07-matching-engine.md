@@ -44,7 +44,7 @@ The matching must work without AI/ML infrastructure — using attribute-based sc
 ```sql
 CREATE TABLE IF NOT EXISTS match_candidates (
   id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  alert_id        uuid NOT NULL REFERENCES sos_alerts(id) ON DELETE CASCADE,
+  alert_id        uuid NOT NULL REFERENCES pet_reports(id) ON DELETE CASCADE,
   found_report_id uuid NOT NULL REFERENCES found_reports(id) ON DELETE CASCADE,
   score           numeric(5,2) NOT NULL CHECK (score BETWEEN 0 AND 100),
   score_breakdown jsonb NOT NULL DEFAULT '{}',
@@ -97,7 +97,7 @@ DECLARE
   v_config RECORD;
 BEGIN
   -- Get alert data
-  SELECT * INTO v_alert FROM sos_alerts WHERE id = p_alert_id AND is_active = true;
+  SELECT * INTO v_alert FROM pet_reports WHERE id = p_alert_id AND is_active = true;
   IF NOT FOUND THEN RETURN; END IF;
 
   -- Load config
@@ -164,7 +164,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ### 7.3 Match Triggers
 
 - [ ] On `found_reports` INSERT: run `cross_match_found()`, insert candidates, trigger push
-- [ ] On `sos_alerts` INSERT (type='lost'): run `cross_match_alert()`, insert candidates
+- [ ] On `pet_reports` INSERT (type='lost'): run `cross_match_alert()`, insert candidates
 
 ### 7.4 API Routes
 
@@ -224,10 +224,24 @@ export interface MatchCandidate {
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] Match dashboard UI in Thai: "ผลการจับคู่", "คะแนนความเชื่อมั่น"
+- [ ] Match notification text in Thai
+- [ ] Confirm/reject buttons in Thai
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for matching RPC, scoring logic, match API
+- [ ] E2E spec: match dashboard flow
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] Lost alert with matching found report produces match candidate with score > threshold
 - [ ] Microchip match produces instant 100% score
@@ -255,3 +269,4 @@ npm run type-check
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — Attribute-based matching engine with weighted scoring |
+| v1.1 | 2026-04-13 | Table naming: `sos_alerts` → `pet_reports` per PRP-03.1 |

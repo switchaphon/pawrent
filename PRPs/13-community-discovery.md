@@ -177,8 +177,8 @@ BEGIN
   RETURN QUERY
   SELECT
     (SELECT COUNT(*) FROM profiles)::bigint,
-    (SELECT COUNT(*) FROM sos_alerts WHERE is_active = true)::bigint,
-    (SELECT COUNT(*) FROM sos_alerts WHERE status = 'resolved_found')::bigint,
+    (SELECT COUNT(*) FROM pet_reports WHERE is_active = true)::bigint,
+    (SELECT COUNT(*) FROM pet_reports WHERE status = 'resolved_found')::bigint,
     (SELECT COUNT(*) FROM found_reports)::bigint,
     (SELECT COUNT(*) FROM pets)::bigint;
 END;
@@ -290,11 +290,23 @@ export interface PlatformStats {
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] Community discovery UI in Thai (map labels, breed analyzer, stats dashboard)
+- [ ] Pet-friendly venue names/descriptions in Thai
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
-npm run lint
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for discovery API, breed analyzer, stats with coverage thresholds
+- [ ] E2E spec: discovery page, breed analyzer flow
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] User can submit a new pet-friendly place with location pin
 - [ ] Places appear on map with green markers
@@ -323,3 +335,4 @@ npm run lint
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — Pet-friendly map, breed analyzer, live stats |
+| v1.1 | 2026-04-13 | Table naming: `sos_alerts` → `pet_reports` per PRP-03.1 |

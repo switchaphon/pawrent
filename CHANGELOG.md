@@ -3,6 +3,20 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.1] - 2026-04-13
+
+### Changed
+
+- **Rename SOS infrastructure to pet_reports** (PRP-03.1)
+  - DB table: `sos_alerts` → `pet_reports`
+  - RPC functions: `nearby_alerts()` → `nearby_reports()`, `alerts_within_bbox()` → `reports_within_bbox()`
+  - TypeScript: `SOSAlert` → `PetReport`, `NearbyAlertResult` → `NearbyReportResult`
+  - Routes: `/sos` → `/post`, `/api/sos` → `/api/post`
+  - Component: `SOSButton` → `ReportButton`
+  - Storage bucket: `sos-videos` → `report-media`
+  - Backward-compat redirect: `/sos` → `/post`
+  - All 467 tests pass, no coverage regression
+
 ## [0.3.2] - 2026-04-11
 
 ### Added

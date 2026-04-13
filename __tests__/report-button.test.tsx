@@ -1,5 +1,5 @@
 /**
- * Component tests for SOSButton.
+ * Component tests for ReportButton.
  *
  * This is a simple stateless navigation link — tests verify it renders
  * correctly and links to the right destination.
@@ -17,23 +17,23 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-import { SOSButton } from "@/components/sos-button";
+import { ReportButton } from "@/components/report-button";
 
-describe("SOSButton", () => {
-  it("renders the SOS button with correct text", () => {
-    render(<SOSButton />);
-    expect(screen.getByText("SOS & Lost Mode")).toBeInTheDocument();
+describe("ReportButton", () => {
+  it("renders the report button with correct text", () => {
+    render(<ReportButton />);
+    expect(screen.getByText("Report Lost Pet")).toBeInTheDocument();
   });
 
-  it("links to /sos", () => {
-    render(<SOSButton />);
-    const link = screen.getByText("SOS & Lost Mode").closest("a");
-    expect(link).toHaveAttribute("href", "/sos");
+  it("links to /post", () => {
+    render(<ReportButton />);
+    const link = screen.getByText("Report Lost Pet").closest("a");
+    expect(link).toHaveAttribute("href", "/post");
   });
 
   it("has the destructive background styling", () => {
-    render(<SOSButton />);
-    const link = screen.getByText("SOS & Lost Mode").closest("a");
+    render(<ReportButton />);
+    const link = screen.getByText("Report Lost Pet").closest("a");
     expect(link?.className).toContain("bg-destructive");
   });
 });

@@ -6,7 +6,7 @@
 
 ## Problem
 
-The current SOS system is passive — users only see alerts if they open the app and check the notifications tab. In a lost pet emergency, every minute counts. The platform must actively push alerts to nearby users via LINE, using visually striking Flex Messages that create immediate urgency and action. Without push notifications, Pawrent is just another bulletin board.
+The current pet report system is passive — users only see alerts if they open the app and check the notifications tab. In a lost pet emergency, every minute counts. The platform must actively push alerts to nearby users via LINE, using visually striking Flex Messages that create immediate urgency and action. Without push notifications, Pawrent is just another bulletin board.
 
 ---
 
@@ -16,7 +16,8 @@ The current SOS system is passive — users only see alerts if they open the app
 
 - LINE Messaging API integration for push notifications
 - Geospatial push: notify users within configurable radius (default 5km)
-- Flex Message templates: lost pet card, found pet card, sighting update, match alert
+- Flex Message templates: lost pet card (🔴), found pet card (🟢), sighting update, match alert
+- Dominant color chip on flex messages: red = LOST, green = FOUND (consistent with community hub cards)
 - User notification preferences (opt-in, radius, species filter, quiet hours)
 - Broadcast throttling to avoid LINE API quota exhaustion
 - Async fan-out: database webhook triggers push, never sync in API handler
@@ -79,14 +80,17 @@ function chunk<T>(arr: T[], size: number): T[][] {
 export function lostPetFlexMessage(alert: {
   petName: string;
   breed: string;
+  sex: string | null;
   photoUrl: string;
   distanceKm: number;
+  lostDate: string;        // "13 เม.ย. 2569"
+  locationDescription: string | null;  // "หมู่บ้านอริสรา 2 บางบัวทอง"
   reward: number;
   alertUrl: string;
 }): messagingApi.FlexMessage {
   return {
     type: "flex",
-    altText: `🚨 Missing pet near you: ${alert.petName}`,
+    altText: `🚨 สัตว์เลี้ยงหายใกล้คุณ: ${alert.petName}`,
     contents: {
       type: "bubble",
       hero: {
@@ -100,11 +104,13 @@ export function lostPetFlexMessage(alert: {
         type: "box",
         layout: "vertical",
         contents: [
-          { type: "text", text: "🚨 LOST PET", weight: "bold", size: "xl", color: "#FF0000" },
+          { type: "text", text: "🚨 สัตว์เลี้ยงหาย", weight: "bold", size: "xl", color: "#FF0000" },
           { type: "text", text: alert.petName, weight: "bold", size: "lg" },
-          { type: "text", text: `${alert.breed} • ${alert.distanceKm.toFixed(1)}km away`, size: "sm", color: "#666666" },
+          { type: "text", text: [alert.breed, alert.sex].filter(Boolean).join(" • "), size: "sm", color: "#666666" },
+          { type: "text", text: `📍 ${alert.locationDescription || `${alert.distanceKm.toFixed(1)}km จากคุณ`}`, size: "sm", color: "#666666" },
+          { type: "text", text: `📅 หายวันที่ ${alert.lostDate}`, size: "sm", color: "#999999" },
           ...(alert.reward > 0 ? [
-            { type: "text", text: `💰 Reward: ฿${alert.reward.toLocaleString()}`, size: "md", color: "#FF6600", weight: "bold" as const }
+            { type: "text", text: `💰 รางวัล ฿${alert.reward.toLocaleString()}`, size: "md", color: "#FF6600", weight: "bold" as const }
           ] : []),
         ],
       },
@@ -112,7 +118,7 @@ export function lostPetFlexMessage(alert: {
         type: "box",
         layout: "vertical",
         contents: [
-          { type: "button", style: "primary", color: "#FF0000", action: { type: "uri", label: "I Saw This Pet!", uri: alert.alertUrl } },
+          { type: "button", style: "primary", color: "#FF0000", action: { type: "uri", label: "ฉันเห็นน้อง!", uri: alert.alertUrl } }, // alertUrl = https://liff.line.me/{liffId}/post/{id}
         ],
       },
     },
@@ -132,7 +138,7 @@ export function lostPetFlexMessage(alert: {
 -- Push delivery tracking
 CREATE TABLE IF NOT EXISTS push_logs (
   id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  alert_id    uuid REFERENCES sos_alerts(id) ON DELETE CASCADE,
+  alert_id    uuid REFERENCES pet_reports(id) ON DELETE CASCADE,
   recipient_count int NOT NULL,
   sent_at     timestamptz DEFAULT now()
 );
@@ -162,7 +168,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ### 6.4 Database Webhook (Async Fan-out)
 
-- [ ] Configure Supabase Database Webhook on `sos_alerts` INSERT
+- [ ] Configure Supabase Database Webhook on `pet_reports` INSERT
 - [ ] Webhook calls `/api/alerts/push` endpoint
 - [ ] Push logic runs async — API response to alert creator returns immediately
 - [ ] Retry logic: webhook retries 3x on failure
@@ -209,10 +215,24 @@ ALTER TABLE profiles
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] Flex message text in Thai: "🚨 สัตว์เลี้ยงหายใกล้คุณ", "ฉันเห็นน้อง!"
+- [ ] Notification preferences UI labels in Thai
+- [ ] Push content in Thai (pet info, distance, reward)
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for push API, flex message templates, multicast logic
+- [ ] E2E spec: notification preferences page
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] Creating a lost alert triggers push to users within 5km
 - [ ] Flex Message renders correctly in LINE app (iOS + Android)
@@ -231,7 +251,7 @@ npm run type-check
 - LINE free tier: 500 push messages/month. Need paid tier for real usage.
 - Database webhook reliability (Supabase webhooks can have latency)
 - Flex Message JSON is fragile — one typo and LINE rejects the whole message
-- LIFF URL in Flex Message CTA must use `https://liff.line.me/{liffId}/...` format
+- LIFF URL in Flex Message CTA must use `https://liff.line.me/{liffId}/post/{id}` format (route changed from `/sos/` to `/post/` per PRP-04 v2.0)
 
 ---
 
@@ -240,3 +260,5 @@ npm run type-check
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — LINE push notifications with geospatial targeting |
+| v1.1 | 2026-04-13 | Route alignment: flex message CTA URLs updated `/sos/` → `/post/`. Added dominant color chip requirement (red=LOST, green=FOUND) consistent with PRP-04 community hub |
+| v1.2 | 2026-04-13 | Gap closure: flex message template now includes `lost_date`, `sex`, `locationDescription`. Thai language strings. Matches PRP-04 v2.2 schema additions. |

@@ -36,10 +36,10 @@ Users need a visual way to discover lost and found pets in their area. The curre
 
 ### 8.1 Bbox Query RPC
 
-- [ ] Create `alerts_within_bbox()` PostGIS RPC function
+- [ ] Create `reports_within_bbox()` PostGIS RPC function
 
 ```sql
-CREATE OR REPLACE FUNCTION alerts_within_bbox(
+CREATE OR REPLACE FUNCTION reports_within_bbox(
   p_min_lat double precision,
   p_min_lng double precision,
   p_max_lat double precision,
@@ -69,7 +69,7 @@ BEGIN
       ROUND(ST_X(a.geog::geometry) / 0.00225) * 0.00225,
       a.pet_name, a.pet_species, a.pet_breed, a.pet_photo_url,
       a.reward_amount, a.created_at
-    FROM sos_alerts a
+    FROM pet_reports a
     WHERE a.is_active = true
       AND a.alert_type = 'lost'
       AND (p_species = 'all' OR a.pet_species = p_species)
@@ -156,10 +156,24 @@ CREATE INDEX idx_watch_zones_geog ON user_watch_zones USING GIST (center_geog);
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] Map UI controls in Thai: radius selector, filter labels, info card text
+- [ ] Info card overlay text in Thai (pet name, breed, distance, reward)
+- [ ] "Watch this area" feature text in Thai
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for bbox API, map components
+- [ ] E2E spec: map page load, marker interaction, filter toggle
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] Map loads centered on user's GPS location
 - [ ] Lost alerts show as red-bordered photo markers
@@ -188,3 +202,4 @@ npm run type-check
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — Interactive discovery map with pet photo markers |
+| v1.1 | 2026-04-13 | Table naming: `sos_alerts` → `pet_reports` per PRP-03.1 |

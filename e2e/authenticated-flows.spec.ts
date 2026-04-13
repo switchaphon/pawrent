@@ -54,15 +54,15 @@ test.describe("Authenticated user flows", () => {
     await expect(page).toHaveURL(/\/hospital/);
   });
 
-  test("SOS button is visible on feed page", async ({ page }) => {
+  test("Report button is visible on feed page", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("SOS & Lost Mode")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Report Lost Pet")).toBeVisible({ timeout: 10000 });
   });
 
-  test("SOS button links to /sos page", async ({ page }) => {
+  test("Report button links to /post page", async ({ page }) => {
     await page.goto("/");
-    await page.getByText("SOS & Lost Mode").click();
-    await expect(page).toHaveURL(/\/sos/);
+    await page.getByText("Report Lost Pet").click();
+    await expect(page).toHaveURL(/\/post/);
   });
 });
 

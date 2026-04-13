@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type {
-  NearbyAlertResult,
+  NearbyReportResult,
   SnapToGridResult,
-  NearbyAlertsParams,
-  AlertsWithinBboxParams,
+  NearbyReportsParams,
+  ReportsWithinBboxParams,
   SnapToGridParams,
 } from "@/lib/types/geospatial";
-import type { SOSAlert } from "@/lib/types/sos";
+import type { PetReport } from "@/lib/types/pet-report";
 
 // Mock Supabase client matching existing codebase pattern
 const mockRpc = vi.fn();
@@ -22,7 +22,9 @@ const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 const PET_UUID = "11223344-5566-7788-99aa-bbccddeeff00";
 const OWNER_UUID = "ffeeddcc-bbaa-9988-7766-554433221100";
 
-function makeAlert(overrides: Partial<SOSAlert & { distance_m: number }> = {}): NearbyAlertResult {
+function makeReport(
+  overrides: Partial<PetReport & { distance_m: number }> = {}
+): NearbyReportResult {
   return {
     id: ALERT_UUID,
     pet_id: PET_UUID,
@@ -44,24 +46,24 @@ describe("Geospatial RPC functions", () => {
     vi.clearAllMocks();
   });
 
-  describe("nearby_alerts", () => {
-    it("should call rpc with correct params and return alerts with distance", async () => {
-      const alerts = [
-        makeAlert({ distance_m: 500 }),
-        makeAlert({ id: "other-id", distance_m: 1200 }),
+  describe("nearby_reports", () => {
+    it("should call rpc with correct params and return reports with distance", async () => {
+      const reports = [
+        makeReport({ distance_m: 500 }),
+        makeReport({ id: "other-id", distance_m: 1200 }),
       ];
-      mockRpc.mockResolvedValueOnce({ data: alerts, error: null });
+      mockRpc.mockResolvedValueOnce({ data: reports, error: null });
 
-      const params: NearbyAlertsParams = {
+      const params: NearbyReportsParams = {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
         p_limit: 50,
       };
 
-      const { data, error } = await mockRpc("nearby_alerts", params);
+      const { data, error } = await mockRpc("nearby_reports", params);
 
-      expect(mockRpc).toHaveBeenCalledWith("nearby_alerts", params);
+      expect(mockRpc).toHaveBeenCalledWith("nearby_reports", params);
       expect(error).toBeNull();
       expect(data).toHaveLength(2);
       expect(data![0].distance_m).toBe(500);
@@ -71,25 +73,25 @@ describe("Geospatial RPC functions", () => {
     it("should use default limit when not specified", async () => {
       mockRpc.mockResolvedValueOnce({ data: [], error: null });
 
-      const params: NearbyAlertsParams = {
+      const params: NearbyReportsParams = {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
       };
 
-      await mockRpc("nearby_alerts", params);
+      await mockRpc("nearby_reports", params);
 
-      expect(mockRpc).toHaveBeenCalledWith("nearby_alerts", {
+      expect(mockRpc).toHaveBeenCalledWith("nearby_reports", {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
       });
     });
 
-    it("should return empty array when no alerts in radius", async () => {
+    it("should return empty array when no reports in radius", async () => {
       mockRpc.mockResolvedValueOnce({ data: [], error: null });
 
-      const { data, error } = await mockRpc("nearby_alerts", {
+      const { data, error } = await mockRpc("nearby_reports", {
         p_lat: 0,
         p_lng: 0,
         p_radius_m: 100,
@@ -102,10 +104,10 @@ describe("Geospatial RPC functions", () => {
     it("should return error on database failure", async () => {
       mockRpc.mockResolvedValueOnce({
         data: null,
-        error: { message: "function nearby_alerts does not exist", code: "42883" },
+        error: { message: "function nearby_reports does not exist", code: "42883" },
       });
 
-      const { data, error } = await mockRpc("nearby_alerts", {
+      const { data, error } = await mockRpc("nearby_reports", {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
@@ -113,16 +115,16 @@ describe("Geospatial RPC functions", () => {
 
       expect(data).toBeNull();
       expect(error).toBeTruthy();
-      expect(error!.message).toContain("nearby_alerts");
+      expect(error!.message).toContain("nearby_reports");
     });
   });
 
-  describe("alerts_within_bbox", () => {
-    it("should call rpc with bounding box params and return alerts", async () => {
-      const alerts = [makeAlert()];
-      mockRpc.mockResolvedValueOnce({ data: alerts, error: null });
+  describe("reports_within_bbox", () => {
+    it("should call rpc with bounding box params and return reports", async () => {
+      const reports = [makeReport()];
+      mockRpc.mockResolvedValueOnce({ data: reports, error: null });
 
-      const params: AlertsWithinBboxParams = {
+      const params: ReportsWithinBboxParams = {
         p_min_lat: 13.0,
         p_min_lng: 100.0,
         p_max_lat: 14.0,
@@ -130,25 +132,25 @@ describe("Geospatial RPC functions", () => {
         p_limit: 100,
       };
 
-      const { data, error } = await mockRpc("alerts_within_bbox", params);
+      const { data, error } = await mockRpc("reports_within_bbox", params);
 
-      expect(mockRpc).toHaveBeenCalledWith("alerts_within_bbox", params);
+      expect(mockRpc).toHaveBeenCalledWith("reports_within_bbox", params);
       expect(error).toBeNull();
       expect(data).toHaveLength(1);
       expect(data![0].id).toBe(ALERT_UUID);
     });
 
-    it("should return empty for bbox with no alerts", async () => {
+    it("should return empty for bbox with no reports", async () => {
       mockRpc.mockResolvedValueOnce({ data: [], error: null });
 
-      const params: AlertsWithinBboxParams = {
+      const params: ReportsWithinBboxParams = {
         p_min_lat: -90,
         p_min_lng: -180,
         p_max_lat: -89,
         p_max_lng: -179,
       };
 
-      const { data, error } = await mockRpc("alerts_within_bbox", params);
+      const { data, error } = await mockRpc("reports_within_bbox", params);
 
       expect(error).toBeNull();
       expect(data).toEqual([]);
@@ -160,7 +162,7 @@ describe("Geospatial RPC functions", () => {
         error: { message: "permission denied", code: "42501" },
       });
 
-      const { data, error } = await mockRpc("alerts_within_bbox", {
+      const { data, error } = await mockRpc("reports_within_bbox", {
         p_min_lat: 13.0,
         p_min_lng: 100.0,
         p_max_lat: 14.0,
@@ -209,8 +211,8 @@ describe("Geospatial RPC functions", () => {
   });
 
   describe("RPC param type safety", () => {
-    it("NearbyAlertsParams requires lat, lng, radius_m", () => {
-      const params: NearbyAlertsParams = {
+    it("NearbyReportsParams requires lat, lng, radius_m", () => {
+      const params: NearbyReportsParams = {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
@@ -220,8 +222,8 @@ describe("Geospatial RPC functions", () => {
       expect(params).toHaveProperty("p_radius_m");
     });
 
-    it("AlertsWithinBboxParams requires all four bbox bounds", () => {
-      const params: AlertsWithinBboxParams = {
+    it("ReportsWithinBboxParams requires all four bbox bounds", () => {
+      const params: ReportsWithinBboxParams = {
         p_min_lat: 13.0,
         p_min_lng: 100.0,
         p_max_lat: 14.0,

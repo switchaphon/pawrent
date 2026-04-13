@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   petSchema,
-  sosAlertSchema,
+  petReportSchema,
   postSchema,
   feedbackSchema,
-  resolveAlertSchema,
+  resolveReportSchema,
   vaccinationSchema,
   parasiteLogSchema,
   imageFileSchema,
@@ -135,10 +135,10 @@ describe("petSchema", () => {
 });
 
 // ---------------------------------------------------------------------------
-// sosAlertSchema
+// petReportSchema
 // ---------------------------------------------------------------------------
 
-describe("sosAlertSchema", () => {
+describe("petReportSchema", () => {
   const validAlert = {
     pet_id: "123e4567-e89b-12d3-a456-426614174000",
     lat: 13.756,
@@ -146,57 +146,57 @@ describe("sosAlertSchema", () => {
     description: "My dog ran away near the park",
   };
 
-  it("should accept a valid SOS alert", () => {
-    expect(sosAlertSchema.safeParse(validAlert).success).toBe(true);
+  it("should accept a valid pet report", () => {
+    expect(petReportSchema.safeParse(validAlert).success).toBe(true);
   });
 
   it("should reject a non-UUID pet_id", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, pet_id: "not-a-uuid" });
+    const result = petReportSchema.safeParse({ ...validAlert, pet_id: "not-a-uuid" });
     expect(result.success).toBe(false);
   });
 
   it("should reject lat below -90", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lat: -91 });
+    const result = petReportSchema.safeParse({ ...validAlert, lat: -91 });
     expect(result.success).toBe(false);
   });
 
   it("should reject lat above 90", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lat: 91 });
+    const result = petReportSchema.safeParse({ ...validAlert, lat: 91 });
     expect(result.success).toBe(false);
   });
 
   it("should accept lat at boundary -90", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lat: -90 });
+    const result = petReportSchema.safeParse({ ...validAlert, lat: -90 });
     expect(result.success).toBe(true);
   });
 
   it("should accept lat at boundary 90", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lat: 90 });
+    const result = petReportSchema.safeParse({ ...validAlert, lat: 90 });
     expect(result.success).toBe(true);
   });
 
   it("should reject lng below -180", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lng: -181 });
+    const result = petReportSchema.safeParse({ ...validAlert, lng: -181 });
     expect(result.success).toBe(false);
   });
 
   it("should reject lng above 180", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, lng: 181 });
+    const result = petReportSchema.safeParse({ ...validAlert, lng: 181 });
     expect(result.success).toBe(false);
   });
 
   it("should accept null description", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, description: null });
+    const result = petReportSchema.safeParse({ ...validAlert, description: null });
     expect(result.success).toBe(true);
   });
 
   it("should accept a description of exactly 2000 characters (max boundary)", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, description: "x".repeat(2000) });
+    const result = petReportSchema.safeParse({ ...validAlert, description: "x".repeat(2000) });
     expect(result.success).toBe(true);
   });
 
   it("should reject a description longer than 2000 characters", () => {
-    const result = sosAlertSchema.safeParse({ ...validAlert, description: "x".repeat(2001) });
+    const result = petReportSchema.safeParse({ ...validAlert, description: "x".repeat(2001) });
     expect(result.success).toBe(false);
   });
 });
@@ -294,39 +294,39 @@ describe("feedbackSchema", () => {
 });
 
 // ---------------------------------------------------------------------------
-// resolveAlertSchema — security-critical: gate on SOS ownership
+// resolveReportSchema — security-critical: gate on report ownership
 // ---------------------------------------------------------------------------
 
-describe("resolveAlertSchema", () => {
+describe("resolveReportSchema", () => {
   const validUUID = "123e4567-e89b-12d3-a456-426614174000";
 
   it("should accept alertId + resolution 'found'", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: validUUID, resolution: "found" });
+    const result = resolveReportSchema.safeParse({ alertId: validUUID, resolution: "found" });
     expect(result.success).toBe(true);
   });
 
   it("should accept alertId + resolution 'given_up'", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: validUUID, resolution: "given_up" });
+    const result = resolveReportSchema.safeParse({ alertId: validUUID, resolution: "given_up" });
     expect(result.success).toBe(true);
   });
 
   it("should reject a non-UUID alertId", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: "not-uuid", resolution: "found" });
+    const result = resolveReportSchema.safeParse({ alertId: "not-uuid", resolution: "found" });
     expect(result.success).toBe(false);
   });
 
   it("should reject an empty alertId", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: "", resolution: "found" });
+    const result = resolveReportSchema.safeParse({ alertId: "", resolution: "found" });
     expect(result.success).toBe(false);
   });
 
   it("should reject an invalid resolution value", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: validUUID, resolution: "resolved" });
+    const result = resolveReportSchema.safeParse({ alertId: validUUID, resolution: "resolved" });
     expect(result.success).toBe(false);
   });
 
   it("should reject a missing resolution", () => {
-    const result = resolveAlertSchema.safeParse({ alertId: validUUID });
+    const result = resolveReportSchema.safeParse({ alertId: validUUID });
     expect(result.success).toBe(false);
   });
 });
