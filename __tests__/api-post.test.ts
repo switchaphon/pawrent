@@ -1,8 +1,8 @@
 /**
- * Integration tests for /api/sos (POST, PUT).
+ * Integration tests for /api/post (POST, PUT).
  *
  * PUT is security-critical: it must apply .eq("owner_id", user.id) so that
- * one authenticated user cannot resolve another user's alert. These tests
+ * one authenticated user cannot resolve another user's report. These tests
  * act as a regression gate for the ownership check introduced in PRP-05.
  *
  * Auth-enumeration safety: we verify the signIn surface only returns
@@ -62,7 +62,7 @@ vi.mock("@/lib/supabase-api", () => ({
   })),
 }));
 
-import { POST, PUT } from "@/app/api/sos/route";
+import { POST, PUT } from "@/app/api/post/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -72,7 +72,7 @@ const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
 const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 
 function makeRequest(method: string, body: unknown, withAuth = true): NextRequest {
-  return new NextRequest("http://localhost/api/sos", {
+  return new NextRequest("http://localhost/api/post", {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -82,7 +82,7 @@ function makeRequest(method: string, body: unknown, withAuth = true): NextReques
   });
 }
 
-const validSosBody = {
+const validReportBody = {
   pet_id: VALID_UUID,
   lat: 13.756,
   lng: 100.502,
@@ -90,10 +90,10 @@ const validSosBody = {
 };
 
 // ---------------------------------------------------------------------------
-// POST /api/sos
+// POST /api/post
 // ---------------------------------------------------------------------------
 
-describe("POST /api/sos", () => {
+describe("POST /api/post", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     insertChain = makeEqChain();
@@ -105,7 +105,7 @@ describe("POST /api/sos", () => {
   });
 
   it("should return 401 when the Authorization header is absent", async () => {
-    const req = makeRequest("POST", validSosBody, false);
+    const req = makeRequest("POST", validReportBody, false);
     const res = await POST(req);
     expect(res.status).toBe(401);
     const json = await res.json();
@@ -114,7 +114,7 @@ describe("POST /api/sos", () => {
 
   it("should return 401 when the token does not resolve to a user", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest("POST", validSosBody);
+    const req = makeRequest("POST", validReportBody);
     const res = await POST(req);
     expect(res.status).toBe(401);
     const json = await res.json();
@@ -123,28 +123,28 @@ describe("POST /api/sos", () => {
 
   it("should return 400 when pet_id is not a valid UUID", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validSosBody, pet_id: "not-a-uuid" });
+    const req = makeRequest("POST", { ...validReportBody, pet_id: "not-a-uuid" });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
   it("should return 400 when lat is out of range", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validSosBody, lat: 91 });
+    const req = makeRequest("POST", { ...validReportBody, lat: 91 });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
   it("should return 400 when lng is out of range", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validSosBody, lng: -181 });
+    const req = makeRequest("POST", { ...validReportBody, lng: -181 });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
   it("should accept boundary lat/lng values (-90, 90, -180, 180)", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const boundaryBody = { ...validSosBody, lat: -90, lng: 180 };
+    const boundaryBody = { ...validReportBody, lat: -90, lng: 180 };
     mockSingle.mockResolvedValueOnce({
       data: { id: ALERT_UUID, owner_id: "user-1", is_active: true, ...boundaryBody },
       error: null,
@@ -155,17 +155,17 @@ describe("POST /api/sos", () => {
     expect(res.status).toBe(200);
   });
 
-  it("should create an SOS alert and set owner_id + is_active from the server", async () => {
+  it("should create a pet report and set owner_id + is_active from the server", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     const createdAlert = {
       id: ALERT_UUID,
       owner_id: "user-1",
       is_active: true,
-      ...validSosBody,
+      ...validReportBody,
     };
     mockSingle.mockResolvedValueOnce({ data: createdAlert, error: null });
 
-    const req = makeRequest("POST", validSosBody);
+    const req = makeRequest("POST", validReportBody);
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -177,17 +177,17 @@ describe("POST /api/sos", () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     mockSingle.mockResolvedValueOnce({ data: null, error: { message: "DB failure" } });
 
-    const req = makeRequest("POST", validSosBody);
+    const req = makeRequest("POST", validReportBody);
     const res = await POST(req);
     expect(res.status).toBe(500);
   });
 });
 
 // ---------------------------------------------------------------------------
-// PUT /api/sos — ownership check is the security gate
+// PUT /api/post — ownership check is the security gate
 // ---------------------------------------------------------------------------
 
-describe("PUT /api/sos", () => {
+describe("PUT /api/post", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateChain = makeEqChain();

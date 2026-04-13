@@ -287,7 +287,7 @@ function ProfileContent() {
                   <li>Account information (email, name)</li>
                   <li>Pet information (name, species, breed, photos)</li>
                   <li>Health records (vaccinations, medical history)</li>
-                  <li>Location data (for SOS alerts only)</li>
+                  <li>Location data (for pet reports only)</li>
                 </ul>
               </section>
 
@@ -295,7 +295,7 @@ function ProfileContent() {
                 <h3 className="font-semibold text-foreground mb-2">How We Use Your Data</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>To provide pet passport services</li>
-                  <li>To send SOS alerts to nearby users</li>
+                  <li>To alert nearby users about pet reports</li>
                   <li>To improve our services</li>
                 </ul>
               </section>
@@ -534,7 +534,7 @@ function ProfileContent() {
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-secondary">0</p>
-                  <p className="text-xs text-muted-foreground">SOS Alerts</p>
+                  <p className="text-xs text-muted-foreground">Pet Reports</p>
                 </div>
               </div>
             </Card>
