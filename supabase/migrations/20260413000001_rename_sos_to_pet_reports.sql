@@ -1,7 +1,11 @@
 -- PRP-03.1: Rename sos_alerts infrastructure → pet_reports
 -- Pure rename — no logic changes. Wrapped in transaction for atomicity.
+-- Note: uses extensions.geography for Supabase schema qualification
 
 BEGIN;
+
+-- Ensure extensions schema is in search_path for PostGIS type resolution
+SET search_path = public, extensions;
 
 -- 1. Rename table
 ALTER TABLE sos_alerts RENAME TO pet_reports;
@@ -40,7 +44,7 @@ RETURNS TABLE (
   resolved_at timestamptz,
   resolution_status text,
   created_at timestamptz,
-  geog geography,
+  geog extensions.geography,
   distance_m double precision
 )
 LANGUAGE plpgsql
@@ -91,7 +95,7 @@ RETURNS TABLE (
   resolved_at timestamptz,
   resolution_status text,
   created_at timestamptz,
-  geog geography
+  geog extensions.geography
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -113,27 +117,14 @@ BEGIN
 END;
 $$;
 
--- 6. Thin wrappers for old names (1-sprint deprecation period)
-CREATE OR REPLACE FUNCTION nearby_alerts(
-  p_lat double precision, p_lng double precision,
-  p_radius_m double precision, p_limit integer DEFAULT 50
-) RETURNS SETOF nearby_reports AS $$
-  SELECT * FROM nearby_reports(p_lat, p_lng, p_radius_m, p_limit);
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, extensions;
-
-CREATE OR REPLACE FUNCTION alerts_within_bbox(
-  p_min_lat double precision, p_min_lng double precision,
-  p_max_lat double precision, p_max_lng double precision,
-  p_limit integer DEFAULT 100
-) RETURNS SETOF reports_within_bbox AS $$
-  SELECT * FROM reports_within_bbox(p_min_lat, p_min_lng, p_max_lat, p_max_lng, p_limit);
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = public, extensions;
-
--- 7. Update RLS grants for new function names
+-- 6. Update RLS grants for new function names
 REVOKE ALL ON FUNCTION nearby_reports(double precision, double precision, double precision, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION nearby_reports(double precision, double precision, double precision, integer) TO authenticated;
 
 REVOKE ALL ON FUNCTION reports_within_bbox(double precision, double precision, double precision, double precision, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION reports_within_bbox(double precision, double precision, double precision, double precision, integer) TO authenticated;
+
+-- Reset search_path
+RESET search_path;
 
 COMMIT;
