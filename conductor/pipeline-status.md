@@ -5,13 +5,15 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP | Step | Gate | Status | Branch | Last Updated |
-| --- | ---- | ---- | ------ | ------ | ------------ |
+| PRP    | Step    | Gate | Status      | Branch                            | Last Updated |
+| ------ | ------- | ---- | ----------- | --------------------------------- | ------------ |
+| | | | | | |
 
 ## Completed Pipelines
 
 | PRP      | Started    | Completed  | Commits                                                                    |
 | -------- | ---------- | ---------- | -------------------------------------------------------------------------- |
+| PRP-04   | 2026-04-13 | 2026-04-13 | feat(post): lost pet reporting flow — wizard, hub, detail, API             |
 | PRP-03.1 | 2026-04-13 | 2026-04-13 | refactor: rename SOS infrastructure to pet_reports                         |
 | PRP-03   | 2026-04-12 | 2026-04-12 | feat(postgis): add geospatial infrastructure                               |
 | PRP-02   | 2026-04-12 | 2026-04-12 | feat(rich-menu): line rich menu, webhook handler, and navigation shell     |

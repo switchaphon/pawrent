@@ -9,6 +9,7 @@
 | PRP-02   | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
 | PRP-03   | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
 | PRP-03.1 | feature/prp-03.1-rename-sos-to-pet-reports | complete | 2026-04-13   |
+| PRP-04   | feature/prp-04-lost-pet-reporting          | complete | 2026-04-13   |
 
 ## Blocked PRPs
 

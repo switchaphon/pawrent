@@ -22,18 +22,18 @@ import { ReportButton } from "@/components/report-button";
 describe("ReportButton", () => {
   it("renders the report button with correct text", () => {
     render(<ReportButton />);
-    expect(screen.getByText("Report Lost Pet")).toBeInTheDocument();
+    expect(screen.getByText("แจ้งสัตว์เลี้ยงหาย")).toBeInTheDocument();
   });
 
   it("links to /post", () => {
     render(<ReportButton />);
-    const link = screen.getByText("Report Lost Pet").closest("a");
-    expect(link).toHaveAttribute("href", "/post");
+    const link = screen.getByText("แจ้งสัตว์เลี้ยงหาย").closest("a");
+    expect(link).toHaveAttribute("href", "/post/lost");
   });
 
   it("has the destructive background styling", () => {
     render(<ReportButton />);
-    const link = screen.getByText("Report Lost Pet").closest("a");
+    const link = screen.getByText("แจ้งสัตว์เลี้ยงหาย").closest("a");
     expect(link?.className).toContain("bg-destructive");
   });
 });

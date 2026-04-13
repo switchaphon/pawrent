@@ -11,6 +11,7 @@ export interface Pet {
   weight_kg: number | null;
   date_of_birth: string | null;
   microchip_number: string | null;
+  neutered?: boolean | null;
   photo_url: string | null;
   special_notes: string | null;
   created_at: string;

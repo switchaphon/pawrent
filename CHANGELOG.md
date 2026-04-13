@@ -3,6 +3,28 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] - 2026-04-13
+
+### Added
+
+- **Lost Pet Reporting Flow** (PRP-04) — full lost & found feature
+  - 6-step wizard at `/post/lost`: pet selection, when/where with MapPicker, photos & distinguishing marks, voice placeholder, reward & contact, review & submit
+  - Community hub at `/post`: tab-based feed (หาย/พบ/ทั้งหมด), alert cards with status chips, radius selector (1-10km), species filter, infinite scroll, floating CTA
+  - Alert detail page at `/post/[id]`: photo carousel, pet metadata grid, Thai Buddhist date, fuzzy map, reward banner, LINE/Facebook/X share, disabled PRP-05 placeholders
+  - Owner dashboard: "ประกาศของฉัน" section with resolve actions
+  - GET `/api/post`: geo-filtered listing via `nearby_reports()` RPC, cursor pagination, single fetch by ID
+  - POST `/api/post`: auto-snapshot pet data + photos from profile, rate limit 3/24h
+  - PUT `/api/post`: dual-schema support (new `resolveAlertSchema` + legacy `resolveReportSchema`)
+  - `lib/pagination.ts`: cursor encode/decode utility
+  - `liffShareTargetPicker()` wrapper in `lib/liff.ts`
+  - `neutered` column added to `pets` table
+  - 15 new columns on `pet_reports` (alert_type, lost_date, reward, status, photo_urls, pet snapshot)
+  - `nearby_reports()` RPC updated with all new columns
+  - Rich Menu panel: Hospital → Lost & Found (`/post`)
+  - Report FAB: `/post` → `/post/lost`, label in Thai
+  - All UI text in Thai (PRP-00 mandate)
+  - 576 tests pass (109 new), 0 errors
+
 ## [0.4.1] - 2026-04-13
 
 ### Changed
