@@ -1,6 +1,6 @@
-// SOS alert types
+// Pet report types (lost/found/stray/returned)
 
-export interface SOSAlert {
+export interface PetReport {
   id: string;
   pet_id: string;
   owner_id: string;

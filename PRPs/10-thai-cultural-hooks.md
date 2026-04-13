@@ -114,18 +114,18 @@ CREATE POLICY "Authenticated can leave condolence" ON memorial_condolences FOR I
 
 ### 10.5 Merit-Making — Prayer Counter
 
-- [ ] Add `prayer_count` to `sos_alerts` table
+- [ ] Add `prayer_count` to `pet_reports` table
 - [ ] Create `pray_for_pet()` RPC — atomic increment (same pattern as `toggle_like`)
 - [ ] "อธิษฐานให้น้องกลับบ้าน" (Pray for safe return) button on lost alert detail
 - [ ] Display count: "123 คนร่วมอธิษฐาน" (123 people praying)
 
 ```sql
-ALTER TABLE sos_alerts
+ALTER TABLE pet_reports
   ADD COLUMN IF NOT EXISTS prayer_count int DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS alert_prayers (
   id        uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  alert_id  uuid NOT NULL REFERENCES sos_alerts(id) ON DELETE CASCADE,
+  alert_id  uuid NOT NULL REFERENCES pet_reports(id) ON DELETE CASCADE,
   user_id   uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   created_at timestamptz DEFAULT now(),
   UNIQUE (alert_id, user_id)
@@ -140,7 +140,7 @@ BEGIN
   VALUES (p_alert_id, auth.uid())
   ON CONFLICT (alert_id, user_id) DO NOTHING;
 
-  UPDATE sos_alerts SET prayer_count = prayer_count + 1
+  UPDATE pet_reports SET prayer_count = prayer_count + 1
   WHERE id = p_alert_id
   RETURNING prayer_count INTO v_count;
 
@@ -177,10 +177,23 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ## Verification
 
+### Thai Language First (PRP-00 Mandate)
+
+- [ ] All Mutelu/cultural UI text in Thai (this PRP is inherently Thai-first)
+- [ ] Lucky colors, merit prayers, Rainbow Bridge — all Thai language
+
+### Full CI Validation Gate (PRP-00 Mandate)
+
 ```bash
-npm run test
-npm run type-check
+npm run test:coverage    # Unit + integration + coverage thresholds (90/85)
+npm run test:e2e         # Playwright E2E (Chromium + Firefox)
+npm run type-check       # TypeScript strict mode
 ```
+
+- [ ] Unit tests for cultural features with coverage thresholds
+- [ ] E2E spec: merit prayer flow, lucky color display
+- [ ] Existing tests still pass (regression)
+- [ ] CI is green before merge
 
 - [ ] Lucky collar colors display correctly for all 7 weekdays
 - [ ] Pet horoscope renders on pet profile page
@@ -208,3 +221,4 @@ npm run type-check
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-04-09 | Initial PRP — Thai cultural hooks: Mutelu, Rainbow Bridge, merit-making |
+| v1.1 | 2026-04-13 | Table naming: `sos_alerts` → `pet_reports` per PRP-03.1 |

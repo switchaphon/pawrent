@@ -67,12 +67,12 @@ import {
   updatePet,
   deletePet,
   uploadPetPhoto,
-  getActiveSOSAlerts,
-  getRecentlyFoundPets,
-  createSOSAlert,
-  uploadSOSVideo,
-  getActiveSOSAlertForPet,
-  resolveSOSAlert,
+  getActivePetReports,
+  getRecentlyFoundReports,
+  createPetReport,
+  uploadReportVideo,
+  getActivePetReportForPet,
+  resolvePetReport,
   calculateDistance,
   toggleLike,
   getUserLikes,
@@ -253,11 +253,11 @@ describe("Pet Operations", () => {
 });
 
 // ---------------------------------------------------------------------------
-// SOS Operations
+// Pet Report Operations
 // ---------------------------------------------------------------------------
 
-describe("SOS Operations", () => {
-  it("getActiveSOSAlerts queries active alerts", async () => {
+describe("Pet Report Operations", () => {
+  it("getActivePetReports queries active reports", async () => {
     const alerts = [{ id: "a1", is_active: true }];
     const c = chain(null);
     c.order = vi.fn(() => Promise.resolve({ data: alerts, error: null }));
@@ -265,16 +265,16 @@ describe("SOS Operations", () => {
     c.select = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
 
-    const result = await getActiveSOSAlerts();
+    const result = await getActivePetReports();
     expect(result.data).toEqual(alerts);
-    expect(mockFrom).toHaveBeenCalledWith("sos_alerts");
+    expect(mockFrom).toHaveBeenCalledWith("pet_reports");
   });
 
-  it("createSOSAlert inserts with is_active: true", async () => {
+  it("createPetReport inserts with is_active: true", async () => {
     const alert = { id: "a1", is_active: true };
     mockFrom.mockReturnValue(chain({ data: alert, error: null }));
 
-    const result = await createSOSAlert({
+    const result = await createPetReport({
       pet_id: "pet-1",
       owner_id: "user-1",
       lat: 13.7,
@@ -284,22 +284,22 @@ describe("SOS Operations", () => {
     expect(result.data).toEqual(alert);
   });
 
-  it("uploadSOSVideo uploads and returns URL", async () => {
+  it("uploadReportVideo uploads and returns URL", async () => {
     mockUpload.mockResolvedValueOnce({ error: null });
     const file = new File(["vid"], "video.mp4", { type: "video/mp4" });
-    const result = await uploadSOSVideo(file, "alert-1");
+    const result = await uploadReportVideo(file, "alert-1");
     expect(result.url).toBe("https://storage.example.com/file.jpg");
-    expect(mockStorageFrom).toHaveBeenCalledWith("sos-videos");
+    expect(mockStorageFrom).toHaveBeenCalledWith("report-media");
   });
 
-  it("uploadSOSVideo returns error on failure", async () => {
+  it("uploadReportVideo returns error on failure", async () => {
     mockUpload.mockResolvedValueOnce({ error: { message: "Too large" } });
     const file = new File(["vid"], "video.mp4", { type: "video/mp4" });
-    const result = await uploadSOSVideo(file, "alert-1");
+    const result = await uploadReportVideo(file, "alert-1");
     expect(result.url).toBeNull();
   });
 
-  it("getActiveSOSAlertForPet queries by pet_id and is_active", async () => {
+  it("getActivePetReportForPet queries by pet_id and is_active", async () => {
     const alert = { id: "a1", pet_id: "pet-1" };
     const c = chain(null);
     c.maybeSingle = vi.fn(() => Promise.resolve({ data: alert, error: null }));
@@ -309,11 +309,11 @@ describe("SOS Operations", () => {
     c.select = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
 
-    const result = await getActiveSOSAlertForPet("pet-1");
+    const result = await getActivePetReportForPet("pet-1");
     expect(result.data).toEqual(alert);
   });
 
-  it("resolveSOSAlert updates and returns resolved alert", async () => {
+  it("resolvePetReport updates and returns resolved report", async () => {
     const resolved = { id: "a1", is_active: false, resolution_status: "found" };
     const c = chain(null);
     c.maybeSingle = vi.fn(() => Promise.resolve({ data: resolved, error: null }));
@@ -322,11 +322,11 @@ describe("SOS Operations", () => {
     c.update = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
 
-    const result = await resolveSOSAlert("a1", "found");
+    const result = await resolvePetReport("a1", "found");
     expect(result.data).toEqual(resolved);
   });
 
-  it("resolveSOSAlert logs error on failure", async () => {
+  it("resolvePetReport logs error on failure", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const c = chain(null);
     c.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: { message: "Failed" } }));
@@ -335,13 +335,13 @@ describe("SOS Operations", () => {
     c.update = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
 
-    const result = await resolveSOSAlert("a1", "given_up");
+    const result = await resolvePetReport("a1", "given_up");
     expect(result.error).toBeTruthy();
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
-  it("getRecentlyFoundPets queries resolved found alerts", async () => {
+  it("getRecentlyFoundReports queries resolved found reports", async () => {
     const alerts = [{ id: "a1", resolution_status: "found" }];
     const c = chain(null);
     c.order = vi.fn(() => Promise.resolve({ data: alerts, error: null }));
@@ -350,7 +350,7 @@ describe("SOS Operations", () => {
     c.select = vi.fn(() => ({ eq: c.eq }));
     mockFrom.mockReturnValue(c);
 
-    const result = await getRecentlyFoundPets();
+    const result = await getRecentlyFoundReports();
     expect(result.data).toEqual(alerts);
   });
 });

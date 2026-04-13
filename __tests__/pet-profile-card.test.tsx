@@ -46,7 +46,7 @@ const mockPet: Pet = {
 const defaultProps = {
   pet: mockPet,
   onEdit: vi.fn(),
-  onSOS: vi.fn(),
+  onReport: vi.fn(),
 };
 
 describe("PetProfileCard", () => {
@@ -77,19 +77,19 @@ describe("PetProfileCard", () => {
     expect(defaultProps.onEdit).toHaveBeenCalled();
   });
 
-  it("shows SOS button when no active alert", () => {
+  it("shows report button when no active report", () => {
     render(<PetProfileCard {...defaultProps} />);
-    expect(screen.getByText(/sos/i)).toBeInTheDocument();
+    expect(screen.getByText(/report lost pet/i)).toBeInTheDocument();
   });
 
-  it("calls onSOS when SOS button is clicked", async () => {
+  it("calls onReport when report button is clicked", async () => {
     render(<PetProfileCard {...defaultProps} />);
-    const sosBtn = screen.getByText(/sos/i).closest("button")!;
-    await userEvent.click(sosBtn);
-    expect(defaultProps.onSOS).toHaveBeenCalled();
+    const reportBtn = screen.getByText(/report lost pet/i).closest("button")!;
+    await userEvent.click(reportBtn);
+    expect(defaultProps.onReport).toHaveBeenCalled();
   });
 
-  it("shows active SOS alert banner when present", () => {
+  it("shows active report banner when present", () => {
     const alert = {
       id: "alert-1",
       pet_id: "pet-1",
@@ -103,8 +103,8 @@ describe("PetProfileCard", () => {
       resolution_status: null,
       video_url: null,
     };
-    render(<PetProfileCard {...defaultProps} activeSOSAlert={alert} />);
-    expect(screen.getByText(/active sos/i)).toBeInTheDocument();
+    render(<PetProfileCard {...defaultProps} activePetReport={alert} />);
+    expect(screen.getByText(/active report/i)).toBeInTheDocument();
   });
 
   it("calls onPetFound when Pet Found button is clicked", async () => {
@@ -122,7 +122,7 @@ describe("PetProfileCard", () => {
       resolution_status: null,
       video_url: null,
     };
-    render(<PetProfileCard {...defaultProps} activeSOSAlert={alert} onPetFound={onPetFound} />);
+    render(<PetProfileCard {...defaultProps} activePetReport={alert} onPetFound={onPetFound} />);
     const foundBtn = screen.getByText(/pet found/i).closest("button")!;
     await userEvent.click(foundBtn);
     expect(onPetFound).toHaveBeenCalledWith("alert-1");

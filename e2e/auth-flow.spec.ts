@@ -12,7 +12,7 @@ test.describe("Authentication flow (unauthenticated via LIFF)", () => {
   test("all protected routes stay on page without crashing when unauthenticated", async ({
     page,
   }) => {
-    const protectedRoutes = ["/pets", "/profile", "/sos", "/notifications"];
+    const protectedRoutes = ["/pets", "/profile", "/post", "/notifications"];
 
     for (const route of protectedRoutes) {
       await page.goto(route);

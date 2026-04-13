@@ -2,13 +2,13 @@ import { describe, it, expect } from "vitest";
 import type {
   GeoPoint,
   GeoBoundingBox,
-  NearbyAlertResult,
+  NearbyReportResult,
   SnapToGridResult,
-  NearbyAlertsParams,
-  AlertsWithinBboxParams,
+  NearbyReportsParams,
+  ReportsWithinBboxParams,
   SnapToGridParams,
 } from "@/lib/types/geospatial";
-import type { SOSAlert } from "@/lib/types/sos";
+import type { PetReport } from "@/lib/types/pet-report";
 
 describe("Geospatial types", () => {
   describe("GeoPoint", () => {
@@ -32,9 +32,9 @@ describe("Geospatial types", () => {
     });
   });
 
-  describe("NearbyAlertResult", () => {
-    it("should extend SOSAlert with distance_m", () => {
-      const result: NearbyAlertResult = {
+  describe("NearbyReportResult", () => {
+    it("should extend PetReport with distance_m", () => {
+      const result: NearbyReportResult = {
         id: "123e4567-e89b-12d3-a456-426614174000",
         pet_id: "223e4567-e89b-12d3-a456-426614174000",
         owner_id: "323e4567-e89b-12d3-a456-426614174000",
@@ -64,8 +64,8 @@ describe("Geospatial types", () => {
   });
 
   describe("RPC parameter types", () => {
-    it("NearbyAlertsParams should have required fields and optional limit", () => {
-      const params: NearbyAlertsParams = {
+    it("NearbyReportsParams should have required fields and optional limit", () => {
+      const params: NearbyReportsParams = {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
@@ -73,7 +73,7 @@ describe("Geospatial types", () => {
       expect(params.p_radius_m).toBe(5000);
       expect(params.p_limit).toBeUndefined();
 
-      const paramsWithLimit: NearbyAlertsParams = {
+      const paramsWithLimit: NearbyReportsParams = {
         p_lat: 13.7563,
         p_lng: 100.5018,
         p_radius_m: 5000,
@@ -82,8 +82,8 @@ describe("Geospatial types", () => {
       expect(paramsWithLimit.p_limit).toBe(20);
     });
 
-    it("AlertsWithinBboxParams should have bbox bounds and optional limit", () => {
-      const params: AlertsWithinBboxParams = {
+    it("ReportsWithinBboxParams should have bbox bounds and optional limit", () => {
+      const params: ReportsWithinBboxParams = {
         p_min_lat: 13.0,
         p_min_lng: 100.0,
         p_max_lat: 14.0,
@@ -103,9 +103,9 @@ describe("Geospatial types", () => {
     });
   });
 
-  describe("SOSAlert geog field", () => {
+  describe("PetReport geog field", () => {
     it("should accept optional geog field as string or null", () => {
-      const alertWithGeog: SOSAlert = {
+      const reportWithGeog: PetReport = {
         id: "123e4567-e89b-12d3-a456-426614174000",
         pet_id: "223e4567-e89b-12d3-a456-426614174000",
         owner_id: "323e4567-e89b-12d3-a456-426614174000",
@@ -118,9 +118,9 @@ describe("Geospatial types", () => {
         created_at: "2026-04-12T00:00:00Z",
         geog: "0101000020E6100000...",
       };
-      expect(alertWithGeog.geog).toBeTruthy();
+      expect(reportWithGeog.geog).toBeTruthy();
 
-      const alertWithoutGeog: SOSAlert = {
+      const reportWithoutGeog: PetReport = {
         id: "123e4567-e89b-12d3-a456-426614174000",
         pet_id: "223e4567-e89b-12d3-a456-426614174000",
         owner_id: "323e4567-e89b-12d3-a456-426614174000",
@@ -132,7 +132,7 @@ describe("Geospatial types", () => {
         resolved_at: null,
         created_at: "2026-04-12T00:00:00Z",
       };
-      expect(alertWithoutGeog.geog).toBeUndefined();
+      expect(reportWithoutGeog.geog).toBeUndefined();
     });
   });
 });

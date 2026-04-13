@@ -5,22 +5,22 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/liff-provider";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getActiveSOSAlerts, getRecentlyFoundPets, calculateDistance } from "@/lib/db";
-import type { SOSAlert, Pet } from "@/lib/types";
+import { getActivePetReports, getRecentlyFoundReports, calculateDistance } from "@/lib/db";
+import type { PetReport, Pet } from "@/lib/types";
 import { AlertTriangle, MapPin, Loader2, Navigation, PartyPopper } from "lucide-react";
 
 function NotificationsContent() {
   const { user } = useAuth();
-  const [alerts, setAlerts] = useState<(SOSAlert & { pets: Pet })[]>([]);
-  const [foundPets, setFoundPets] = useState<(SOSAlert & { pets: Pet })[]>([]);
+  const [alerts, setAlerts] = useState<(PetReport & { pets: Pet })[]>([]);
+  const [foundPets, setFoundPets] = useState<(PetReport & { pets: Pet })[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAlerts = async () => {
     setLoading(true);
     const [activeResult, foundResult] = await Promise.all([
-      getActiveSOSAlerts(),
-      getRecentlyFoundPets(),
+      getActivePetReports(),
+      getRecentlyFoundReports(),
     ]);
     setAlerts(activeResult.data || []);
     setFoundPets(foundResult.data || []);
@@ -77,7 +77,7 @@ function NotificationsContent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Notifications</h1>
-            <p className="text-sm text-muted-foreground">SOS alerts nearby</p>
+            <p className="text-sm text-muted-foreground">Pet reports nearby</p>
           </div>
           {nearbyAlerts.length > 0 && (
             <Badge className="bg-destructive text-white">{nearbyAlerts.length} nearby</Badge>

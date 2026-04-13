@@ -21,13 +21,13 @@ import { VaccineStatusBar } from "@/components/vaccine-status-bar";
 import {
   getPets,
   getPetWithDetails,
-  getActiveSOSAlertForPet,
+  getActivePetReportForPet,
   getPetPhotos,
   uploadPetGalleryImage,
 } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
-import type { Pet, Vaccination, ParasiteLog, HealthEvent, SOSAlert, PetPhoto } from "@/lib/types";
+import type { Pet, Vaccination, ParasiteLog, HealthEvent, PetReport, PetPhoto } from "@/lib/types";
 import { ImageCropper } from "@/components/image-cropper";
 import {
   AlertTriangle,
@@ -62,7 +62,7 @@ function PetsContent() {
   const [showAddParasiteLog, setShowAddParasiteLog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [activeSOSAlert, setActiveSOSAlert] = useState<SOSAlert | null>(null);
+  const [activePetReport, setActivePetReport] = useState<PetReport | null>(null);
 
   // Photo Gallery State
   const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
@@ -112,9 +112,9 @@ function PetsContent() {
       setParasiteLog(data.latestParasiteLog || null);
       setHealthEvents(data.healthEvents || []);
     }
-    // Fetch active SOS alert for this pet
-    const { data: sosAlert } = await getActiveSOSAlertForPet(petId);
-    setActiveSOSAlert(sosAlert || null);
+    // Fetch active pet report for this pet
+    const { data: petReport } = await getActivePetReportForPet(petId);
+    setActivePetReport(petReport || null);
 
     // Fetch pet photos for gallery
     const { data: photos } = await getPetPhotos(petId);
@@ -130,9 +130,9 @@ function PetsContent() {
     fetchPets();
   }, [user]);
 
-  const handleSOS = () => {
+  const handleReport = () => {
     if (selectedPet) {
-      router.push(`/sos?pet=${selectedPet.id}`);
+      router.push(`/post?pet=${selectedPet.id}`);
     }
   };
 
@@ -157,7 +157,7 @@ function PetsContent() {
 
   const handlePetFound = async (alertId: string) => {
     try {
-      await apiFetch("/api/sos", {
+      await apiFetch("/api/post", {
         method: "PUT",
         body: JSON.stringify({ alertId, resolution: "found" }),
       });
@@ -171,7 +171,7 @@ function PetsContent() {
 
   const handleGiveUp = async (alertId: string) => {
     try {
-      await apiFetch("/api/sos", {
+      await apiFetch("/api/post", {
         method: "PUT",
         body: JSON.stringify({ alertId, resolution: "given_up" }),
       });
@@ -429,10 +429,10 @@ function PetsContent() {
                 {/* Pet Profile Card */}
                 <PetProfileCard
                   pet={selectedPet}
-                  activeSOSAlert={activeSOSAlert}
+                  activePetReport={activePetReport}
                   photos={petPhotos}
                   onEdit={() => setShowEditPet(true)}
-                  onSOS={handleSOS}
+                  onReport={handleReport}
                   onPetFound={handlePetFound}
                   onGiveUp={handleGiveUp}
                   onAddPhoto={() => {

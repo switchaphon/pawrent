@@ -18,14 +18,14 @@ import {
   PartyPopper,
   HeartCrack,
 } from "lucide-react";
-import type { Pet, SOSAlert, PetPhoto } from "@/lib/types";
+import type { Pet, PetReport, PetPhoto } from "@/lib/types";
 
 interface PetProfileCardProps {
   pet: Pet;
-  activeSOSAlert?: SOSAlert | null;
+  activePetReport?: PetReport | null;
   photos?: PetPhoto[];
   onEdit: () => void;
-  onSOS: () => void;
+  onReport: () => void;
   onPetFound?: (alertId: string) => void;
   onGiveUp?: (alertId: string) => void;
   onAddPhoto?: () => void;
@@ -58,10 +58,10 @@ function formatBirthday(dob: string | null): string {
 
 export function PetProfileCard({
   pet,
-  activeSOSAlert,
+  activePetReport,
   photos = [],
   onEdit,
-  onSOS,
+  onReport,
   onPetFound,
   onGiveUp,
   onAddPhoto,
@@ -195,12 +195,12 @@ export function PetProfileCard({
         </div>
       )}
 
-      {/* Active SOS Alert Banner - Above Card */}
-      {activeSOSAlert && (
+      {/* Active Pet Report Banner - Above Card */}
+      {activePetReport && (
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
           <p className="text-sm text-amber-800 font-medium">
-            Active SOS alert since {new Date(activeSOSAlert.created_at).toLocaleDateString()}
+            Active report since {new Date(activePetReport.created_at).toLocaleDateString()}
           </p>
         </div>
       )}
@@ -275,18 +275,18 @@ export function PetProfileCard({
             </div>
           )}
 
-          {/* SOS Button - Conditional based on active alert */}
-          {activeSOSAlert ? (
+          {/* Report Button - Conditional based on active report */}
+          {activePetReport ? (
             <div className="mt-4 space-y-2">
               <Button
-                onClick={() => onPetFound?.(activeSOSAlert.id)}
+                onClick={() => onPetFound?.(activePetReport.id)}
                 className="w-full h-10 text-sm font-bold bg-green-500 hover:bg-green-600 text-white rounded-xl"
               >
                 <PartyPopper className="w-4 h-4 mr-2" />
                 Pet Found!
               </Button>
               <Button
-                onClick={() => onGiveUp?.(activeSOSAlert.id)}
+                onClick={() => onGiveUp?.(activePetReport.id)}
                 variant="ghost"
                 className="w-full h-7 text-xs text-muted-foreground hover:text-destructive rounded-lg"
               >
@@ -296,11 +296,11 @@ export function PetProfileCard({
             </div>
           ) : (
             <Button
-              onClick={onSOS}
+              onClick={onReport}
               className="w-full h-10 text-sm font-bold bg-destructive hover:bg-destructive/90 rounded-xl mt-4"
             >
               <AlertTriangle className="w-4 h-4 mr-2" />
-              SOS & Lost Mode
+              Report Lost Pet
             </Button>
           )}
         </div>
