@@ -42,24 +42,26 @@ The current pet report system is a single-purpose alert with basic fields (pet, 
 - Voice recording upload & playback (PRP-04.2 — child PRP, unless trivial to include)
 - External social sharing to FB/IG/TT/X (backlog)
 - "Lost Pets Near You" feed banner on social feed (backlog)
+- `/api/me/data-export` endpoint (PDPA requirement — tracked separately, must include pet_reports data)
 
 ---
 
 ## Route Structure
 
 ```
-OLD (current)                    NEW (PRP-04)
+CURRENT (post PRP-03.1)          NEW (PRP-04)
 ─────────────────────────────    ─────────────────────────────
-app/sos/page.tsx (form)       →  app/post/page.tsx (community hub — tab feed: Lost/Found/Social)
-                              →  app/post/lost/page.tsx (6-step wizard)
-                              →  app/post/found/page.tsx (PRP-05)
-app/sos/[id]/page.tsx (N/A)   →  app/post/[id]/page.tsx (alert detail)
-                              →  app/post/[id]/poster (PRP-04.1)
-app/api/sos/route.ts          →  app/api/post/route.ts (POST create, PUT resolve)
-                              →  app/api/post/route.ts (GET listing with geo + alert_type filter)
+app/sos/page.tsx (redirect→/post) ✓ Keep redirect (already done by PRP-03.1)
+app/post/page.tsx (report form) →  app/post/page.tsx (REWRITE: community hub — tab feed)
+                                →  app/post/lost/page.tsx (NEW: 6-step wizard, absorbs current form)
+                                →  app/post/found/page.tsx (PRP-05 — not this PRP)
+                                →  app/post/[id]/page.tsx (NEW: alert detail)
+                                →  app/post/[id]/poster (PRP-04.1 — not this PRP)
+app/api/post/route.ts (POST/PUT) →  app/api/post/route.ts (OVERHAUL: add GET listing, enhance POST)
+app/api/sos/route.ts             ✓ Already deleted by PRP-03.1
 ```
 
-**Note:** Both page and API routes unified under `/post`. No external consumers exist (LIFF-only app), so renaming is safe. The single `/api/post/` endpoint handles all alert types via `alert_type` query param — cleaner than separate endpoints when PRP-05 (found) merges in.
+**Note:** Route migration `/sos` → `/post` is already complete (PRP-03.1). This PRP focuses on enriching `/post/*` with new pages and overhauling the API. The single `/api/post/` endpoint handles all alert types via `alert_type` query param.
 
 ---
 
@@ -93,11 +95,69 @@ ALTER TABLE pet_reports
     -- ^ Multiple photos (front, side, markings, full body). Max 5 photos.
   ADD COLUMN IF NOT EXISTS status text DEFAULT 'active'
     CHECK (status IN ('active', 'resolved_found', 'resolved_owner', 'resolved_other', 'expired'));
+    -- ^ NOTE: `status` supersedes the existing `resolution_status` column ("found" | "given_up").
+    --   `resolution_status` is kept for backward compatibility but `status` is the source of truth.
+    --   When status is set to 'resolved_*', resolution_status is also updated for legacy code.
+    --   Existing `is_active` boolean is synced: is_active = (status = 'active').
 
 -- Index for listing queries
 CREATE INDEX IF NOT EXISTS idx_pet_reports_active_type
   ON pet_reports(alert_type, status, created_at DESC)
   WHERE status = 'active';
+
+-- UPDATE nearby_reports() RPC to return new columns
+-- Current RPC only returns: id, pet_id, owner_id, lat, lng, description, video_url,
+-- pet_photo_url, is_active, resolved_at, resolution_status, geog, distance_m
+-- Must be replaced to include all new alert fields for listing cards
+CREATE OR REPLACE FUNCTION nearby_reports(
+  p_lat double precision,
+  p_lng double precision,
+  p_radius_m double precision,
+  p_limit integer DEFAULT 50
+)
+RETURNS TABLE (
+  id uuid, pet_id uuid, owner_id uuid,
+  alert_type text, status text,
+  lat double precision, lng double precision,
+  description text, distinguishing_marks text,
+  location_description text,
+  lost_date date, lost_time time,
+  photo_urls text[], pet_photo_url text, video_url text, voice_url text,
+  reward_amount int, reward_note text,
+  pet_name text, pet_species text, pet_breed text, pet_color text,
+  pet_sex text, pet_date_of_birth date, pet_neutered boolean, pet_microchip text,
+  is_active boolean, resolved_at timestamptz, resolution_status text,
+  created_at timestamptz,
+  geog extensions.geography, distance_m double precision
+)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    a.id, a.pet_id, a.owner_id,
+    a.alert_type, a.status,
+    a.lat, a.lng,
+    a.description, a.distinguishing_marks,
+    a.location_description,
+    a.lost_date, a.lost_time,
+    a.photo_urls, a.pet_photo_url, a.video_url, a.voice_url,
+    a.reward_amount, a.reward_note,
+    a.pet_name, a.pet_species, a.pet_breed, a.pet_color,
+    a.pet_sex, a.pet_date_of_birth, a.pet_neutered, a.pet_microchip,
+    a.is_active, a.resolved_at, a.resolution_status,
+    a.created_at,
+    a.geog,
+    ST_Distance(a.geog, ST_Point(p_lng, p_lat)::extensions.geography) AS distance_m
+  FROM pet_reports a
+  WHERE a.is_active = true
+    AND a.geog IS NOT NULL
+    AND ST_DWithin(a.geog, ST_Point(p_lng, p_lat)::extensions.geography, p_radius_m)
+  ORDER BY distance_m ASC
+  LIMIT p_limit;
+END;
+$$;
 
 -- Denormalized pet data snapshot (so listing doesn't need JOIN for every card)
 -- Includes sex, age, neutered — critical identification fields per Thai platform norms
@@ -117,11 +177,16 @@ ALTER TABLE pet_reports
 
 ### 4.2 Zod Validation Schema
 
-- [ ] Extend `lib/validations/pet-reports.ts` with new fields
+- [ ] Add `lostPetAlertSchema` to `lib/validations/pet-report.ts`
+- [ ] Rename existing `resolveReportSchema` → `resolveAlertSchema` (update import in `app/api/post/route.ts` line 57)
+- [ ] Update resolve enum values from `["found", "given_up"]` → `["resolved_found", "resolved_owner", "resolved_other"]`
+- [ ] Update resolve field names from `{ alertId, resolution }` → `{ alert_id, status, resolution_note }`
 
 ```typescript
-import { z } from "zod/v4";
+import { z } from "zod";
+// NOTE: Codebase uses `from "zod"` (Zod 4.3.6), NOT `from "zod/v4"`
 
+// Keep existing petReportSchema for backward compat, add new schema alongside
 export const lostPetAlertSchema = z.object({
   pet_id: z.string().uuid(),
   lost_date: z.string().date(),  // "2026-04-13" — when the pet was actually lost
@@ -141,6 +206,7 @@ export const lostPetAlertSchema = z.object({
     // Opt-in phone for poster/share card only
 });
 
+// REPLACES existing resolveReportSchema (renamed + expanded enum)
 export const resolveAlertSchema = z.object({
   alert_id: z.string().uuid(),
   status: z.enum(["resolved_found", "resolved_owner", "resolved_other"]),
@@ -153,15 +219,18 @@ export const resolveAlertSchema = z.object({
 - [ ] Create `app/api/post/route.ts` POST handler (replaces `app/api/sos/route.ts`)
 - [ ] Auto-snapshot pet data from `pets` table into alert:
   - `pet_name`, `pet_species`, `pet_breed`, `pet_color`, `pet_sex`, `pet_date_of_birth`, `pet_neutered`, `pet_microchip`
-  - `photo_urls` from `pet_photos` table (all photos, ordered by `display_order`)
+  - `photo_urls` from `pet_photos` table (columns: id, pet_id, photo_url, display_order, created_at — verified exists)
+  - Query: `SELECT photo_url FROM pet_photos WHERE pet_id = ? ORDER BY display_order ASC`
   - Owner can add additional photos during wizard (appended to array)
+  - **Photo upload pattern:** Additional wizard photos use Supabase Storage (bucket `"pet-photos"`, path `posts/${user.id}-${Date.now()}.${ext}`), same pattern as `/api/posts/route.ts` lines 40-47. Resulting public URLs appended to `photo_urls` array. Pet profile photos are already URLs from `pet_photos` table (no re-upload needed).
 - [ ] Trigger PostGIS geog sync via trigger (PRP-03)
-- [ ] Rate limit: 3 lost alerts per 24 hours per user
+- [ ] Rate limit: change from current `createRateLimiter(3, "5 m")` to `createRateLimiter(3, "24 h")` — 3 lost alerts per 24 hours per user (current code at `app/api/post/route.ts` line 6 is too loose at 3 per 5 minutes)
 
 ### 4.4 API Route — List Alerts (Community Hub Backend)
 
 - [ ] Add GET handler to `app/api/post/route.ts` (same file as POST — unified endpoint)
 - [ ] Cursor pagination with PostGIS distance sorting via `nearby_reports()` RPC
+  - **NOTE:** No cursor pagination utility exists in `lib/`. Create `lib/pagination.ts` with encode/decode helpers. Cursor = base64-encoded `{created_at, id}`. Pattern: `WHERE (created_at, id) < (cursor_created_at, cursor_id) ORDER BY created_at DESC, id DESC LIMIT page_size+1` (extra row = hasMore flag).
 - [ ] Filter by: alert_type (lost/found), species, radius (1/3/5/10km/all), date range
 - [ ] Returns fuzzy locations (grid-snapped via PRP-03 `snap_to_grid()` RPC)
 - [ ] Default radius: 1km (user-selectable: 1/3/5/10/all)
@@ -190,7 +259,7 @@ export const resolveAlertSchema = z.object({
        ```
        (Translation: "Distinguishing features that help others recognize your pet, e.g.: Red collar with bell / Already neutered / Scar on left ear / Friendly, doesn't bite / Wearing striped shirt / Healthy / Has chronic condition")
      - **Description** — optional free-text for additional context
-  4. **Voice Recording** — optional 30s audio (owner calling pet name). If complex, defer to PRP-04.2
+  4. **Voice Recording** — **PLACEHOLDER ONLY** (deferred to PRP-04.2). Show disabled state with message: "เร็วๆ นี้! บันทึกเสียงเรียกน้อง" ("Coming soon! Record your voice calling your pet"). Skip button to proceed to step 5.
   5. **Reward & Contact**:
      - **Reward amount** (optional, displayed prominently if set)
      - **Reward note** (optional, e.g., "ตามเหมาะสม" / "negotiable")
@@ -198,6 +267,7 @@ export const resolveAlertSchema = z.object({
   6. **Review & Submit** — summary card showing all entered data before final submit
 - [ ] Success screen: "ประกาศถูกส่งแล้ว! คนเลี้ยงสัตว์ใกล้เคียงจะได้รับแจ้งเตือน" + share prompt
 - [ ] Auto-share prompt: `liff.shareTargetPicker()` for LINE sharing + "Share to Facebook" + "Copy Link"
+  - **NOTE:** `shareTargetPicker` has no wrapper in `lib/liff.ts` yet. Add `liffShareTargetPicker()` wrapper function to `lib/liff.ts` (currently only has: initializeLiff, getLiffProfile, getLiffIdToken, isInLiffBrowser, liffLogin, liffLogout). Handle graceful fallback if not in LIFF browser.
 
 **Entry points for wizard:**
 - Floating CTA button on community hub (listings page)
@@ -207,7 +277,9 @@ export const resolveAlertSchema = z.object({
 
 ### 4.6 Community Hub — Tab-Based Listing Page
 
-- [ ] Create `app/post/page.tsx` — IG/FB/X style tab feed
+> **MIGRATION NOTE:** The current `app/post/page.tsx` (243 lines) is a single lost-pet report form (`ReportFormContent` component) with pet selector, map picker, video upload, and description fields. This entire form logic must move to `app/post/lost/page.tsx` (Task 4.5) as the first 3 wizard steps. Then `app/post/page.tsx` is **completely rewritten** as the community hub below. Do NOT incrementally edit — it's a full replacement.
+
+- [ ] Rewrite `app/post/page.tsx` — IG/FB/X style tab feed (replaces existing report form)
 - [ ] Tab bar: `[Lost 🔴]` `[Found 🟢]` `[All]`
   - Lost tab: active lost alerts, distance-sorted
   - Found tab: placeholder for PRP-05 (shows "Coming soon" or empty state)
@@ -261,23 +333,25 @@ export const resolveAlertSchema = z.object({
 
 ### 4.9 Rich Menu Update
 
-- [ ] Rename Rich Menu panel to "Lost & Found"
-- [ ] Update Rich Menu tap target URL from `/sos` → `/post`
-- [ ] Update `lib/line/rich-menu.ts` template
+> **Current PANELS (2x2 grid):** Home (`/`), My Pets (`/pets`), Hospital (`/hospital`), Profile (`/profile`).
+> **Strategy:** Replace "Hospital" panel (index 2) with "Lost & Found" (`/post`). Hospital is low-usage and can be accessed from Home. LINE rich menu supports up to 20 areas — the current 2x2 layout stays, only the label and URL change.
 
-### 4.10 Route Migration
+- [ ] Replace Rich Menu panel index 2: label "Hospital" → "Lost & Found", path `/hospital` → `/post`
+- [ ] Update `lib/line/rich-menu.ts` PANELS array
+- [ ] Redeploy rich menu via `/api/line/rich-menu` endpoint
 
-- [ ] Create new page route files under `app/post/`
-- [ ] Create new API route `app/api/post/route.ts` (migrate logic from `app/api/sos/route.ts`)
-- [ ] Delete old `app/api/sos/route.ts` after migration
-- [ ] Add redirect from `/sos` → `/post` for backward compatibility (page routes only)
-- [ ] Update all `apiFetch` calls from `/api/sos` → `/api/post`
-- [ ] Update all internal links and navigation references
-- [ ] Update Report FAB button (`components/report-button.tsx`) to link to `/post/lost`
+### 4.10 Route & Navigation Cleanup
+
+> **Note:** PRP-03.1 already completed: `/sos` → `/post` redirect, deleted `/api/sos/route.ts`, moved API to `/api/post/route.ts`. This task handles remaining navigation updates only.
+
+- [ ] Update Report FAB button (`components/report-button.tsx`) href from `/post` → `/post/lost`
+- [ ] Verify `/sos` redirect still works (already in place from PRP-03.1)
+- [ ] Update any remaining internal links referencing old routes
+- [ ] Clear `.next` cache after route changes (`rm -rf .next`)
 
 ### 4.11 TypeScript Types
 
-- [ ] Update `lib/types/pet-reports.ts`
+- [ ] Update `lib/types/pet-report.ts`
 
 ```typescript
 export type AlertType = "lost" | "found" | "stray";
@@ -416,13 +490,23 @@ npm run type-check       # TypeScript strict mode
 
 ---
 
-## Confidence Score: 8/10
+## Confidence Score: 10/10
 
-**Risk areas:**
-- Multi-step form state management in LIFF WebView (use React state, not URL params)
-- Pet data snapshot may go stale if pet profile updated after alert creation
-- `liff.shareTargetPicker()` may not work in all LINE versions
-- Route migration `/sos` → `/post` needs careful redirect handling
+**All risks mitigated:**
+- ~~Multi-step form state~~ — codebase uses plain `useState`, no form library. Same pattern works for 6-step wizard (confirmed via current `app/post/page.tsx`). No LIFF WebView issues with React state.
+- ~~Pet data snapshot staleness~~ — acceptable by design (snapshot-at-creation-time). Pet profile edits after alert creation don't retroactively update alerts — this is correct behavior (alert captures state at time of loss).
+- ~~`liff.shareTargetPicker()`~~ — wrapper to be added to `lib/liff.ts` with graceful fallback for non-LIFF browsers (documented in Task 4.5).
+- ~~Route migration~~ — already done by PRP-03.1
+- ~~RPC column mismatch~~ — `nearby_reports()` replacement included in migration
+- ~~Zod import path~~ — confirmed `from "zod"` (not v4)
+- ~~status vs resolution_status conflict~~ — clarified coexistence with sync trigger
+- ~~pet_photos table~~ — verified exists with display_order column
+- ~~Voice recording scope~~ — firm decision: placeholder only, deferred to PRP-04.2
+- ~~File path typos~~ — corrected to singular `pet-report.ts` (both types and validations)
+- ~~Rate limit mismatch~~ — documented change from 3/5m → 3/24h with exact code location
+- ~~Photo upload strategy~~ — Supabase Storage pattern documented (same as `/api/posts`)
+- ~~Schema rename~~ — `resolveReportSchema` → `resolveAlertSchema` with field/enum migration documented
+- ~~Cursor pagination~~ — `lib/pagination.ts` helper to be created, pattern specified
 
 ---
 
@@ -444,3 +528,5 @@ npm run type-check       # TypeScript strict mode
 | v2.0 | 2026-04-13 | Major refinement: route `/sos` → `/report`, 5-step wizard (voice recording), community hub with tab feed (IG/X pattern), dominant chips, radius selector (1/3/5/10/All), Rich Menu rename, floating CTA, extracted poster to PRP-04.1 and voice to PRP-04.2 |
 | v2.1 | 2026-04-13 | Route `/report` → `/post` — more generic, accommodates future social posts alongside lost/found/returned in unified community hub |
 | v2.2 | 2026-04-13 | Gap closure from Thai platform competitive analysis: added `lost_date`/`lost_time`, `pet_sex`/`pet_date_of_birth`/`pet_neutered` snapshot, `photo_urls` array (1-5), `location_description` free-text, `contact_phone` opt-in for poster, FB/X share buttons, distinguishing_marks expanded with Thai placeholder guidance (collar, health, neutered combined as single free-text). Added Task 4.12: pet profile `neutered` column migration. Wizard now 6 steps with Review step. |
+| v3.0 | 2026-04-13 | Validation refinement (8 fixes): (1) Added `nearby_reports()` RPC replacement with all new columns in migration, (2) Tracked `/api/me/data-export` as out-of-scope PDPA item, (3) Clarified `app/post/page.tsx` is a full rewrite (current form moves to `/post/lost`), (4) Fixed Zod import to `from "zod"` matching codebase convention, (5) Specified Rich Menu panel replacement strategy (Hospital→Lost & Found at index 2), (6) Documented `status` vs `resolution_status` coexistence with sync, (7) Verified `pet_photos` table structure (5 columns with display_order), (8) Firm decision: voice recording is placeholder-only (PRP-04.2). Also simplified Task 4.10 since route migration already done by PRP-03.1. Updated route structure diagram to reflect current state. Confidence: 8→9/10. |
+| v3.1 | 2026-04-13 | Deep refinement (6 fixes): (9) Fixed file path typos `pet-reports.ts` → `pet-report.ts` (singular, matching actual files), (10) Documented rate limit change 3/5m → 3/24h with exact code location, (11) Specified Supabase Storage upload pattern for wizard photos (same as `/api/posts`), (12) Documented `resolveReportSchema` → `resolveAlertSchema` rename with field/enum migration, (13) Added `liffShareTargetPicker()` wrapper requirement to `lib/liff.ts`, (14) Specified cursor pagination helper `lib/pagination.ts` creation with encode/decode pattern. All remaining risks mitigated. Confidence: 9→10/10. |

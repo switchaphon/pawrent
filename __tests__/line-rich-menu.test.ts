@@ -55,7 +55,7 @@ describe("createRichMenuTemplate", () => {
 
     expect(uris[0]).toBe(`${liffBase}/`);
     expect(uris[1]).toBe(`${liffBase}/pets`);
-    expect(uris[2]).toBe(`${liffBase}/hospital`);
+    expect(uris[2]).toBe(`${liffBase}/post`);
     expect(uris[3]).toBe(`${liffBase}/profile`);
   });
 });

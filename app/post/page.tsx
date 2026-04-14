@@ -1,243 +1,354 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/liff-provider";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { getPets, uploadReportVideo } from "@/lib/db";
+import { AlertCard } from "@/components/post/alert-card";
+import { RadiusSelector } from "@/components/post/radius-selector";
+import { SpeciesFilter } from "@/components/post/species-filter";
+import type { LostPetAlert } from "@/components/post/types";
 import { apiFetch } from "@/lib/api";
-import type { Pet } from "@/lib/types";
-import { petReportSchema, videoFileSchema } from "@/lib/validations";
-import { AlertTriangle, MapPin, Video, Send, Loader2, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, Loader2, MapPin, CheckCircle, ChevronDown } from "lucide-react";
 
-// Dynamic import for Leaflet (SSR issue)
-const MapPicker = dynamic(() => import("@/components/map-picker").then((mod) => mod.MapPicker), {
-  ssr: false,
-  loading: () => <div className="h-48 bg-muted rounded-xl animate-pulse" />,
-});
+type TabType = "lost" | "found" | "all";
 
-function ReportFormContent() {
-  const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const preselectedPetId = searchParams.get("pet");
+function getRelativeTimeThai(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
 
-  const [step, setStep] = useState<"form" | "success">("form");
-  const [loading, setLoading] = useState(false);
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [selectedPetId, setSelectedPetId] = useState<string>("");
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [description, setDescription] = useState("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
+  if (diffMin < 1) return "เมื่อสักครู่";
+  if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+  if (diffHr < 24) return `${diffHr} ชม.ที่แล้ว`;
+  if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
+  return `${Math.floor(diffDay / 7)} สัปดาห์ที่แล้ว`;
+}
 
-  // Get selected pet object
-  const selectedPet = pets.find((p) => p.id === selectedPetId);
+// Owner's active alerts section
+function MyAlertsSection({
+  alerts,
+  onResolve,
+}: {
+  alerts: LostPetAlert[];
+  onResolve: (alertId: string, status: string) => void;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      getPets(user.id).then(({ data }) => {
-        setPets(data || []);
-        // Use preselected pet from URL, or first pet
-        if (preselectedPetId && data?.some((p) => p.id === preselectedPetId)) {
-          setSelectedPetId(preselectedPetId);
-        } else if (data && data.length > 0) {
-          setSelectedPetId(data[0].id);
-        }
-      });
-    }
-  }, [user, preselectedPetId]);
-
-  // Pre-populate description from selected pet's special_notes
-  useEffect(() => {
-    if (selectedPet?.special_notes) {
-      setDescription(selectedPet.special_notes);
-    } else {
-      setDescription("");
-    }
-  }, [selectedPet]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedPetId || !location) return;
-
-    const validationResult = petReportSchema.safeParse({
-      pet_id: selectedPetId,
-      lat: location.lat,
-      lng: location.lng,
-      description: description || null,
-    });
-    if (!validationResult.success) {
-      alert(validationResult.error.issues[0].message);
-      return;
-    }
-
-    if (videoFile) {
-      const videoResult = videoFileSchema.safeParse({ size: videoFile.size, type: videoFile.type });
-      if (!videoResult.success) {
-        alert(videoResult.error.issues[0].message);
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    try {
-      // Create pet report via API route
-      const report = await apiFetch("/api/post", {
-        method: "POST",
-        body: JSON.stringify({
-          pet_id: selectedPetId,
-          lat: location.lat,
-          lng: location.lng,
-          description: description || null,
-        }),
-      });
-
-      // Upload video if exists
-      if (videoFile && report) {
-        const { url } = await uploadReportVideo(videoFile, report.id);
-        // Could update the report with video URL here
-      }
-
-      setStep("success");
-    } catch (error) {
-      console.error("Error creating pet report:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (step === "success") {
-    return (
-      <div className="min-h-screen bg-background pb-24">
-        <header className="sticky top-0 z-30 bg-green-600 text-white px-4 py-3">
-          <h1 className="text-xl font-bold">Report Submitted!</h1>
-        </header>
-        <main className="px-4 py-12 max-w-md mx-auto text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Alert Broadcasted</h2>
-          <p className="text-muted-foreground mb-6">
-            Nearby pet parents within 5km will be notified. Stay strong!
-          </p>
-          <Button
-            onClick={() => {
-              setStep("form");
-              setDescription("");
-              setVideoFile(null);
-            }}
-            variant="outline"
-            className="w-full"
-          >
-            Create Another Report
-          </Button>
-        </main>
-      </div>
-    );
-  }
+  if (alerts.length === 0) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-destructive text-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
-          <h1 className="text-xl font-bold">Report Lost Pet</h1>
-        </div>
-        <p className="text-sm opacity-90">Report a lost pet emergency</p>
-      </header>
-
-      {/* Form */}
-      <main className="px-4 py-6 max-w-md mx-auto">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Select Pet */}
-          <Card className="p-4 rounded-xl">
-            <Label htmlFor="pet" className="text-foreground font-semibold">
-              Select Pet *
-            </Label>
-            <select
-              id="pet"
-              value={selectedPetId}
-              onChange={(e) => setSelectedPetId(e.target.value)}
-              className="w-full mt-2 p-3 border border-border rounded-xl bg-background text-foreground"
-              required
-            >
-              {pets.map((pet) => (
-                <option key={pet.id} value={pet.id}>
-                  {pet.name} - {pet.breed || "Unknown breed"}
-                </option>
-              ))}
-            </select>
-          </Card>
-
-          {/* Last Seen Location */}
-          <Card className="p-4 rounded-xl">
-            <Label className="text-foreground font-semibold flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 text-destructive" />
-              Last Seen Location *
-            </Label>
-            <MapPicker onLocationSelect={(lat, lng) => setLocation({ lat, lng })} />
-            <p className="text-xs text-muted-foreground mt-2">
-              {location
-                ? `📍 ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
-                : "Tap on the map to set location"}
-            </p>
-          </Card>
-
-          {/* Video Upload */}
-          <Card className="p-4 rounded-xl">
-            <Label className="text-foreground font-semibold flex items-center gap-2">
-              <Video className="w-4 h-4 text-primary" />
-              Video Evidence (Optional)
-            </Label>
-            <Input
-              type="file"
-              accept="video/*"
-              onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-              className="mt-2"
-            />
-            {videoFile && <p className="text-xs text-muted-foreground mt-2">📹 {videoFile.name}</p>}
-          </Card>
-
-          {/* Description */}
-          <Card className="p-4 rounded-xl">
-            <Label htmlFor="description" className="text-foreground font-semibold">
-              Distinguishing Marks
-            </Label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="E.g., Blue collar, white patch on chest..."
-              className="w-full mt-2 p-3 border border-border rounded-xl bg-background text-foreground min-h-[100px] resize-none"
-            />
-          </Card>
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={loading || !location || !selectedPetId}
-            className="w-full h-14 text-lg font-bold bg-destructive hover:bg-destructive/90"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                <Send className="w-5 h-5 mr-2" />
-                Broadcast Report
-              </>
+    <section className="mb-4">
+      <h2 className="text-sm font-bold text-foreground mb-2 px-1">ประกาศของฉัน</h2>
+      <div className="space-y-2">
+        {alerts.map((alert) => (
+          <div key={alert.id} className="bg-white rounded-xl border border-border p-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <Link
+                  href={`/post/${alert.id}`}
+                  className="font-semibold text-sm text-foreground hover:text-primary truncate block"
+                >
+                  {alert.pet_name || "ไม่ระบุชื่อ"} —{" "}
+                  <span className="text-red-500 text-xs font-bold">หาย</span>
+                </Link>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {getRelativeTimeThai(alert.created_at)}
+                </p>
+              </div>
+              <button
+                onClick={() => setExpandedId(expandedId === alert.id ? null : alert.id)}
+                className="ml-2 text-xs text-primary font-medium flex items-center gap-1"
+              >
+                จัดการ
+                <ChevronDown
+                  className={cn(
+                    "w-3 h-3 transition-transform",
+                    expandedId === alert.id && "rotate-180"
+                  )}
+                />
+              </button>
+            </div>
+            {expandedId === alert.id && (
+              <div className="mt-3 pt-3 border-t border-border space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">เปลี่ยนสถานะประกาศ:</p>
+                <button
+                  onClick={() => onResolve(alert.id, "resolved_found")}
+                  className="w-full py-2 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-1"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  พบน้องแล้ว (คนอื่นเจอ)
+                </button>
+                <button
+                  onClick={() => onResolve(alert.id, "resolved_owner")}
+                  className="w-full py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  น้องกลับบ้านเองแล้ว
+                </button>
+                <button
+                  onClick={() => onResolve(alert.id, "resolved_other")}
+                  className="w-full py-2 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  ปิดประกาศ (อื่นๆ)
+                </button>
+              </div>
             )}
-          </Button>
-        </form>
-      </main>
-    </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
 export default function PostPage() {
-  return <ReportFormContent />;
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType>("lost");
+  const [radius, setRadius] = useState<number | null>(1000);
+  const [species, setSpecies] = useState<string | null>(null);
+  const [alerts, setAlerts] = useState<LostPetAlert[]>([]);
+  const [myAlerts, setMyAlerts] = useState<LostPetAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Get user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        () => {
+          // Default to Bangkok
+          setUserLocation({ lat: 13.7563, lng: 100.5018 });
+        }
+      );
+    } else {
+      setUserLocation({ lat: 13.7563, lng: 100.5018 });
+    }
+  }, []);
+
+  // Fetch alerts
+  const fetchAlerts = useCallback(
+    async (append = false) => {
+      if (!userLocation) return;
+
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setCursor(null);
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("lat", String(userLocation.lat));
+        params.set("lng", String(userLocation.lng));
+        if (radius) params.set("radius", String(radius));
+        if (activeTab !== "all") params.set("alert_type", activeTab);
+        if (species) params.set("species", species);
+        if (append && cursor) params.set("cursor", cursor);
+        params.set("limit", "20");
+
+        const data = await apiFetch(`/api/post?${params.toString()}`);
+
+        const items: LostPetAlert[] = data.alerts || data.data || [];
+        const nextCursor = data.cursor || data.next_cursor || null;
+
+        if (append) {
+          setAlerts((prev) => [...prev, ...items]);
+        } else {
+          setAlerts(items);
+        }
+        setCursor(nextCursor);
+        setHasMore(!!nextCursor);
+      } catch {
+        // API may not exist yet - that's expected during parallel development
+        if (!append) setAlerts([]);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [userLocation, radius, activeTab, species, cursor]
+  );
+
+  // Fetch my alerts
+  const fetchMyAlerts = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await apiFetch(`/api/post?owner_id=${user.id}&status=active`);
+      setMyAlerts(data.alerts || data.data || []);
+    } catch {
+      setMyAlerts([]);
+    }
+  }, [user]);
+
+  // Initial load and reload on filter changes
+  useEffect(() => {
+    if (userLocation) {
+      fetchAlerts(false);
+    }
+  }, [userLocation, radius, activeTab, species]);
+
+  useEffect(() => {
+    fetchMyAlerts();
+  }, [user]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          fetchAlerts(true);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, fetchAlerts]);
+
+  // Resolve alert handler
+  const handleResolve = async (alertId: string, status: string) => {
+    try {
+      await apiFetch("/api/post", {
+        method: "PUT",
+        body: JSON.stringify({ alert_id: alertId, status }),
+      });
+      // Refresh both lists
+      fetchMyAlerts();
+      fetchAlerts(false);
+    } catch (err) {
+      console.error("Error resolving alert:", err);
+    }
+  };
+
+  const tabs: { key: TabType; label: string; color: string }[] = [
+    { key: "lost", label: "หาย", color: "bg-red-500" },
+    { key: "found", label: "พบ", color: "bg-green-500" },
+    { key: "all", label: "ทั้งหมด", color: "bg-gray-500" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-bold text-foreground">สัตว์เลี้ยงหาย</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">ช่วยกันตามหาสัตว์เลี้ยงในชุมชน</p>
+      </header>
+
+      <main className="px-4 py-4 max-w-md mx-auto space-y-4">
+        {/* My Alerts */}
+        <MyAlertsSection alerts={myAlerts} onResolve={handleResolve} />
+
+        {/* Tab bar */}
+        <div className="flex gap-1 bg-white rounded-xl p-1 border border-border">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5",
+                activeTab === tab.key
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  activeTab === tab.key ? "bg-white" : tab.color
+                )}
+              />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="space-y-2">
+          <RadiusSelector value={radius} onChange={setRadius} />
+          <SpeciesFilter value={species} onChange={setSpecies} />
+        </div>
+
+        {/* Found tab placeholder */}
+        {activeTab === "found" && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🐾</span>
+            </div>
+            <h3 className="text-lg font-bold text-foreground mb-1">เร็วๆ นี้</h3>
+            <p className="text-sm text-muted-foreground">
+              ระบบแจ้งพบสัตว์เลี้ยงจะเปิดให้ใช้งานเร็วๆ นี้
+            </p>
+          </div>
+        )}
+
+        {/* Alert list */}
+        {activeTab !== "found" && (
+          <>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : alerts.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <MapPin className="w-8 h-8 text-primary/50" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-1">ไม่พบประกาศ</h3>
+                <p className="text-sm text-muted-foreground">
+                  {radius ? "ไม่มีประกาศในรัศมีที่เลือก ลองขยายรัศมีดู" : "ยังไม่มีประกาศในขณะนี้"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {alerts.map((alert) => (
+                  <AlertCard key={alert.id} alert={alert} />
+                ))}
+              </div>
+            )}
+
+            {/* Infinite scroll sentinel */}
+            {hasMore && (
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                {loadingMore && <Loader2 className="w-6 h-6 animate-spin text-primary" />}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Floating CTA */}
+      <Link
+        href="/post/lost"
+        className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-destructive text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
+      >
+        <AlertTriangle className="w-5 h-5" />
+        <span>แจ้งสัตว์เลี้ยงหาย</span>
+      </Link>
+    </div>
+  );
 }

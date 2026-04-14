@@ -9,6 +9,7 @@ export const petSchema = z.object({
   weight_kg: z.number().min(0).max(500).nullable(),
   date_of_birth: z.string().nullable(),
   microchip_number: z.string().max(50).nullable(),
+  neutered: z.boolean().nullable().default(false),
   special_notes: z.string().max(1000).nullable(),
   photo_url: z.string().url().max(2048).nullable().optional(),
 });
