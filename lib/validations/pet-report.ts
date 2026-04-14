@@ -27,6 +27,7 @@ export const lostPetAlertSchema = z.object({
   reward_amount: z.number().int().min(0).max(1000000).default(0),
   reward_note: z.string().max(200).optional(),
   contact_phone: z.string().max(20).optional(),
+  voice_url: z.string().url().optional(),
 });
 
 export const resolveAlertSchema = z.object({

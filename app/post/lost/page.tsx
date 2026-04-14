@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { getPets, getPetPhotos } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import type { Pet, PetPhoto } from "@/lib/types";
 import {
   ArrowLeft,
@@ -120,6 +121,10 @@ export default function LostWizardPage() {
   const [distinguishingMarks, setDistinguishingMarks] = useState("");
   const [description, setDescription] = useState("");
 
+  // Step 4: Voice Recording
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceConsent, setVoiceConsent] = useState(false);
+
   // Step 5: Reward & Contact
   const [rewardAmount, setRewardAmount] = useState(0);
   const [rewardNote, setRewardNote] = useState("");
@@ -224,7 +229,25 @@ export default function LostWizardPage() {
         body: JSON.stringify(body),
       });
 
-      setSubmittedAlertId(result.id || result.data?.id || null);
+      const alertId = result.id || result.data?.id || null;
+      setSubmittedAlertId(alertId);
+
+      // Upload voice recording if present
+      if (voiceBlob && alertId && voiceConsent) {
+        try {
+          const voiceForm = new FormData();
+          voiceForm.append("audio", voiceBlob, "recording.webm");
+          voiceForm.append("alert_id", alertId);
+          await apiFetch("/api/voice", {
+            method: "POST",
+            body: voiceForm,
+          });
+        } catch (voiceErr) {
+          // Voice upload failure is non-blocking — alert was already created
+          console.error("Voice upload failed:", voiceErr);
+        }
+      }
+
       setSubmitted(true);
     } catch (error) {
       console.error("Error creating alert:", error);
@@ -522,20 +545,21 @@ export default function LostWizardPage() {
           </div>
         )}
 
-        {/* Step 4: Voice Recording (Placeholder) */}
+        {/* Step 4: Voice Recording */}
         {step === 3 && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-foreground">บันทึกเสียง</h2>
 
-            <Card className="p-6 rounded-xl text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Mic className="w-8 h-8 text-primary/40" />
-              </div>
-              <h3 className="text-base font-bold text-foreground mb-2">เร็วๆ นี้!</h3>
-              <p className="text-sm text-muted-foreground mb-1">บันทึกเสียงเรียกน้อง</p>
-              <p className="text-xs text-muted-foreground">
+            <Card className="p-4 rounded-xl">
+              <p className="text-sm text-muted-foreground mb-3">
+                บันทึกเสียงเรียกชื่อน้อง{selectedPet?.name ? ` "${selectedPet.name}"` : ""}{" "}
                 เสียงของเจ้าของจะช่วยให้คนที่พบน้องเรียกน้องกลับมาได้
               </p>
+              <VoiceRecorder
+                onRecordingChange={setVoiceBlob}
+                consentGiven={voiceConsent}
+                onConsentChange={setVoiceConsent}
+              />
             </Card>
 
             <p className="text-xs text-muted-foreground text-center">
@@ -687,6 +711,12 @@ export default function LostWizardPage() {
                     </p>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">เสียงเจ้าของ</span>
+                  <span className="text-foreground font-medium">
+                    {voiceBlob ? "มีบันทึกเสียง" : "ไม่มี"}
+                  </span>
+                </div>
                 {rewardAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">รางวัลนำจับ</span>
