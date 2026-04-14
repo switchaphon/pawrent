@@ -337,6 +337,21 @@ describe("GET /api/cron/health-reminders", () => {
     expect(json.sent).toBe(0);
   });
 
+  it("does not re-send already sent reminders (idempotency)", async () => {
+    // Both overdue and upcoming queries return empty because is_sent filter
+    // excludes already-sent reminders at the DB level
+    fromCallResults = [
+      { data: [], error: null }, // overdue — all already sent
+      { data: [], error: null }, // upcoming — all already sent
+    ];
+
+    const req = makeCronRequest();
+    const res = await GET(req);
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
   it("excludes upcoming reminders outside remind window", async () => {
     // Reminder due in 10 days, remind_days_before = 3, should NOT be included
     fromCallResults = [

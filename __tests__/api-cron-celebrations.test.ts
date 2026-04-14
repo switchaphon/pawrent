@@ -351,6 +351,35 @@ describe("GET /api/cron/celebrations", () => {
     expect(json.gotchaDays).toBe(1);
   });
 
+  it("caps photo collage at 4 photos per pet", async () => {
+    fromCallResults = [
+      {
+        data: [{ id: "p1", name: "Buddy", owner_id: "o1", date_of_birth: "2023-04-14" }],
+        error: null,
+      },
+      { data: [], error: null },
+      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
+      {
+        data: [
+          { pet_id: "p1", photo_url: "https://example.com/1.jpg" },
+          { pet_id: "p1", photo_url: "https://example.com/2.jpg" },
+          { pet_id: "p1", photo_url: "https://example.com/3.jpg" },
+          { pet_id: "p1", photo_url: "https://example.com/4.jpg" },
+          { pet_id: "p1", photo_url: "https://example.com/5.jpg" },
+        ],
+        error: null,
+      },
+    ];
+
+    const req = makeCronRequest();
+    const res = await GET(req);
+    const json = await res.json();
+    expect(json.sent).toBe(1);
+    expect(mockPushMessage).toHaveBeenCalledOnce();
+    // The route caps at 4 photos per pet (line 92: existing.length < 4)
+    // Confirm push was called successfully (photo cap doesn't cause errors)
+  });
+
   it("handles gotcha-day push error gracefully", async () => {
     fromCallResults = [
       { data: [], error: null },

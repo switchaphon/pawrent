@@ -83,6 +83,66 @@ describe("PassportContent", () => {
     expect(screen.getByText("เลยกำหนด")).toBeInTheDocument();
   });
 
+  it("renders due_soon vaccine badge", () => {
+    render(
+      <PassportContent
+        pet={basePet}
+        vaccinations={[
+          {
+            id: "v3",
+            pet_id: "p1",
+            name: "FeLV",
+            status: "due_soon",
+            last_date: "2026-03-01",
+            next_due_date: "2026-05-01",
+            created_at: "2026-03-01",
+          },
+        ]}
+        parasiteLogs={[]}
+        weightLogs={[]}
+        milestones={[]}
+        reminders={[]}
+      />
+    );
+    expect(screen.getByText("FeLV")).toBeInTheDocument();
+    expect(screen.getByText("ใกล้ครบกำหนด")).toBeInTheDocument();
+  });
+
+  it("renders vaccines in provided order (overdue before protected)", () => {
+    render(
+      <PassportContent
+        pet={basePet}
+        vaccinations={[
+          {
+            id: "v2",
+            pet_id: "p1",
+            name: "DHPP",
+            status: "overdue",
+            last_date: "2024-01-01",
+            next_due_date: "2025-01-01",
+            created_at: "2024-01-01",
+          },
+          {
+            id: "v1",
+            pet_id: "p1",
+            name: "Rabies",
+            status: "protected",
+            last_date: "2025-01-01",
+            next_due_date: "2026-12-01",
+            created_at: "2025-01-01",
+          },
+        ]}
+        parasiteLogs={[]}
+        weightLogs={[]}
+        milestones={[]}
+        reminders={[]}
+      />
+    );
+    const badges = screen.getAllByText(/ป้องกันแล้ว|เลยกำหนด|ใกล้ครบกำหนด/);
+    expect(badges[0]).toHaveTextContent("เลยกำหนด");
+    expect(badges[1]).toHaveTextContent("ป้องกันแล้ว");
+  });
+
   it("renders empty states when no data", () => {
     render(
       <PassportContent
