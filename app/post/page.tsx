@@ -9,7 +9,9 @@ import { SpeciesFilter } from "@/components/post/species-filter";
 import type { LostPetAlert } from "@/components/post/types";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Loader2, MapPin, CheckCircle, ChevronDown } from "lucide-react";
+import { FoundReportCard } from "@/components/post/found-report-card";
+import type { FoundReport } from "@/lib/types";
+import { AlertTriangle, Loader2, MapPin, CheckCircle, ChevronDown, Plus } from "lucide-react";
 
 type TabType = "lost" | "found" | "all";
 
@@ -119,7 +121,13 @@ export default function PostPage() {
     lat: number;
     lng: number;
   } | null>(null);
+  const [foundReports, setFoundReports] = useState<FoundReport[]>([]);
+  const [loadingFound, setLoadingFound] = useState(false);
+  const [foundCursor, setFoundCursor] = useState<string | null>(null);
+  const [hasMoreFound, setHasMoreFound] = useState(false);
+  const [loadingMoreFound, setLoadingMoreFound] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const foundSentinelRef = useRef<HTMLDivElement>(null);
 
   // Get user location
   useEffect(() => {
@@ -197,12 +205,57 @@ export default function PostPage() {
     }
   }, [user]);
 
+  // Fetch found reports
+  const fetchFoundReports = useCallback(
+    async (append = false) => {
+      if (append) {
+        setLoadingMoreFound(true);
+      } else {
+        setLoadingFound(true);
+        setFoundCursor(null);
+      }
+
+      try {
+        const params = new URLSearchParams();
+        if (species) params.set("species", species);
+        if (append && foundCursor) params.set("cursor", foundCursor);
+        params.set("limit", "20");
+
+        const data = await apiFetch(`/api/found-reports?${params.toString()}`);
+
+        const items: FoundReport[] = data.data || [];
+        const nextCursor = data.cursor || null;
+
+        if (append) {
+          setFoundReports((prev) => [...prev, ...items]);
+        } else {
+          setFoundReports(items);
+        }
+        setFoundCursor(nextCursor);
+        setHasMoreFound(!!nextCursor);
+      } catch {
+        if (!append) setFoundReports([]);
+      } finally {
+        setLoadingFound(false);
+        setLoadingMoreFound(false);
+      }
+    },
+    [species, foundCursor]
+  );
+
   // Initial load and reload on filter changes
   useEffect(() => {
     if (userLocation) {
       fetchAlerts(false);
     }
   }, [userLocation, radius, activeTab, species]);
+
+  // Fetch found reports when Found tab is active
+  useEffect(() => {
+    if (activeTab === "found") {
+      fetchFoundReports(false);
+    }
+  }, [activeTab, species]);
 
   useEffect(() => {
     fetchMyAlerts();
@@ -226,6 +279,25 @@ export default function PostPage() {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, loadingMore, fetchAlerts]);
+
+  // Infinite scroll for found reports
+  useEffect(() => {
+    if (!hasMoreFound || loadingMoreFound) return;
+    const sentinel = foundSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreFound && !loadingMoreFound) {
+          fetchFoundReports(true);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreFound, loadingMoreFound, fetchFoundReports]);
 
   // Resolve alert handler
   const handleResolve = async (alertId: string, status: string) => {
@@ -293,17 +365,36 @@ export default function PostPage() {
           <SpeciesFilter value={species} onChange={setSpecies} />
         </div>
 
-        {/* Found tab placeholder */}
+        {/* Found tab content */}
         {activeTab === "found" && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🐾</span>
-            </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">เร็วๆ นี้</h3>
-            <p className="text-sm text-muted-foreground">
-              ระบบแจ้งพบสัตว์เลี้ยงจะเปิดให้ใช้งานเร็วๆ นี้
-            </p>
-          </div>
+          <>
+            {loadingFound ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+              </div>
+            ) : foundReports.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">🐾</span>
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-1">ยังไม่มีรายงาน</h3>
+                <p className="text-sm text-muted-foreground">ยังไม่มีรายงานพบสัตว์เลี้ยงในขณะนี้</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {foundReports.map((report) => (
+                  <FoundReportCard key={report.id} report={report} />
+                ))}
+              </div>
+            )}
+
+            {/* Infinite scroll sentinel for found */}
+            {hasMoreFound && (
+              <div ref={foundSentinelRef} className="flex justify-center py-4">
+                {loadingMoreFound && <Loader2 className="w-6 h-6 animate-spin text-green-500" />}
+              </div>
+            )}
+          </>
         )}
 
         {/* Alert list */}
@@ -341,14 +432,24 @@ export default function PostPage() {
         )}
       </main>
 
-      {/* Floating CTA */}
-      <Link
-        href="/post/lost"
-        className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-destructive text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
-      >
-        <AlertTriangle className="w-5 h-5" />
-        <span>แจ้งสัตว์เลี้ยงหาย</span>
-      </Link>
+      {/* Floating CTA — changes based on active tab */}
+      {activeTab === "found" ? (
+        <Link
+          href="/post/found"
+          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-green-600 text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
+        >
+          <Plus className="w-5 h-5" />
+          <span>แจ้งพบสัตว์เลี้ยง</span>
+        </Link>
+      ) : (
+        <Link
+          href="/post/lost"
+          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-destructive text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <span>แจ้งสัตว์เลี้ยงหาย</span>
+        </Link>
+      )}
     </div>
   );
 }
