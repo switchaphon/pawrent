@@ -126,7 +126,7 @@ export default function AlertDetailPage() {
   useEffect(() => {
     async function fetchAlert() {
       try {
-        const data = await apiFetch(`/api/post/${alertId}`);
+        const data = await apiFetch(`/api/post?id=${alertId}`);
         setAlert(data.alert || data.data || data);
       } catch {
         console.error("Failed to fetch alert");
