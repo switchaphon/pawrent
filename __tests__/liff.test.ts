@@ -12,6 +12,8 @@ const mockLiff = vi.hoisted(() => ({
   isLoggedIn: vi.fn().mockReturnValue(true),
   login: vi.fn(),
   logout: vi.fn(),
+  shareTargetPicker: vi.fn().mockResolvedValue({}),
+  isApiAvailable: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock("@line/liff", () => ({
@@ -25,6 +27,7 @@ import {
   isInLiffBrowser,
   liffLogin,
   liffLogout,
+  liffShareTargetPicker,
   resetLiffState,
 } from "@/lib/liff";
 
@@ -106,6 +109,50 @@ describe("lib/liff", () => {
     it("calls liff.logout", () => {
       liffLogout();
       expect(mockLiff.logout).toHaveBeenCalled();
+    });
+  });
+
+  describe("liffShareTargetPicker", () => {
+    const messages = [{ type: "text" as const, text: "Hello" }];
+
+    it("returns false when not in LIFF client", async () => {
+      mockLiff.isInClient.mockReturnValueOnce(false);
+      const result = await liffShareTargetPicker(messages);
+      expect(result).toBe(false);
+      expect(mockLiff.shareTargetPicker).not.toHaveBeenCalled();
+    });
+
+    it("returns false when shareTargetPicker API is not available", async () => {
+      mockLiff.isInClient.mockReturnValueOnce(true);
+      mockLiff.isApiAvailable.mockReturnValueOnce(false);
+      const result = await liffShareTargetPicker(messages);
+      expect(result).toBe(false);
+      expect(mockLiff.shareTargetPicker).not.toHaveBeenCalled();
+    });
+
+    it("returns true when share is successful", async () => {
+      mockLiff.isInClient.mockReturnValueOnce(true);
+      mockLiff.isApiAvailable.mockReturnValueOnce(true);
+      mockLiff.shareTargetPicker.mockResolvedValueOnce({});
+      const result = await liffShareTargetPicker(messages);
+      expect(result).toBe(true);
+      expect(mockLiff.shareTargetPicker).toHaveBeenCalledWith(messages);
+    });
+
+    it("returns false when user cancels (resolves undefined)", async () => {
+      mockLiff.isInClient.mockReturnValueOnce(true);
+      mockLiff.isApiAvailable.mockReturnValueOnce(true);
+      mockLiff.shareTargetPicker.mockResolvedValueOnce(undefined);
+      const result = await liffShareTargetPicker(messages);
+      expect(result).toBe(false);
+    });
+
+    it("returns false when shareTargetPicker throws", async () => {
+      mockLiff.isInClient.mockReturnValueOnce(true);
+      mockLiff.isApiAvailable.mockReturnValueOnce(true);
+      mockLiff.shareTargetPicker.mockRejectedValueOnce(new Error("Share failed"));
+      const result = await liffShareTargetPicker(messages);
+      expect(result).toBe(false);
     });
   });
 });

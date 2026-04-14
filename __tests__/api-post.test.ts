@@ -633,6 +633,72 @@ describe("GET /api/post", () => {
     expect(json.hasMore).toBe(false);
   });
 
+  // --- Non-geo fallback (no lat/lng) ---
+  // Supabase query builders are chainable AND thenable (PromiseLike).
+  // .limit() returns the builder, and the builder resolves when awaited.
+
+  function makeThenableChain(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.ilike = vi.fn(() => chain);
+    chain.or = vi.fn(() => chain);
+    chain.order = vi.fn(() => chain);
+    chain.limit = vi.fn(() => chain);
+    chain.then = (resolve: (v: unknown) => void) => resolve(result);
+    return chain;
+  }
+
+  it("should list alerts without geo params using table query fallback", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const chain = makeThenableChain({
+      data: [{ id: "a1", alert_type: "lost", created_at: "2026-04-13T00:00:00Z" }],
+      error: null,
+    });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const req = makeGetRequest({});
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data).toHaveLength(1);
+    expect(json.hasMore).toBe(false);
+  });
+
+  it("should filter by alert_type in non-geo fallback", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const chain = makeThenableChain({ data: [], error: null });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const req = makeGetRequest({ alert_type: "lost" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(chain.eq).toHaveBeenCalledWith("alert_type", "lost");
+  });
+
+  it("should support cursor in non-geo fallback", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const chain = makeThenableChain({ data: [], error: null });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const { encodeCursor } = await import("@/lib/pagination");
+    const cursor = encodeCursor("2026-04-13T00:00:00Z", "some-id");
+
+    const req = makeGetRequest({ cursor });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(chain.or).toHaveBeenCalled();
+  });
+
+  it("should return 500 when non-geo query fails", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const chain = makeThenableChain({ data: null, error: { message: "DB error" } });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const req = makeGetRequest({});
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+  });
+
   it("should return 500 when RPC fails", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
     mockRpc.mockResolvedValueOnce({ data: null, error: { message: "RPC error" } });

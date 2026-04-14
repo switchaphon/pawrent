@@ -12,6 +12,49 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 // ---------------------------------------------------------------------------
+// Mock @/lib/api
+// ---------------------------------------------------------------------------
+vi.mock("@/lib/api", () => ({
+  apiFetch: vi.fn(() => Promise.resolve([])),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/components/liff-provider — provide auth context
+// ---------------------------------------------------------------------------
+vi.mock("@/components/liff-provider", () => ({
+  useAuth: () => ({
+    user: { id: "user-1" },
+    isAuthenticated: true,
+    isLoading: false,
+    logout: vi.fn(),
+  }),
+  LiffProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/liff
+// ---------------------------------------------------------------------------
+vi.mock("@/lib/liff", () => ({
+  isInLiffBrowser: () => false,
+  initializeLiff: vi.fn(),
+  getLiffProfile: vi.fn(),
+  getLiffIdToken: vi.fn(),
+  liffLogin: vi.fn(),
+  liffLogout: vi.fn(),
+  liffShareTargetPicker: vi.fn(),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock next/image
+// ---------------------------------------------------------------------------
+vi.mock("next/image", () => ({
+  default: ({ src, alt, ...props }: { src: string; alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} {...props} />
+  ),
+}));
+
+// ---------------------------------------------------------------------------
 // Mock next/navigation
 // ---------------------------------------------------------------------------
 const mockPush = vi.fn();
@@ -36,9 +79,12 @@ vi.mock("next/link", () => ({
 // Mock next/dynamic — for MapPicker SSR: false
 // ---------------------------------------------------------------------------
 vi.mock("next/dynamic", () => ({
-  default: (loader: () => Promise<{ default: React.ComponentType }>) => {
-    const Component = React.lazy(loader);
-    return Component;
+  default: () => {
+    function DynamicMock(props: Record<string, unknown>) {
+      return <div data-testid="dynamic-component" {...props} />;
+    }
+    DynamicMock.displayName = "DynamicMock";
+    return DynamicMock;
   },
 }));
 
