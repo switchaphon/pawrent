@@ -42,6 +42,10 @@ export async function getPets(ownerId: string) {
     .select("*")
     .eq("owner_id", ownerId)
     .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[getPets] error:", error.message, error.code);
+  }
+  console.log("[getPets] ownerId:", ownerId, "results:", data?.length ?? 0);
   return { data: data as Pet[] | null, error };
 }
 
