@@ -7,8 +7,10 @@ import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/components/liff-provider";
 import { cn } from "@/lib/utils";
 import type { LostPetAlert, AlertStatus } from "@/components/post/types";
+import { PosterButtons } from "@/components/post/poster-buttons";
 import {
   ArrowLeft,
   Loader2,
@@ -115,6 +117,7 @@ function calculateAge(dob: string | null): string | null {
 export default function AlertDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user: currentUser } = useAuth();
   const alertId = params.id as string;
 
   const [alert, setAlert] = useState<LostPetAlert | null>(null);
@@ -464,11 +467,12 @@ export default function AlertDetailPage() {
             )}
           </Card>
 
-          {/* Poster placeholder */}
-          <Button disabled variant="outline" className="w-full h-12 rounded-xl opacity-50">
-            <FileText className="w-5 h-5 mr-2" />
-            สร้างโปสเตอร์ — เร็วๆ นี้
-          </Button>
+          {/* Poster & Share Card buttons (owner-only) */}
+          <PosterButtons
+            alertId={alertId}
+            ownerId={alert.owner_id}
+            currentUserId={currentUser?.id ?? null}
+          />
         </div>
       </main>
     </div>
