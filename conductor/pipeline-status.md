@@ -5,9 +5,9 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP    | Step    | Gate | Status      | Branch                            | Last Updated |
-| ------ | ------- | ---- | ----------- | --------------------------------- | ------------ |
-| | | | | | |
+| PRP | Step | Gate | Status | Branch | Last Updated |
+| --- | ---- | ---- | ------ | ------ | ------------ |
+|     |      |      |        |        |              |
 
 ## Completed Pipelines
 
