@@ -313,7 +313,8 @@ describe("Alert Detail Page", () => {
     }
     render(<AlertDetail />);
     await waitFor(() => {
-      expect(screen.getByText(/13|14:30/)).toBeInTheDocument();
+      const matches = screen.getAllByText(/13|14:30/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 

@@ -28,8 +28,76 @@ describe("lib/supabase.ts (browser client)", () => {
     expect(supabase).toBeDefined();
     expect(mockCreateBrowserClient).toHaveBeenCalledWith(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      expect.objectContaining({
+        global: expect.objectContaining({ fetch: expect.any(Function) }),
+      })
     );
+  });
+
+  it("custom fetch injects auth token when available", async () => {
+    let capturedFetch: (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    const mockCreateBrowserClient = vi.fn(
+      (_url: string, _key: string, options: Record<string, unknown>) => {
+        capturedFetch = (options.global as { fetch: typeof capturedFetch }).fetch;
+        return { auth: {} };
+      }
+    );
+
+    vi.doMock("@supabase/ssr", () => ({
+      createBrowserClient: mockCreateBrowserClient,
+    }));
+
+    // Mock auth-token to return a token
+    vi.doMock("@/lib/auth-token", () => ({
+      getAuthToken: () => "test-jwt-token",
+    }));
+
+    await import("@/lib/supabase");
+
+    // Test the custom fetch
+    const mockFetch = vi.fn().mockResolvedValue(new Response("{}"));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await capturedFetch!("https://example.com/api", { method: "GET" });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, init] = mockFetch.mock.calls[0];
+    const headers = new Headers(init.headers);
+    expect(headers.get("Authorization")).toBe("Bearer test-jwt-token");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("custom fetch does not inject auth when no token", async () => {
+    let capturedFetch: (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    const mockCreateBrowserClient = vi.fn(
+      (_url: string, _key: string, options: Record<string, unknown>) => {
+        capturedFetch = (options.global as { fetch: typeof capturedFetch }).fetch;
+        return { auth: {} };
+      }
+    );
+
+    vi.doMock("@supabase/ssr", () => ({
+      createBrowserClient: mockCreateBrowserClient,
+    }));
+
+    vi.doMock("@/lib/auth-token", () => ({
+      getAuthToken: () => null,
+    }));
+
+    await import("@/lib/supabase");
+
+    const mockFetch = vi.fn().mockResolvedValue(new Response("{}"));
+    vi.stubGlobal("fetch", mockFetch);
+
+    await capturedFetch!("https://example.com/api", {});
+
+    const [, init] = mockFetch.mock.calls[0];
+    const headers = new Headers(init.headers);
+    expect(headers.get("Authorization")).toBeNull();
+
+    vi.unstubAllGlobals();
   });
 });
 

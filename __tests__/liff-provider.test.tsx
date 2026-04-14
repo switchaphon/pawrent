@@ -18,11 +18,7 @@ vi.mock("@/lib/auth-token", () => ({
 }));
 
 vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    auth: {
-      setSession: vi.fn().mockResolvedValue({ data: {}, error: null }),
-    },
-  },
+  supabase: {},
 }));
 
 import { LiffProvider, useAuth } from "@/components/liff-provider";
