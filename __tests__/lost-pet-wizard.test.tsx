@@ -12,12 +12,19 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/api — URL-aware mock returning pets, photos, or alert data
+// Mock @/lib/api — for POST submit only
 // ---------------------------------------------------------------------------
 vi.mock("@/lib/api", () => ({
-  apiFetch: vi.fn((url: string) => {
-    if (url.includes("/api/pets")) {
-      return Promise.resolve([
+  apiFetch: vi.fn(() => Promise.resolve({ id: "new-alert-1", status: "active" })),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db — wizard uses getPets/getPetPhotos, not apiFetch
+// ---------------------------------------------------------------------------
+vi.mock("@/lib/db", () => ({
+  getPets: vi.fn(() =>
+    Promise.resolve({
+      data: [
         {
           id: "pet-1",
           name: "Luna",
@@ -29,6 +36,7 @@ vi.mock("@/lib/api", () => ({
           date_of_birth: "2023-01-15",
           neutered: true,
           microchip_number: "900123456789012",
+          owner_id: "user-1",
         },
         {
           id: "pet-2",
@@ -41,14 +49,15 @@ vi.mock("@/lib/api", () => ({
           date_of_birth: "2024-06-20",
           neutered: false,
           microchip_number: null,
+          owner_id: "user-1",
         },
-      ]);
-    }
-    if (url.includes("/api/post")) {
-      return Promise.resolve({ id: "new-alert-1", status: "active" });
-    }
-    if (url.includes("pet-photos") || url.includes("photos")) {
-      return Promise.resolve([
+      ],
+      error: null,
+    })
+  ),
+  getPetPhotos: vi.fn(() =>
+    Promise.resolve({
+      data: [
         {
           id: "photo-1",
           pet_id: "pet-1",
@@ -61,10 +70,10 @@ vi.mock("@/lib/api", () => ({
           photo_url: "https://example.com/luna2.jpg",
           display_order: 1,
         },
-      ]);
-    }
-    return Promise.resolve({});
-  }),
+      ],
+      error: null,
+    })
+  ),
 }));
 
 // ---------------------------------------------------------------------------
@@ -279,7 +288,8 @@ describe("Lost Pet Wizard", () => {
     const nextBtn = screen.queryByText(/ถัดไป|next/i);
     if (nextBtn) fireEvent.click(nextBtn);
     await waitFor(() => {
-      expect(screen.getByText(/สถานที่และเวลา|when|where/i)).toBeInTheDocument();
+      const matches = screen.getAllByText(/สถานที่และเวลา|when|where/i);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -319,7 +329,9 @@ describe("Lost Pet Wizard", () => {
     if (nextBtn) fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(screen.getByTestId("map-picker")).toBeInTheDocument();
+      // MapPicker loaded via next/dynamic (mocked as DynamicMock)
+      const mapEl = screen.queryByTestId("map-picker") || screen.queryByTestId("dynamic-component");
+      expect(mapEl).toBeInTheDocument();
     });
   });
 
