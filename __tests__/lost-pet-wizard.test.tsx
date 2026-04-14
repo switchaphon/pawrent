@@ -12,10 +12,59 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/api
+// Mock @/lib/api — URL-aware mock returning pets, photos, or alert data
 // ---------------------------------------------------------------------------
 vi.mock("@/lib/api", () => ({
-  apiFetch: vi.fn(() => Promise.resolve([])),
+  apiFetch: vi.fn((url: string) => {
+    if (url.includes("/api/pets")) {
+      return Promise.resolve([
+        {
+          id: "pet-1",
+          name: "Luna",
+          species: "Dog",
+          breed: "Golden Retriever",
+          sex: "Female",
+          color: "Gold",
+          photo_url: "https://example.com/luna.jpg",
+          date_of_birth: "2023-01-15",
+          neutered: true,
+          microchip_number: "900123456789012",
+        },
+        {
+          id: "pet-2",
+          name: "Milo",
+          species: "Cat",
+          breed: "Scottish Fold",
+          sex: "Male",
+          color: "Grey",
+          photo_url: "https://example.com/milo.jpg",
+          date_of_birth: "2024-06-20",
+          neutered: false,
+          microchip_number: null,
+        },
+      ]);
+    }
+    if (url.includes("/api/post")) {
+      return Promise.resolve({ id: "new-alert-1", status: "active" });
+    }
+    if (url.includes("pet-photos") || url.includes("photos")) {
+      return Promise.resolve([
+        {
+          id: "photo-1",
+          pet_id: "pet-1",
+          photo_url: "https://example.com/luna1.jpg",
+          display_order: 0,
+        },
+        {
+          id: "photo-2",
+          pet_id: "pet-1",
+          photo_url: "https://example.com/luna2.jpg",
+          display_order: 1,
+        },
+      ]);
+    }
+    return Promise.resolve({});
+  }),
 }));
 
 // ---------------------------------------------------------------------------
@@ -200,7 +249,8 @@ describe("Lost Pet Wizard", () => {
     }
     render(<LostPetWizard />);
     await waitFor(() => {
-      expect(screen.getByText(/เลือกสัตว์เลี้ยง/)).toBeInTheDocument();
+      const matches = screen.getAllByText(/เลือกสัตว์เลี้ยง/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -394,7 +444,8 @@ describe("Lost Pet Wizard", () => {
     }
     render(<LostPetWizard />);
     await waitFor(() => {
-      expect(screen.getByText(/เลือกสัตว์เลี้ยง/)).toBeInTheDocument();
+      const matches = screen.getAllByText(/เลือกสัตว์เลี้ยง/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 
