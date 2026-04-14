@@ -6,9 +6,7 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     accessToken: async () => {
-      const token = getAuthToken();
-      console.log("[supabase] accessToken called, hasToken:", !!token);
-      return token || "";
+      return getAuthToken() || "";
     },
     auth: {
       persistSession: false,

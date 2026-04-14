@@ -4,7 +4,6 @@ import { LiffProvider } from "@/components/liff-provider";
 import { LocationProvider } from "@/components/location-provider";
 import { NavigationShell } from "@/components/navigation-shell";
 import { ToastProvider } from "@/components/ui/toast";
-import { DebugConsole } from "@/components/debug-console";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -33,7 +32,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${nunito.variable} font-sans antialiased`}>
-        <DebugConsole />
         <ToastProvider>
           <LiffProvider>
             <LocationProvider>
