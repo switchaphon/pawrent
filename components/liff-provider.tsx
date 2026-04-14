@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { initializeLiff, getLiffIdToken, isInLiffBrowser, liffLogin, liffLogout } from "@/lib/liff";
 import { setAuthToken } from "@/lib/auth-token";
+import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/types/common";
 
 interface AuthContextType {
@@ -56,6 +57,14 @@ export function LiffProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
 
         setAuthToken(data.access_token);
+
+        // Set Supabase client session so RLS-protected queries work
+        // (lib/db.ts functions use the browser Supabase client directly)
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token || "",
+        });
+
         setUser(data.user);
       } catch {
         // LIFF init or auth exchange failed

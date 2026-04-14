@@ -17,6 +17,14 @@ vi.mock("@/lib/auth-token", () => ({
   getAuthToken: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: {
+      setSession: vi.fn().mockResolvedValue({ data: {}, error: null }),
+    },
+  },
+}));
+
 import { LiffProvider, useAuth } from "@/components/liff-provider";
 import * as liffModule from "@/lib/liff";
 import * as authTokenModule from "@/lib/auth-token";
