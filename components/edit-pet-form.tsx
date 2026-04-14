@@ -49,6 +49,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
     date_of_birth: pet.date_of_birth || "",
     microchip_number: pet.microchip_number || "",
     special_notes: pet.special_notes || "",
+    neutered: pet.neutered ?? false,
   });
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,6 +124,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
           date_of_birth: formData.date_of_birth || null,
           microchip_number: formData.microchip_number || null,
           special_notes: formData.special_notes || null,
+          neutered: formData.neutered,
           photo_url: newPhotoUrl,
         }),
       });
@@ -239,6 +241,27 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Neutered */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={formData.neutered}
+              onClick={() => setFormData({ ...formData, neutered: !formData.neutered })}
+              className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                formData.neutered ? "bg-primary border-primary text-white" : "border-gray-300"
+              }`}
+            >
+              {formData.neutered && <span className="text-sm">✓</span>}
+            </button>
+            <Label
+              className="cursor-pointer"
+              onClick={() => setFormData({ ...formData, neutered: !formData.neutered })}
+            >
+              Neutered / Spayed (ทำหมันแล้ว)
+            </Label>
           </div>
 
           {/* Color */}

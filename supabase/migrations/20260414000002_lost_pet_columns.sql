@@ -39,6 +39,8 @@ CREATE INDEX IF NOT EXISTS idx_pet_reports_active_type
   WHERE status = 'active';
 
 -- UPDATE nearby_reports() RPC to return new columns
+-- Must DROP first because return type changed (PostgreSQL restriction)
+DROP FUNCTION IF EXISTS nearby_reports(double precision, double precision, double precision, integer);
 CREATE OR REPLACE FUNCTION nearby_reports(
   p_lat double precision,
   p_lng double precision,
