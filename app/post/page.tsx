@@ -11,6 +11,8 @@ import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { FoundReportCard } from "@/components/post/found-report-card";
 import type { FoundReport } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
+import { SkeletonCard } from "@/components/skeleton-card";
 import { AlertTriangle, Loader2, MapPin, CheckCircle, ChevronDown, Plus } from "lucide-react";
 
 type TabType = "lost" | "found" | "all";
@@ -30,7 +32,6 @@ function getRelativeTimeThai(dateStr: string): string {
   return `${Math.floor(diffDay / 7)} สัปดาห์ที่แล้ว`;
 }
 
-// Owner's active alerts section
 function MyAlertsSection({
   alerts,
   onResolve,
@@ -43,27 +44,32 @@ function MyAlertsSection({
   if (alerts.length === 0) return null;
 
   return (
-    <section className="mb-4">
-      <h2 className="text-sm font-bold text-foreground mb-2 px-1">ประกาศของฉัน</h2>
+    <section aria-label="ประกาศของฉัน" className="mb-4">
+      <h2 className="text-sm font-bold text-text-main mb-2 px-1">ประกาศของฉัน</h2>
       <div className="space-y-2">
         {alerts.map((alert) => (
-          <div key={alert.id} className="bg-white rounded-xl border border-border p-3 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div
+            key={alert.id}
+            className="bg-surface rounded-2xl border border-border p-3 shadow-soft"
+          >
+            <div className="flex items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <Link
                   href={`/post/${alert.id}`}
-                  className="font-semibold text-sm text-foreground hover:text-primary truncate block"
+                  className="font-bold text-sm text-text-main hover:text-primary truncate block"
                 >
                   {alert.pet_name || "ไม่ระบุชื่อ"} —{" "}
-                  <span className="text-red-500 text-xs font-bold">หาย</span>
+                  <span className="text-danger text-xs font-bold">หาย</span>
                 </Link>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-text-muted mt-0.5">
                   {getRelativeTimeThai(alert.created_at)}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setExpandedId(expandedId === alert.id ? null : alert.id)}
-                className="ml-2 text-xs text-primary font-medium flex items-center gap-1"
+                aria-expanded={expandedId === alert.id}
+                className="text-xs text-primary font-bold flex items-center gap-1 touch-target px-2 -mx-2"
               >
                 จัดการ
                 <ChevronDown
@@ -71,31 +77,35 @@ function MyAlertsSection({
                     "w-3 h-3 transition-transform",
                     expandedId === alert.id && "rotate-180"
                   )}
+                  aria-hidden
                 />
               </button>
             </div>
             {expandedId === alert.id && (
-              <div className="mt-3 pt-3 border-t border-border space-y-2">
-                <p className="text-xs text-muted-foreground mb-2">เปลี่ยนสถานะประกาศ:</p>
+              <div className="mt-3 pt-3 border-t border-border-subtle space-y-2">
+                <p className="text-xs text-text-muted mb-2">เปลี่ยนสถานะประกาศ:</p>
                 <button
+                  type="button"
                   onClick={() => onResolve(alert.id, "resolved_found")}
-                  className="w-full py-2 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-1"
+                  className="w-full py-2.5 text-xs font-bold text-success bg-success-bg rounded-full hover:brightness-105 transition-all flex items-center justify-center gap-1 touch-target"
                 >
-                  <CheckCircle className="w-3.5 h-3.5" />
+                  <CheckCircle className="w-3.5 h-3.5" aria-hidden />
                   พบน้องแล้ว (คนอื่นเจอ)
                 </button>
                 <button
+                  type="button"
                   onClick={() => onResolve(alert.id, "resolved_owner")}
-                  className="w-full py-2 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
+                  className="w-full py-2.5 text-xs font-bold text-info bg-info-bg rounded-full hover:brightness-105 transition-all flex items-center justify-center gap-1 touch-target"
                 >
-                  <CheckCircle className="w-3.5 h-3.5" />
+                  <CheckCircle className="w-3.5 h-3.5" aria-hidden />
                   น้องกลับบ้านเองแล้ว
                 </button>
                 <button
+                  type="button"
                   onClick={() => onResolve(alert.id, "resolved_other")}
-                  className="w-full py-2 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="w-full py-2.5 text-xs font-bold text-text-subtle bg-surface-alt rounded-full hover:bg-border transition-all touch-target"
                 >
-                  ปิดประกาศ (อื่นๆ)
+                  ปิดประกาศ (อื่น ๆ)
                 </button>
               </div>
             )}
@@ -129,7 +139,6 @@ export default function PostPage() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const foundSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Get user location
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -140,7 +149,6 @@ export default function PostPage() {
           });
         },
         () => {
-          // Default to Bangkok
           setUserLocation({ lat: 13.7563, lng: 100.5018 });
         }
       );
@@ -149,7 +157,6 @@ export default function PostPage() {
     }
   }, []);
 
-  // Fetch alerts
   const fetchAlerts = useCallback(
     async (append = false) => {
       if (!userLocation) return;
@@ -184,7 +191,6 @@ export default function PostPage() {
         setCursor(nextCursor);
         setHasMore(!!nextCursor);
       } catch {
-        // API may not exist yet - that's expected during parallel development
         if (!append) setAlerts([]);
       } finally {
         setLoading(false);
@@ -194,7 +200,6 @@ export default function PostPage() {
     [userLocation, radius, activeTab, species, cursor]
   );
 
-  // Fetch my alerts
   const fetchMyAlerts = useCallback(async () => {
     if (!user) return;
     try {
@@ -205,7 +210,6 @@ export default function PostPage() {
     }
   }, [user]);
 
-  // Fetch found reports
   const fetchFoundReports = useCallback(
     async (append = false) => {
       if (append) {
@@ -243,25 +247,25 @@ export default function PostPage() {
     [species, foundCursor]
   );
 
-  // Initial load and reload on filter changes
   useEffect(() => {
     if (userLocation) {
       fetchAlerts(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, radius, activeTab, species]);
 
-  // Fetch found reports when Found tab is active
   useEffect(() => {
     if (activeTab === "found") {
       fetchFoundReports(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, species]);
 
   useEffect(() => {
     fetchMyAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Infinite scroll via IntersectionObserver
   useEffect(() => {
     if (!hasMore || loadingMore) return;
     const sentinel = sentinelRef.current;
@@ -280,7 +284,6 @@ export default function PostPage() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, fetchAlerts]);
 
-  // Infinite scroll for found reports
   useEffect(() => {
     if (!hasMoreFound || loadingMoreFound) return;
     const sentinel = foundSentinelRef.current;
@@ -299,14 +302,12 @@ export default function PostPage() {
     return () => observer.disconnect();
   }, [hasMoreFound, loadingMoreFound, fetchFoundReports]);
 
-  // Resolve alert handler
   const handleResolve = async (alertId: string, status: string) => {
     try {
       await apiFetch("/api/post", {
         method: "PUT",
         body: JSON.stringify({ alert_id: alertId, status }),
       });
-      // Refresh both lists
       fetchMyAlerts();
       fetchAlerts(false);
     } catch (err) {
@@ -314,72 +315,77 @@ export default function PostPage() {
     }
   };
 
-  const tabs: { key: TabType; label: string; color: string }[] = [
-    { key: "lost", label: "หาย", color: "bg-red-500" },
-    { key: "found", label: "พบ", color: "bg-green-500" },
-    { key: "all", label: "ทั้งหมด", color: "bg-gray-500" },
+  const tabs: { key: TabType; label: string; tone: string }[] = [
+    { key: "lost", label: "หาย", tone: "bg-danger" },
+    { key: "found", label: "พบ", tone: "bg-success" },
+    { key: "all", label: "ทั้งหมด", tone: "bg-text-muted" },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+    <div className="min-h-screen-safe">
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-border px-4 py-4">
         <div className="flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">สัตว์เลี้ยงหาย</h1>
+          <MapPin className="w-5 h-5 text-primary" aria-hidden />
+          <h1 className="text-xl font-bold text-text-main">สัตว์เลี้ยงหาย</h1>
         </div>
-        <p className="text-sm text-muted-foreground">ช่วยกันตามหาสัตว์เลี้ยงในชุมชน</p>
+        <p className="text-xs text-text-muted">ช่วยกันตามหาสัตว์เลี้ยงในชุมชน</p>
       </header>
 
       <main className="px-4 py-4 max-w-md mx-auto space-y-4">
-        {/* My Alerts */}
         <MyAlertsSection alerts={myAlerts} onResolve={handleResolve} />
 
-        {/* Tab bar */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 border border-border">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "flex-1 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5",
-                activeTab === tab.key
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <span
+        <div
+          role="tablist"
+          aria-label="เลือกประเภทประกาศ"
+          className="flex gap-1 bg-surface rounded-full p-1 border border-border shadow-soft"
+        >
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "w-2 h-2 rounded-full",
-                  activeTab === tab.key ? "bg-white" : tab.color
+                  "flex-1 py-2.5 text-sm font-bold rounded-full transition-all flex items-center justify-center gap-1.5 touch-target",
+                  isActive
+                    ? "bg-primary-gradient text-white shadow-primary"
+                    : "text-text-muted hover:text-text-main"
                 )}
-              />
-              {tab.label}
-            </button>
-          ))}
+              >
+                <span
+                  className={cn(
+                    "w-2 h-2 rounded-full",
+                    isActive ? "bg-white" : tab.tone
+                  )}
+                  aria-hidden
+                />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Filters */}
         <div className="space-y-2">
           <RadiusSelector value={radius} onChange={setRadius} />
           <SpeciesFilter value={species} onChange={setSpecies} />
         </div>
 
-        {/* Found tab content */}
         {activeTab === "found" && (
           <>
             {loadingFound ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+              <div className="space-y-3">
+                <SkeletonCard lines={3} />
+                <SkeletonCard lines={3} />
               </div>
             ) : foundReports.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">🐾</span>
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-1">ยังไม่มีรายงาน</h3>
-                <p className="text-sm text-muted-foreground">ยังไม่มีรายงานพบสัตว์เลี้ยงในขณะนี้</p>
-              </div>
+              <EmptyState
+                emoji="🐾"
+                title="ยังไม่มีรายงาน"
+                description="ยังไม่มีรายงานพบสัตว์เลี้ยงในขณะนี้"
+              />
             ) : (
               <div className="space-y-3">
                 {foundReports.map((report) => (
@@ -388,32 +394,32 @@ export default function PostPage() {
               </div>
             )}
 
-            {/* Infinite scroll sentinel for found */}
             {hasMoreFound && (
               <div ref={foundSentinelRef} className="flex justify-center py-4">
-                {loadingMoreFound && <Loader2 className="w-6 h-6 animate-spin text-green-500" />}
+                {loadingMoreFound && <Loader2 className="w-6 h-6 animate-spin text-success" aria-hidden />}
               </div>
             )}
           </>
         )}
 
-        {/* Alert list */}
         {activeTab !== "found" && (
           <>
             {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="space-y-3">
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={3} />
+                <SkeletonCard lines={3} />
               </div>
             ) : alerts.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-8 h-8 text-primary/50" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-1">ไม่พบประกาศ</h3>
-                <p className="text-sm text-muted-foreground">
-                  {radius ? "ไม่มีประกาศในรัศมีที่เลือก ลองขยายรัศมีดู" : "ยังไม่มีประกาศในขณะนี้"}
-                </p>
-              </div>
+              <EmptyState
+                icon={<MapPin className="w-10 h-10" aria-hidden />}
+                title="ไม่พบประกาศ"
+                description={
+                  radius
+                    ? "ไม่มีประกาศในรัศมีที่เลือก ลองขยายรัศมีดู"
+                    : "ยังไม่มีประกาศในขณะนี้"
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {alerts.map((alert) => (
@@ -422,32 +428,30 @@ export default function PostPage() {
               </div>
             )}
 
-            {/* Infinite scroll sentinel */}
             {hasMore && (
               <div ref={sentinelRef} className="flex justify-center py-4">
-                {loadingMore && <Loader2 className="w-6 h-6 animate-spin text-primary" />}
+                {loadingMore && <Loader2 className="w-6 h-6 animate-spin text-primary" aria-hidden />}
               </div>
             )}
           </>
         )}
       </main>
 
-      {/* Floating CTA — changes based on active tab */}
       {activeTab === "found" ? (
         <Link
           href="/post/found"
-          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-green-600 text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
+          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-success text-white font-bold shadow-[0_4px_14px_rgba(76,107,60,0.3)] hover:scale-105 transition-transform active:scale-95 touch-target"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-5 h-5" aria-hidden />
           <span>แจ้งพบสัตว์เลี้ยง</span>
         </Link>
       ) : (
         <Link
           href="/post/lost"
-          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-destructive text-white font-bold shadow-xl hover:scale-105 transition-transform active:scale-95"
+          className="fixed bottom-20 right-4 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-primary-gradient text-white font-bold shadow-primary hover:scale-105 transition-transform active:scale-95 touch-target"
         >
-          <AlertTriangle className="w-5 h-5" />
-          <span>แจ้งสัตว์เลี้ยงหาย</span>
+          <AlertTriangle className="w-5 h-5" aria-hidden />
+          <span>แจ้งน้องหาย</span>
         </Link>
       )}
     </div>
