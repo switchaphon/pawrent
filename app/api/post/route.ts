@@ -110,6 +110,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ data });
   }
 
+  // Owner's own alerts (My Reports) — used by the "ประกาศของฉัน" section on /post.
+  // Without this branch the request falls through to nearby_reports(), so the
+  // owner sees nearby alerts instead of their own.
+  const ownerId = searchParams.get("owner_id");
+  if (ownerId) {
+    if (ownerId !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const statusParam = searchParams.get("status");
+    let query = supabase
+      .from("pet_reports")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (statusParam === "active") {
+      query = query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ data: data ?? [] });
+  }
+
   // List via nearby_reports() RPC
   const alertType = searchParams.get("alert_type") ?? undefined;
   const species = searchParams.get("species") ?? undefined;

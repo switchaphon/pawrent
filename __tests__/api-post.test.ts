@@ -706,6 +706,75 @@ describe("GET /api/post", () => {
     const res = await GET(req);
     expect(res.status).toBe(500);
   });
+
+  // owner_id branch — "ประกาศของฉัน" (My Reports) section on /post
+  it("should return 403 when owner_id does not match the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeGetRequest({ owner_id: "other-user" });
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+  });
+
+  it("should return the user's own active reports when owner_id matches and status=active", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const isActiveEq = vi.fn();
+    const ownerIdEq = vi.fn();
+    const rows = [
+      { id: "a1", owner_id: "user-1", is_active: true },
+      { id: "a2", owner_id: "user-1", is_active: true },
+    ];
+    const ownerChain: Record<string, unknown> = {};
+    ownerChain.eq = vi.fn((field: string, value: unknown) => {
+      if (field === "owner_id") ownerIdEq(field, value);
+      if (field === "is_active") isActiveEq(field, value);
+      return ownerChain;
+    });
+    ownerChain.order = vi.fn(() => ownerChain);
+    ownerChain.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
+      resolve({ data: rows, error: null });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => ownerChain) }));
+
+    const req = makeGetRequest({ owner_id: "user-1", status: "active" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data).toHaveLength(2);
+    expect(ownerIdEq).toHaveBeenCalledWith("owner_id", "user-1");
+    expect(isActiveEq).toHaveBeenCalledWith("is_active", true);
+  });
+
+  it("should not apply is_active filter when status param is omitted", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const isActiveEq = vi.fn();
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn((field: string, value: unknown) => {
+      if (field === "is_active") isActiveEq(field, value);
+      return chain;
+    });
+    chain.order = vi.fn(() => chain);
+    chain.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
+      resolve({ data: [], error: null });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const req = makeGetRequest({ owner_id: "user-1" });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(isActiveEq).not.toHaveBeenCalled();
+  });
+
+  it("should return 500 when the owner_id query errors", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.order = vi.fn(() => chain);
+    chain.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
+      resolve({ data: null, error: { message: "DB error" } });
+    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
+
+    const req = makeGetRequest({ owner_id: "user-1" });
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+  });
 });
 
 // ---------------------------------------------------------------------------

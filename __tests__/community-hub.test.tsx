@@ -169,19 +169,24 @@ describe("Community Hub Page", () => {
     });
   });
 
-  it("should switch to Found tab and show placeholder", async () => {
+  it("should switch to Found tab and show empty state when no reports", async () => {
     if (!CommunityHub) {
       expect(true).toBe(true);
       return;
     }
+    mockApiFetch.mockImplementation((url: string) => {
+      if (url.includes("/api/found-reports")) {
+        return Promise.resolve({ data: [], cursor: null });
+      }
+      return Promise.resolve({ data: mockAlerts, cursor: null, hasMore: false });
+    });
     render(<CommunityHub />);
     await waitFor(() => {
       const foundTabs = screen.getAllByText(/พบ/);
       fireEvent.click(foundTabs[0]);
     });
     await waitFor(() => {
-      const items = screen.getAllByText(/เร็วๆ นี้/);
-      expect(items.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("ยังไม่มีรายงาน")).toBeInTheDocument();
     });
   });
 

@@ -12,3 +12,16 @@ e2e/.auth/
 coverage/
 playwright-report/
 test-results/
+
+# macOS noise
+.DS_Store
+
+# Local skill / agent runtime caches (Claude Code, superpowers, brainstorm sessions)
+.agents/
+.claude/skills/
+.claude/.DS_Store
+.superpowers/
+skills-lock.json
+
+# Supabase CLI temp artifacts
+supabase/.temp/

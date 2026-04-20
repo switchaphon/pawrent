@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pawrent — Design Variations Comparison Grid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans Thai', system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .header p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* Controls */
+    .controls {
+      padding: 12px 20px;
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .controls label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+    }
+    .controls select {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background: white;
+      font-family: inherit;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    /* Responsive grid columns */
+    @media (min-width: 1400px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+    @media (min-width: 1000px) and (max-width: 1399px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 700px) and (max-width: 999px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 699px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Variation card */
+    .variation {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+    }
+    .variation-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .variation-header h2 {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      color: white;
+    }
+    .variation-thesis {
+      padding: 8px 14px;
+      font-size: 11px;
+      color: #666;
+      border-bottom: 1px solid #f0f0f0;
+      line-height: 1.4;
+    }
+    .variation-iframe {
+      flex: 1;
+      min-height: 600px;
+    }
+    .variation-iframe iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      min-height: 600px;
+    }
+
+    /* Full-screen mode */
+    .variation.fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      border-radius: 0;
+      max-width: none;
+    }
+    .variation.fullscreen .variation-iframe {
+      min-height: calc(100vh - 80px);
+    }
+    .variation.fullscreen .variation-iframe iframe {
+      min-height: calc(100vh - 80px);
+    }
+
+    .expand-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      color: #666;
+      font-family: inherit;
+    }
+    .expand-btn:hover {
+      background: #f5f5f5;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Pawrent — Design Variations Comparison</h1>
+  <p>PRP-14: 5 UI directions for /pets and /post/lost screens. Click "Expand" to view full-size.</p>
+</div>
+
+<div class="controls">
+  <label>Iframe Height:</label>
+  <select id="heightSelect" onchange="updateHeight()">
+    <option value="600">600px (compact)</option>
+    <option value="800" selected>800px (default)</option>
+    <option value="1200">1200px (tall)</option>
+    <option value="2000">2000px (full scroll)</option>
+  </select>
+</div>
+
+<div class="grid" id="grid">
+
+  <!-- V1: Rounded Bubble -->
+  <div class="variation" id="v1">
+    <div class="variation-header">
+      <h2>V1: Rounded Bubble</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: #E8507A;">Bubble</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v1')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> Everything pill-shaped and bubbly — approachable without childish.<br>
+      <strong>Cite:</strong> NNG Aesthetic-Usability + Gestalt Similarity
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-01.html" title="V1: Rounded Bubble"></iframe>
+    </div>
+  </div>
+
+  <!-- V2: Cozy Dashboard -->
+  <div class="variation" id="v2">
+    <div class="variation-header">
+      <h2>V2: Cozy Dashboard</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: #FF6B9D;">Warm</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v2')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> Warm gradients + frosted glass + bento health blocks + mascot.<br>
+      <strong>Cite:</strong> NNG Emotional Design + Material Glanceability + HIG Groups
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-02.html" title="V2: Cozy Dashboard"></iframe>
+    </div>
+  </div>
+
+  <!-- V3: Illustrative Playful -->
+  <div class="variation" id="v3">
+    <div class="variation-header">
+      <h2>V3: Illustrative Playful</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: #FFD93D; color: #333;">Fun</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v3')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> Emotion-first with mascot, card carousel. Friend who helps.<br>
+      <strong>Cite:</strong> NNG Emotional Design (3 layers) + Thai LINE sticker culture
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-03.html" title="V3: Illustrative Playful"></iframe>
+    </div>
+  </div>
+
+  <!-- V4: Soft Pastel Cards -->
+  <div class="variation" id="v4">
+    <div class="variation-header">
+      <h2>V4: Soft Pastel Cards</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: #CE93D8;">Gentle</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v4')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> Clean vertical stack, soft pastels, one card per topic.<br>
+      <strong>Cite:</strong> NNG Aesthetic-Usability + WCAG soft background contrast
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-04.html" title="V4: Soft Pastel Cards"></iframe>
+    </div>
+  </div>
+
+  <!-- V5: Golden Scroll -->
+  <div class="variation" id="v5">
+    <div class="variation-header">
+      <h2>V5: Golden Scroll</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: #FF8F00;">Premium</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v5')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> Photo-first magazine scroll, hero image + status bar.<br>
+      <strong>Cite:</strong> NNG Picture Superiority + Instagram/Pinterest patterns
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-05.html" title="V5: Golden Scroll"></iframe>
+    </div>
+  </div>
+
+  <!-- V6: Combined Direction (Final Pick) -->
+  <div class="variation" id="v6" style="grid-column: 1 / -1; max-width: 500px; margin: 0 auto; border: 2px solid #E8507A;">
+    <div class="variation-header" style="background: linear-gradient(135deg, #FFF5F8, #FFF8F5);">
+      <h2>V6: Combined Direction ⭐</h2>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span class="tag" style="background: linear-gradient(135deg, #FF6B9D, #FF9671);">Final Pick</span>
+        <button class="expand-btn" onclick="toggleFullscreen('v6')">Expand</button>
+      </div>
+    </div>
+    <div class="variation-thesis">
+      <strong>Thesis:</strong> V1 bubble shapes + V4 vertical stack + V2 warm gradients + V3 emoji labels. Owner profile header, weight tracking card, vaccine detail popup, emergency gallery markers.<br>
+      <strong>Cite:</strong> NNG Aesthetic-Usability + Emotional Design + Material Progressive Disclosure
+    </div>
+    <div class="variation-iframe">
+      <iframe src="variation-06.html" title="V6: Combined Direction"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Pawrent PRP-14 — Design System Exploration — April 2026
+</div>
+
+<script>
+  // Set initial height
+  function updateHeight() {
+    const h = document.getElementById('heightSelect').value + 'px';
+    document.querySelectorAll('.variation-iframe iframe').forEach(iframe => {
+      iframe.style.minHeight = h;
+    });
+    document.querySelectorAll('.variation-iframe').forEach(div => {
+      div.style.minHeight = h;
+    });
+  }
+
+  // Toggle fullscreen for a variation
+  function toggleFullscreen(id) {
+    const el = document.getElementById(id);
+    const btn = el.querySelector('.expand-btn');
+    if (el.classList.contains('fullscreen')) {
+      el.classList.remove('fullscreen');
+      btn.textContent = 'Expand';
+      document.body.style.overflow = '';
+    } else {
+      // Close any other fullscreen first
+      document.querySelectorAll('.variation.fullscreen').forEach(v => {
+        v.classList.remove('fullscreen');
+        v.querySelector('.expand-btn').textContent = 'Expand';
+      });
+      el.classList.add('fullscreen');
+      btn.textContent = 'Close';
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  // Close fullscreen on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.variation.fullscreen').forEach(v => {
+        v.classList.remove('fullscreen');
+        v.querySelector('.expand-btn').textContent = 'Expand';
+      });
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Initialize with default height
+  updateHeight();
+</script>
+
+</body>
+</html>

@@ -64,6 +64,20 @@ vi.mock("next/navigation", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Mock @/components/liff-provider
+// ---------------------------------------------------------------------------
+vi.mock("@/components/liff-provider", () => ({
+  useAuth: () => ({ user: { id: "owner-1" }, loading: false, isInLiff: false, signOut: vi.fn() }),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/components/post/poster-buttons
+// ---------------------------------------------------------------------------
+vi.mock("@/components/post/poster-buttons", () => ({
+  PosterButtons: () => null,
+}));
+
+// ---------------------------------------------------------------------------
 // Mock next/link
 // ---------------------------------------------------------------------------
 vi.mock("next/link", () => ({
@@ -322,7 +336,7 @@ describe("Alert Detail Page", () => {
 
   it("should display reward banner when reward_amount > 0", async () => {
     if (!AlertDetail) {
-      // Should show prominently: "รางวัลนำจับ ฿10,000"
+      // Should show prominently: "รางวัลนำส่งคืน ฿10,000"
       expect(true).toBe(true);
       return;
     }

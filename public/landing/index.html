@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#FF8263" />
+<meta name="color-scheme" content="light" />
+
+<title>Pawrent — ดูแลน้องหมาน้องแมวผ่าน LINE | ระบบตามหาสัตว์เลี้ยงหายแบบสองทาง</title>
+<meta name="description" content="Pawrent — ศูนย์ดูแลน้องหมาน้องแมวบน LINE สมุดสุขภาพ วัคซีน ยา และเครือข่ายตามหาสัตว์เลี้ยงหายสองทาง (เจอ/หาย) ครอบคลุมพื้นที่ไทย ออกแบบภายใต้ PDPA" />
+<link rel="canonical" href="https://pawrent.pops.pet/landing/" />
+
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://pawrent.pops.pet/landing/" />
+<meta property="og:title" content="Pawrent — ดูแลน้องผ่าน LINE และช่วยตามหาเมื่อหาย" />
+<meta property="og:description" content="สมุดสุขภาพ วัคซีน และเครือข่ายตามหาสัตว์เลี้ยงหายสองทาง (เจอ/หาย) ใช้งานผ่าน LINE OA เพิ่มเพื่อนฟรี" />
+<meta property="og:locale" content="th_TH" />
+<meta property="og:image" content="https://pawrent.pops.pet/landing/assets/og-image.svg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Pawrent — ดูแลน้องผ่าน LINE และช่วยตามหาเมื่อหาย" />
+<meta name="twitter:description" content="สมุดสุขภาพ วัคซีน และเครือข่ายตามหาสัตว์เลี้ยงหายสองทาง (เจอ/หาย) ใช้งานผ่าน LINE OA เพิ่มเพื่อนฟรี" />
+<meta name="twitter:image" content="https://pawrent.pops.pet/landing/assets/og-image.svg" />
+
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./assets/favicon.svg" />
+
+<link rel="preload" href="./assets/fonts/noto-sans-thai-thai.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="./assets/fonts/noto-sans-thai-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+<!--
+  Animation choice: CSS transitions driven by IntersectionObserver.
+  Q1 Does the product need scroll/stagger animations at all?
+     Yes — hero + section reveals signal polish and match the Linear/Vercel/Stripe bar. Pure static feels unfinished next to those.
+  Q2 Can CSS alone deliver the needed motion?
+     Yes — fade-up on reveal, subtle scale on CTA hover, gradient drift on hero bubble. All within CSS keyframes and transition.
+  Q3 Does any interaction require a runtime animation lib (gesture, physics, timeline)?
+     No — no physics, no gesture, no scroll-timeline sequencing. A 12-line IntersectionObserver is enough. Skipping Motion One / GSAP saves ~20 KB.
+  Decision: zero animation dependency. Respect prefers-reduced-motion by disabling the transition entirely.
+-->
+
+<!-- Compiled Tailwind (D2 POPS Balanced tokens baked in; rebuilt via `npx tailwindcss@3 -c ../../.../tailwind.config.js -i input.css -o tailwind.css --minify`) -->
+<link rel="stylesheet" href="./tailwind.css" />
+
+<style>
+  /* Self-hosted Noto Sans Thai (variable) — 3 subsets × 3 weight declarations */
+  @font-face { font-family: 'Noto Sans Thai'; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url('./assets/fonts/noto-sans-thai-thai.woff2') format('woff2');
+    unicode-range: U+02D7, U+0303, U+0331, U+0E01-0E5B, U+200C-200D, U+25CC; }
+  @font-face { font-family: 'Noto Sans Thai'; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url('./assets/fonts/noto-sans-thai-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: 'Noto Sans Thai'; font-style: normal; font-weight: 400 800; font-display: swap;
+    src: url('./assets/fonts/noto-sans-thai-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+  :root {
+    --primary: #FF8263;
+    --primary-light: #FFA563;
+    --primary-strong: #C9471F;      /* AA-accessible sibling of --primary for text-on-bg */
+    --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+    --accent-brand: #F06FA8;
+    --accent-brand-strong: #B34379; /* AA-accessible sibling of --accent-brand for text */
+    --accent-yellow: #FFCB6B;
+    --warning-strong: #8A5600;      /* AA-accessible sibling of --warning for small text */
+    --danger-strong:  #B31919;      /* AA-accessible sibling of --danger for small text */
+    --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+    --bg-start: #FAF7F2;
+    --bg-end: #F5F1EA;
+    --surface: #FFFFFF;
+    --surface-alt: #EDEDE8;
+    --text: #2E2A2E;
+    --text-muted: #6B6560;
+    --text-subtle: #3D3935;
+    --success: #4C6B3C; --success-bg: #EDF0EA;
+    --warning: #B8730A; --warning-bg: #FFF3D9;
+    --danger:  #D32F2F; --danger-bg:  #FFEBEE;
+    --info:    #1565C0; --info-bg:    #E3F2FD;
+    --border: #E8E2D8;
+    --border-subtle: #F0EDE6;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-pill: 9999px;
+    --shadow-soft:    0 2px 8px rgba(0,0,0,0.06);
+    --shadow-owner:   0 2px 10px rgba(46,42,46,0.08);
+    --shadow-glow:    0 4px 16px rgba(255,146,133,0.3);
+    --shadow-primary: 0 4px 14px rgba(255,130,99,0.3);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Noto Sans Thai', system-ui, sans-serif;
+    color: var(--text);
+    background: var(--page-gradient, linear-gradient(180deg, #FAF7F2 0%, #F5F1EA 100%));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.is-in { opacity: 1; transform: none; }
+  .reveal-delay-1 { transition-delay: .08s; }
+  .reveal-delay-2 { transition-delay: .16s; }
+  .reveal-delay-3 { transition-delay: .24s; }
+
+  :focus-visible { outline: 2px solid var(--primary-strong); outline-offset: 2px; border-radius: 6px; }
+
+  .hero-blob {
+    position: absolute; inset: -40% -10% auto auto;
+    width: 70%; aspect-ratio: 1/1; border-radius: 9999px;
+    background: var(--pops-gradient); filter: blur(80px); opacity: .35;
+    pointer-events: none; z-index: 0;
+    animation: drift 14s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translate3d(0,0,0) scale(1); }
+    to   { transform: translate3d(-4%, 3%, 0) scale(1.05); }
+  }
+
+  .phone-frame {
+    box-shadow: 0 24px 60px rgba(46,42,46,0.18), 0 0 0 10px #1a1a1a, 0 0 0 12px #2E2A2E;
+    background: #fff;
+    border-radius: 44px;
+    overflow: hidden;
+    aspect-ratio: 9 / 19;
+    max-width: 300px;
+    width: 100%;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .pill-tag {
+    background: var(--surface-alt); color: var(--text-subtle);
+    padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 9999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  .btn-primary {
+    background: var(--primary-gradient); color: var(--text); font-weight: 800;
+    padding: 14px 28px; border-radius: 9999px; box-shadow: var(--shadow-primary);
+    display: inline-flex; align-items: center; gap: 10px; min-height: 48px;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255,130,99,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: #fff; color: var(--text-muted); font-weight: 600;
+    padding: 12px 24px; border-radius: 9999px; border: 2px solid var(--border);
+    display: inline-flex; align-items: center; gap: 8px; min-height: 48px;
+    transition: border-color .18s ease, color .18s ease;
+  }
+  .btn-secondary:hover { border-color: var(--primary-strong); color: var(--text); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    box-shadow: var(--shadow-soft); padding: 24px;
+    transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift, 0 12px 40px rgba(46,42,46,0.12)); border-color: #dcd4c7; }
+
+  .icon-bubble {
+    width: 44px; height: 44px; border-radius: 14px;
+    display: grid; place-items: center; background: #FFF1EC; color: var(--primary-strong);
+  }
+  .icon-bubble--pink   { background: #FDEAF3; color: var(--accent-brand-strong); }
+  .icon-bubble--yellow { background: #FFF3D9; color: var(--warning-strong); }
+  .icon-bubble--green  { background: var(--success-bg); color: var(--success); }
+  .icon-bubble--blue   { background: var(--info-bg); color: var(--info); }
+  .icon-bubble--slate  { background: var(--surface-alt); color: var(--text-subtle); }
+
+  .step-num {
+    width: 36px; height: 36px; border-radius: 9999px;
+    background: var(--primary-gradient); color: #fff; font-weight: 800;
+    display: grid; place-items: center; box-shadow: var(--shadow-primary);
+  }
+
+  .nav-link { color: var(--text-muted); font-weight: 600; transition: color .18s ease; }
+  .nav-link:hover { color: var(--text); }
+
+  .ph-badge {
+    display: inline-flex; gap: 6px; align-items: center;
+    background: var(--warning-bg); color: var(--warning-strong);
+    padding: 3px 8px; border-radius: 9999px; font-size: 10px; font-weight: 800; letter-spacing: .02em;
+  }
+
+  .mobile-menu { transition: opacity .24s ease, transform .24s ease; }
+  .mobile-menu[hidden] { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+
+  .qr-box {
+    background: #fff; padding: 16px; border-radius: 20px; border: 1px solid var(--border);
+    box-shadow: var(--shadow-soft); width: 220px; height: 220px;
+    display: grid; place-items: center;
+  }
+  .qr-box svg { width: 100%; height: 100%; display: block; }
+  .qr-hint { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .hero-blob { animation: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "Pawrent",
+      "url": "https://pawrent.pops.pet/",
+      "logo": "https://pawrent.pops.pet/landing/assets/favicon.svg",
+      "description": "ระบบดูแลน้องหมาน้องแมวบน LINE พร้อมเครือข่ายตามหาสัตว์เลี้ยงหายสองทางสำหรับตลาดไทย",
+      "areaServed": "TH"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Pawrent",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "LINE LIFF, Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "THB" },
+      "description": "สมุดสุขภาพสัตว์เลี้ยง วัคซีน ยา และเครือข่ายตามหาสัตว์เลี้ยงหาย ใช้งานผ่าน LINE OA",
+      "inLanguage": "th"
+    }
+  ]
+}
+</script>
+</head>
+
+<body class="antialiased">
+
+<!-- ============================================================ NAV -->
+<header class="sticky top-0 z-40 backdrop-blur-md bg-[#FAF7F2]/80 border-b border-border/60">
+  <nav class="max-w-content mx-auto flex items-center justify-between px-5 py-3.5" aria-label="หลัก">
+    <a href="#top" class="flex items-center gap-2">
+      <span class="w-9 h-9 rounded-full bg-pops-gradient grid place-items-center text-white font-extrabold text-sm">P</span>
+      <span class="font-extrabold text-lg tracking-tight text-text-main">Pawrent</span>
+    </a>
+    <div class="hidden md:flex items-center gap-7">
+      <a class="nav-link text-sm" href="#features">ฟีเจอร์</a>
+      <a class="nav-link text-sm" href="#how">วิธีใช้</a>
+      <a class="nav-link text-sm" href="#why">ทำไมตอนนี้</a>
+      <a class="nav-link text-sm" href="#voices">เสียงจากคนใช้</a>
+      <a href="#join" data-cta="nav" class="btn-primary !py-2.5 !px-5 !min-h-[40px] text-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+        เพิ่มเพื่อนใน LINE
+      </a>
+    </div>
+    <button id="nav-toggle" class="md:hidden p-2" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="mobile-menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </nav>
+  <div id="mobile-menu" class="mobile-menu md:hidden border-t border-border/60 bg-white" hidden>
+    <div class="px-5 py-4 flex flex-col gap-3">
+      <a class="nav-link py-2" href="#features">ฟีเจอร์</a>
+      <a class="nav-link py-2" href="#how">วิธีใช้</a>
+      <a class="nav-link py-2" href="#why">ทำไมตอนนี้</a>
+      <a class="nav-link py-2" href="#voices">เสียงจากคนใช้</a>
+      <a href="#join" data-cta="nav-mobile" class="btn-primary justify-center mt-2">
+        เพิ่มเพื่อนใน LINE
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================================================ HERO -->
+  <section class="relative overflow-hidden">
+    <div class="hero-blob" aria-hidden="true"></div>
+    <div class="relative max-w-content mx-auto px-5 pt-14 pb-20 md:pt-24 md:pb-28 grid md:grid-cols-2 gap-12 items-center">
+      <div class="relative z-10">
+        <span class="pill-tag reveal">
+          <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+          เปิดใช้ผ่าน LINE OA ฟรี ไม่มีแอปให้โหลด
+        </span>
+        <h1 class="reveal reveal-delay-1 text-display-md md:text-display-lg lg:text-display-xl mt-5 text-text-main">
+          ดูแลน้อง<span class="inline-block bg-[#FFE9DC] text-text-main rounded-md px-3 -mx-1">อย่างอบอุ่น</span><br/>
+          พร้อมเครือข่ายตามหา<br/>
+          เมื่อน้องหาย
+        </h1>
+        <p class="reveal reveal-delay-2 mt-5 text-base md:text-lg text-text-muted max-w-xl">
+          Pawrent คือศูนย์ดูแลน้องหมาน้องแมวบน LINE — สมุดสุขภาพ วัคซีน ยา และเครือข่ายสองทาง: คนพบส่งสัญญาณ และเจ้าของได้เห็นทันที ออกแบบสำหรับคนไทย ภายใต้ PDPA
+        </p>
+        <div class="reveal reveal-delay-3 mt-8 flex flex-wrap gap-3">
+          <a href="#join" data-cta="hero" class="btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+            สแกน LINE OA เพื่อเริ่มใช้
+          </a>
+          <a href="#how" class="btn-secondary">
+            ดูวิธีใช้งาน
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <ul class="reveal reveal-delay-3 mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm text-text-muted">
+          <li class="flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C6B3C" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>ใช้บน LINE ที่คุ้นเคย</li>
+          <li class="flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C6B3C" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>ภาษาไทยทั้งระบบ</li>
+          <li class="flex items-center gap-2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4C6B3C" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>ข้อมูลอยู่ภายใต้ PDPA</li>
+        </ul>
+      </div>
+
+      <!-- Phone mockup -->
+      <div class="relative z-10 reveal reveal-delay-2">
+        <div class="phone-frame" aria-hidden="true">
+          <div class="w-full h-full flex flex-col bg-[#FAF7F2]">
+            <div class="px-4 pt-6 pb-3 flex items-center gap-3 bg-white border-b border-border-subtle">
+              <span class="w-10 h-10 rounded-full bg-pops-gradient"></span>
+              <div class="flex-1">
+                <div class="text-[11px] text-text-muted">สวัสดีค่ะ คุณฟ้าใส</div>
+                <div class="text-sm font-extrabold text-text-main">น้องข้าวสวย · พุดเดิ้ล</div>
+              </div>
+              <span class="pill-tag !text-[9px]">พร้อมใช้งาน</span>
+            </div>
+            <div class="p-3 space-y-2.5 flex-1 overflow-hidden">
+              <div class="rounded-2xl bg-white p-3 border border-border-subtle shadow-soft">
+                <div class="text-[10px] font-extrabold text-success flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-success"></span>วัคซีนครบ</div>
+                <div class="text-xs font-bold text-text-main mt-0.5">ฉีดครั้งถัดไป · 12 ก.ย.</div>
+              </div>
+              <div class="rounded-2xl bg-white p-3 border border-border-subtle shadow-soft">
+                <div class="text-[10px] font-extrabold flex items-center gap-1.5" style="color:var(--warning-strong)"><span class="w-1.5 h-1.5 rounded-full bg-warning"></span>ยาเห็บ · ใกล้หมดอายุ</div>
+                <div class="text-xs font-bold text-text-main mt-0.5">เหลือ 4 วัน · เตือนแล้ว</div>
+              </div>
+              <div class="rounded-2xl p-3 bg-danger-bg border border-danger/20">
+                <div class="text-[10px] font-extrabold flex items-center gap-1.5" style="color:var(--danger-strong)"><span class="w-1.5 h-1.5 rounded-full bg-danger"></span>ระบบตามหา</div>
+                <div class="text-xs font-bold text-text-main mt-0.5">น้องเหมียวหาย ห่าง 1.2 กม.</div>
+                <div class="text-[10px] text-text-muted mt-0.5">คลิกเพื่อแชร์ในพื้นที่</div>
+              </div>
+              <div class="rounded-2xl bg-white p-3 border border-border-subtle shadow-soft">
+                <div class="text-[10px] font-extrabold text-info flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-info"></span>สมุดสุขภาพ</div>
+                <div class="text-xs font-bold text-text-main mt-0.5">บันทึก 12 รายการ · รูป 48 ใบ</div>
+              </div>
+            </div>
+            <div class="h-14 bg-white border-t border-border-subtle grid grid-cols-5 items-center">
+              <span class="text-center text-[9px] font-extrabold" style="color:var(--primary-strong)">หน้าหลัก</span>
+              <span class="text-center text-[9px] text-text-muted">สุขภาพ</span>
+              <span class="text-center text-[9px] text-danger font-extrabold">ฉุกเฉิน</span>
+              <span class="text-center text-[9px] text-text-muted">ชุมชน</span>
+              <span class="text-center text-[9px] text-text-muted">โปรไฟล์</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ PROBLEM / SOLUTION -->
+  <section class="py-16 md:py-24 bg-white/60 border-y border-border">
+    <div class="max-w-content mx-auto px-5 grid md:grid-cols-2 gap-10 md:gap-16">
+      <div class="reveal">
+        <span class="pill-tag">ปัญหาจริง</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">
+          น้องหาย = ตามหาในเฟซกลุ่มทีละโพสต์
+        </h2>
+        <p class="mt-4 text-text-muted text-base md:text-lg">
+          เจ้าของที่อยู่ในสถานะแย่ที่สุด ต้องโพสต์ซ้ำกระจายหลายกลุ่ม ตอบแชทเดียวกันเป็นสิบรอบ และข้อมูลน้องตกหล่น — เพราะไม่มีระบบกลางที่ออกแบบมาเพื่อโมเมนต์นี้
+        </p>
+        <ul class="mt-6 space-y-3 text-text-muted">
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--yellow !w-6 !h-6 !rounded-md text-xs">✕</span>ข้อมูลกระจายหลายแชท ตามต่อลำบาก</li>
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--yellow !w-6 !h-6 !rounded-md text-xs">✕</span>คนพบไม่รู้จะแจ้งใคร ไม่มีช่องทางกลาง</li>
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--yellow !w-6 !h-6 !rounded-md text-xs">✕</span>สมุดวัคซีนกระดาษหาย/เปียก/ลืม</li>
+        </ul>
+      </div>
+      <div class="reveal reveal-delay-1">
+        <span class="pill-tag" style="background:#FFE9DC;color:var(--text)">วิธีของ Pawrent</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">
+          เครือข่ายสองทาง — เจอและหาย อยู่ระบบเดียวกัน
+        </h2>
+        <p class="mt-4 text-text-muted text-base md:text-lg">
+          คนพบสัตว์ริมถนนกรอกเร็วบน LINE ได้เลย เจ้าของที่น้องหายได้รับแจ้งเตือนจากระยะใกล้ก่อนใคร พร้อมโปสเตอร์และลิงก์แชร์ที่เตรียมไว้ให้
+        </p>
+        <ul class="mt-6 space-y-3 text-text-main">
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--green !w-6 !h-6 !rounded-md text-xs">✓</span>แจ้งเจอ/แจ้งหาย ผ่าน LINE ไม่ต้องโหลดแอป</li>
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--green !w-6 !h-6 !rounded-md text-xs">✓</span>แจ้งเตือนเฉพาะคนในรัศมี ไม่สแปม</li>
+          <li class="flex gap-3"><span class="icon-bubble icon-bubble--green !w-6 !h-6 !rounded-md text-xs">✓</span>สมุดสุขภาพดิจิทัล แชร์ให้หมอได้ใน 1 แตะ</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ FEATURES -->
+  <section id="features" class="py-16 md:py-24">
+    <div class="max-w-content mx-auto px-5">
+      <div class="text-center max-w-2xl mx-auto reveal">
+        <span class="pill-tag">ฟีเจอร์</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">
+          ทุกสิ่งที่เจ้าของต้องการ — ในที่เดียว บน LINE
+        </h2>
+        <p class="mt-3 text-text-muted">
+          ฟีเจอร์ถูกออกแบบรอบ "โมเมนต์จริง" ของการเป็นเจ้าของน้อง ไม่ใช่รอบฐานข้อมูล
+        </p>
+      </div>
+
+      <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <article class="card reveal">
+          <div class="icon-bubble"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">สมุดสุขภาพน้อง</h3>
+          <p class="mt-2 text-sm text-text-muted">บันทึกวัคซีน ยา น้ำหนัก รูป และโน้ตจากคุณหมอ แชร์ทั้งเล่มให้โรงพยาบาลได้ใน 1 แตะ</p>
+        </article>
+
+        <article class="card reveal reveal-delay-1">
+          <div class="icon-bubble icon-bubble--yellow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">เตือนวัคซีน &amp; ยา</h3>
+          <p class="mt-2 text-sm text-text-muted">แจ้งเตือนก่อนล่วงหน้าผ่าน LINE Push ไม่ต้องเปิดแอป ไม่ลืมรอบฉีด ไม่ลืมยาเห็บ</p>
+        </article>
+
+        <article class="card reveal reveal-delay-2">
+          <div class="icon-bubble icon-bubble--pink"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">ระบบตามหาสองทาง</h3>
+          <p class="mt-2 text-sm text-text-muted">แจ้ง "เจอ/หาย" ในฟอร์มเดียวกัน ระบบจับคู่อัตโนมัติตามรัศมี พร้อมโปสเตอร์ลิงก์แชร์ออก LINE/Facebook</p>
+        </article>
+
+        <article class="card reveal">
+          <div class="icon-bubble icon-bubble--green"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 0 1 18 0c0 5-4 9-9 9-2 0-4-.7-5.5-2"/><path d="M3 21v-5h5"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">รายงานเจอน้องเร็ว</h3>
+          <p class="mt-2 text-sm text-text-muted">คนพบสัตว์ริมถนนกรอกเร็วผ่าน LIFF ไม่ต้องสมัครสมาชิก — รูป + ตำแหน่ง = ข้อมูลพร้อมส่ง</p>
+        </article>
+
+        <article class="card reveal reveal-delay-1">
+          <div class="icon-bubble icon-bubble--blue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h12"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">แผนที่สัตว์แพทย์ใกล้เรา</h3>
+          <p class="mt-2 text-sm text-text-muted">หาคลินิก/โรงพยาบาล 24 ชม. ใกล้ตัว พร้อมเบอร์โทร ฉุกเฉินไม่ต้องกูเกิลหลายรอบ</p>
+        </article>
+
+        <article class="card reveal reveal-delay-2">
+          <div class="icon-bubble icon-bubble--slate"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18"/></svg></div>
+          <h3 class="mt-4 text-lg font-extrabold text-text-main">โปรไฟล์ &amp; ความยินยอม</h3>
+          <p class="mt-2 text-sm text-text-muted">จัดการข้อมูลน้อง-ข้อมูลคุณ ตาม PDPA ส่งออก/ลบข้อมูลได้ด้วยตัวเองทุกเมื่อ</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ HOW -->
+  <section id="how" class="py-16 md:py-24 bg-white/60 border-y border-border">
+    <div class="max-w-content mx-auto px-5">
+      <div class="text-center max-w-2xl mx-auto reveal">
+        <span class="pill-tag">วิธีใช้งาน</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">4 ขั้น ใช้งานได้จริง</h2>
+        <p class="mt-3 text-text-muted">ไม่มีแอปให้โหลด ไม่มีบัญชีใหม่ ใช้ LINE ที่คุณใช้อยู่ทุกวัน</p>
+      </div>
+
+      <ol class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <li class="card reveal">
+          <div class="flex items-center gap-3"><span class="step-num">1</span><span class="pill-tag">30 วินาที</span></div>
+          <h3 class="mt-4 text-lg font-extrabold">เพิ่มเพื่อน LINE OA</h3>
+          <p class="mt-2 text-sm text-text-muted">สแกน QR หรือกดปุ่มด้านล่าง — เปิด Pawrent ได้ทันที ไม่ต้องสมัครใหม่</p>
+        </li>
+        <li class="card reveal reveal-delay-1">
+          <div class="flex items-center gap-3"><span class="step-num">2</span><span class="pill-tag">1 นาที</span></div>
+          <h3 class="mt-4 text-lg font-extrabold">สร้างโปรไฟล์น้อง</h3>
+          <p class="mt-2 text-sm text-text-muted">ใส่ชื่อ สายพันธุ์ รูป และจุดสังเกต — ใช้ได้ทั้งหมาและแมว</p>
+        </li>
+        <li class="card reveal reveal-delay-2">
+          <div class="flex items-center gap-3"><span class="step-num">3</span><span class="pill-tag">ต่อเนื่อง</span></div>
+          <h3 class="mt-4 text-lg font-extrabold">ดูแลผ่านเมนู</h3>
+          <p class="mt-2 text-sm text-text-muted">บันทึกวัคซีน/ยา รับเตือน ค้นคลินิก — ทุกอย่างอยู่ในเมนู LINE เดิม</p>
+        </li>
+        <li class="card reveal reveal-delay-3">
+          <div class="flex items-center gap-3"><span class="step-num">4</span><span class="pill-tag" style="background:var(--danger-bg);color:var(--danger-strong)">เมื่อฉุกเฉิน</span></div>
+          <h3 class="mt-4 text-lg font-extrabold">แจ้งหาย/แจ้งเจอ</h3>
+          <p class="mt-2 text-sm text-text-muted">กรอกในฟอร์มเดียวกัน ระบบจับคู่+แจ้งคนรอบข้างในรัศมีทันที</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ WHY NOW -->
+  <section id="why" class="py-16 md:py-24">
+    <div class="max-w-content mx-auto px-5 grid md:grid-cols-[1.1fr_1fr] gap-10 items-center">
+      <div class="reveal">
+        <span class="pill-tag">ทำไมต้องตอนนี้</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">
+          ไทยยังไม่มีระบบกลาง — เราจึงสร้างบน LINE ที่คนไทยอยู่อยู่แล้ว
+        </h2>
+        <p class="mt-4 text-text-muted text-base md:text-lg">
+          แอปต่างประเทศไม่เข้าใจบริบทไทย — ทั้งภาษา วัฒนธรรมย่านบ้าน และช่องทางสื่อสารหลักที่ยังเป็น LINE Pawrent ออกแบบทุกจอในภาษาไทย ทำงานบน LINE OA ที่คุณเปิดอยู่แล้ว และเคารพข้อมูลส่วนบุคคลภายใต้ PDPA
+        </p>
+        <div class="mt-8 grid grid-cols-2 gap-4">
+          <div class="card !p-5">
+            <div class="text-sm text-text-muted">ใช้ผ่าน</div>
+            <div class="text-2xl font-extrabold mt-1 text-text-main">LINE OA</div>
+            <div class="text-xs text-text-muted mt-1">ไม่มีแอปใหม่ให้ติดตั้ง</div>
+          </div>
+          <div class="card !p-5">
+            <div class="text-sm text-text-muted">ข้อมูลใต้</div>
+            <div class="text-2xl font-extrabold mt-1 text-text-main">PDPA</div>
+            <div class="text-xs text-text-muted mt-1">ส่งออก/ลบได้ด้วยตัวเอง</div>
+          </div>
+          <div class="card !p-5">
+            <div class="text-sm text-text-muted">ออกแบบสำหรับ</div>
+            <div class="text-2xl font-extrabold mt-1 text-text-main">คนไทย</div>
+            <div class="text-xs text-text-muted mt-1">ภาษาไทยทั้งระบบ</div>
+          </div>
+          <div class="card !p-5">
+            <div class="text-sm text-text-muted">เครือข่าย</div>
+            <div class="text-2xl font-extrabold mt-1 text-text-main">สองทาง</div>
+            <div class="text-xs text-text-muted mt-1">เจอ/หาย ในที่เดียว</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- visual anchor: concentric rings with paw -->
+      <div class="reveal reveal-delay-1 relative h-[380px] grid place-items-center">
+        <div class="absolute inset-0 grid place-items-center" aria-hidden="true">
+          <div class="w-[320px] h-[320px] rounded-full border-2 border-border"></div>
+          <div class="absolute w-[220px] h-[220px] rounded-full border-2 border-border-subtle"></div>
+          <div class="absolute w-[130px] h-[130px] rounded-full bg-pops-gradient opacity-90"></div>
+        </div>
+        <div class="relative w-16 h-16 rounded-full bg-white shadow-lift grid place-items-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="#FF8263" aria-hidden="true">
+            <ellipse cx="6" cy="8" rx="2" ry="2.5"/><ellipse cx="18" cy="8" rx="2" ry="2.5"/>
+            <ellipse cx="3.5" cy="13" rx="1.8" ry="2.2"/><ellipse cx="20.5" cy="13" rx="1.8" ry="2.2"/>
+            <path d="M12 12c-3 0-6 3-6 6s2.5 3 6 3 6 .5 6-3-3-6-6-6z"/>
+          </svg>
+        </div>
+        <span class="absolute top-6 right-6 pill-tag">แจ้งเตือนในรัศมี</span>
+        <span class="absolute bottom-8 left-6 pill-tag" style="background:var(--success-bg);color:var(--success)">จับคู่อัตโนมัติ</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ VOICES (PLACEHOLDER) -->
+  <section id="voices" class="py-16 md:py-24 bg-white/60 border-y border-border">
+    <div class="max-w-content mx-auto px-5">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="ph-badge">PLACEHOLDER</span>
+        <p class="text-xs text-text-muted">โซนนี้จะแทนที่ด้วยคำให้การจริง + ชื่อ-ยินยอม หลังเปิดตัวและได้รับ opt-in ตาม PDPA แล้ว</p>
+      </div>
+      <div class="text-center max-w-2xl mx-auto reveal">
+        <span class="pill-tag">เสียงจากคนใช้</span>
+        <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">สิ่งที่เจ้าของบอกเรา</h2>
+      </div>
+
+      <div class="mt-12 grid gap-5 md:grid-cols-3">
+        <figure class="card reveal">
+          <span class="ph-badge">PLACEHOLDER</span>
+          <blockquote class="mt-4 text-text-main leading-relaxed">
+            "อยากได้ระบบกลางที่แจ้งพื้นที่บ้านเราได้ตรงๆ โพสต์ในเฟซบุ๊กไม่ถึงคนในซอย"
+          </blockquote>
+          <figcaption class="mt-4 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-full bg-pops-gradient"></span>
+            <div>
+              <div class="text-sm font-extrabold text-text-main">ชื่อจะแสดงเมื่อ opt-in</div>
+              <div class="text-xs text-text-muted">เจ้าของแมว · กทม.</div>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="card reveal reveal-delay-1">
+          <span class="ph-badge">PLACEHOLDER</span>
+          <blockquote class="mt-4 text-text-main leading-relaxed">
+            "ลืมวันฉีดวัคซีนประจำ ถ้ามีแจ้งผ่าน LINE จะสะดวกกว่าแอปแยก"
+          </blockquote>
+          <figcaption class="mt-4 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-full bg-primary-gradient"></span>
+            <div>
+              <div class="text-sm font-extrabold text-text-main">ชื่อจะแสดงเมื่อ opt-in</div>
+              <div class="text-xs text-text-muted">เจ้าของหมา · เชียงใหม่</div>
+            </div>
+          </figcaption>
+        </figure>
+
+        <figure class="card reveal reveal-delay-2">
+          <span class="ph-badge">PLACEHOLDER</span>
+          <blockquote class="mt-4 text-text-main leading-relaxed">
+            "เจอแมวไม่มีเจ้าของบ่อย แต่ไม่รู้จะส่งข้อมูลให้ใคร ถ้ากรอกใน LINE ได้ก็ดี"
+          </blockquote>
+          <figcaption class="mt-4 flex items-center gap-3">
+            <span class="w-10 h-10 rounded-full" style="background:linear-gradient(135deg,#FFCB6B,#FF9285)"></span>
+            <div>
+              <div class="text-sm font-extrabold text-text-main">ชื่อจะแสดงเมื่อ opt-in</div>
+              <div class="text-xs text-text-muted">คนในชุมชน · ขอนแก่น</div>
+            </div>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ FINAL CTA -->
+  <section id="join" class="py-16 md:py-24">
+    <div class="max-w-content mx-auto px-5">
+      <div class="rounded-lg-r md:rounded-xl-r p-7 md:p-14 bg-white border border-border shadow-lift relative overflow-hidden" style="border-radius:32px">
+        <div class="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-pops-gradient opacity-20 blur-2xl" aria-hidden="true"></div>
+        <div class="relative grid md:grid-cols-[1.2fr_1fr] gap-10 items-center">
+          <div class="reveal">
+            <span class="pill-tag">เริ่มใช้ฟรี</span>
+            <h2 class="mt-4 text-display-sm md:text-display-md text-text-main">
+              สแกน LINE OA เพื่อร่วมชุมชน Pawrent
+            </h2>
+            <p class="mt-4 text-text-muted text-base md:text-lg">
+              เพิ่มเพื่อนและเปิดเมนูดูแลน้องได้ทันที — หรือกดปุ่มเพื่อเปิดใน LINE บนมือถือ
+            </p>
+            <div class="mt-7 flex flex-wrap gap-3 items-center">
+              <a id="cta-line-btn" href="#" data-cta="final" class="btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>
+                เพิ่มเพื่อนใน LINE
+              </a>
+              <a href="#features" class="btn-secondary">ดูฟีเจอร์อีกครั้ง</a>
+            </div>
+            <p class="mt-5 text-xs text-text-muted">
+              * ลิงก์ LINE OA อยู่ระหว่างตั้งค่า แทนที่ <code class="font-mono text-[11px]">LINE_OA_URL</code> ใน <code class="font-mono text-[11px]">index.html</code> ก่อนเปิดตัว
+            </p>
+          </div>
+
+          <div class="reveal reveal-delay-1 flex flex-col items-center">
+            <div id="qr-target" class="qr-box" role="img" aria-label="QR code เพิ่มเพื่อน Pawrent ใน LINE"></div>
+            <p class="qr-hint">สแกนด้วยกล้อง LINE เพื่อเปิดแชต Pawrent</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================ FOOTER -->
+<footer class="border-t border-border bg-white/70">
+  <div class="max-w-content mx-auto px-5 py-10 grid gap-6 md:grid-cols-3 items-start">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-full bg-pops-gradient grid place-items-center text-white font-extrabold text-sm">P</span>
+        <span class="font-extrabold text-text-main">Pawrent</span>
+      </div>
+      <p class="mt-3 text-sm text-text-muted max-w-xs">ศูนย์ดูแลน้องหมาน้องแมวบน LINE — ออกแบบในไทย สำหรับคนไทย ภายใต้ PDPA</p>
+    </div>
+    <div class="text-sm">
+      <div class="font-extrabold text-text-main mb-2">บริการ</div>
+      <ul class="space-y-1.5 text-text-muted">
+        <li><a class="hover:text-text-main" href="#features">สมุดสุขภาพ</a></li>
+        <li><a class="hover:text-text-main" href="#features">ระบบตามหา</a></li>
+        <li><a class="hover:text-text-main" href="#how">วิธีใช้งาน</a></li>
+      </ul>
+    </div>
+    <div class="text-sm">
+      <div class="font-extrabold text-text-main mb-2">ติดต่อ &amp; ความเป็นส่วนตัว</div>
+      <ul class="space-y-1.5 text-text-muted">
+        <li>อีเมลความเป็นส่วนตัว: <a class="hover:text-text-main" href="mailto:privacy@pawrent.app">privacy@pawrent.app</a></li>
+        <li>อยู่ภายใต้ พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) ประเทศไทย</li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-border-subtle">
+    <div class="max-w-content mx-auto px-5 py-5 flex flex-wrap gap-3 justify-between text-xs text-text-muted">
+      <span>© <span id="year"></span> Pawrent. สงวนลิขสิทธิ์</span>
+      <span>สร้างใน Thailand · ออกแบบภายใต้ D2 POPS Balanced</span>
+    </div>
+  </div>
+</footer>
+
+<!-- QR library (nayuki) loaded lazily only when the QR enters the viewport (see bottom IIFE) -->
+
+
+<script>
+(function () {
+  // REPLACE BEFORE LAUNCH — LINE OA add-friend URL (e.g. 'https://lin.ee/XXXXXXX' or 'https://line.me/R/ti/p/@pawrent')
+  var LINE_OA_URL = 'https://lin.ee/REPLACE_ME';
+
+  // Year in footer
+  var y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
+
+  // CTA wiring — any anchor with data-cta jumps to LINE OA
+  document.querySelectorAll('a[data-cta]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.pawrentAnalytics) window.pawrentAnalytics.trackEvent('cta_click', { location: a.getAttribute('data-cta') });
+      window.open(LINE_OA_URL, '_blank', 'noopener,noreferrer');
+    });
+  });
+  // "cta-line-btn" inside final CTA also needs to open the URL on click; covered above.
+
+  // Mobile menu toggle
+  var toggle = document.getElementById('nav-toggle');
+  var menu   = document.getElementById('mobile-menu');
+  if (toggle && menu) {
+    toggle.addEventListener('click', function () {
+      var open = menu.hasAttribute('hidden');
+      if (open) { menu.removeAttribute('hidden'); toggle.setAttribute('aria-expanded', 'true'); }
+      else      { menu.setAttribute('hidden', '');  toggle.setAttribute('aria-expanded', 'false'); }
+    });
+    menu.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () { menu.setAttribute('hidden', ''); toggle.setAttribute('aria-expanded', 'false'); });
+    });
+  }
+
+  // IntersectionObserver reveal
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-in'); });
+  }
+
+  // Scroll depth analytics (25/50/75/100)
+  var hit = { 25: false, 50: false, 75: false, 100: false };
+  function onScroll() {
+    var h = document.documentElement;
+    var pct = Math.round(((window.scrollY + window.innerHeight) / h.scrollHeight) * 100);
+    [25, 50, 75, 100].forEach(function (m) {
+      if (!hit[m] && pct >= m) {
+        hit[m] = true;
+        if (window.pawrentAnalytics) window.pawrentAnalytics.trackEvent('scroll_depth', { pct: m });
+      }
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // QR — lazy: library + render only run when the QR box enters the viewport.
+  // Keeps it out of the TBT window and off the initial main-thread budget.
+  function drawQR(el) {
+    try {
+      var qr = qrcode(0, 'M');
+      qr.addData(LINE_OA_URL);
+      qr.make();
+      var count = qr.getModuleCount();
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + count + ' ' + count);
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', 'QR code เพิ่มเพื่อน Pawrent ใน LINE');
+      var bg = document.createElementNS(NS, 'rect');
+      bg.setAttribute('width', count); bg.setAttribute('height', count); bg.setAttribute('fill', '#FFFFFF');
+      svg.appendChild(bg);
+      for (var r = 0; r < count; r++) {
+        for (var c = 0; c < count; c++) {
+          if (qr.isDark(r, c)) {
+            var rect = document.createElementNS(NS, 'rect');
+            rect.setAttribute('x', c); rect.setAttribute('y', r);
+            rect.setAttribute('width', 1); rect.setAttribute('height', 1);
+            rect.setAttribute('fill', '#2E2A2E');
+            svg.appendChild(rect);
+          }
+        }
+      }
+      el.textContent = '';
+      el.appendChild(svg);
+    } catch (err) {
+      el.textContent = 'สแกนไม่ได้ กดปุ่ม "เพิ่มเพื่อนใน LINE" ด้านบน';
+    }
+  }
+  function loadQRLibAndRender(el) {
+    if (typeof qrcode === 'function') { drawQR(el); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+    s.async = true;
+    s.onload = function () { drawQR(el); };
+    s.onerror = function () { el.textContent = 'สแกนไม่ได้ กดปุ่ม "เพิ่มเพื่อนใน LINE" ด้านบน'; };
+    document.head.appendChild(s);
+  }
+  var qrEl = document.getElementById('qr-target');
+  if (qrEl) {
+    if ('IntersectionObserver' in window) {
+      var qio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { qio.unobserve(en.target); loadQRLibAndRender(en.target); }
+        });
+      }, { rootMargin: '200px' });
+      qio.observe(qrEl);
+    } else {
+      loadQRLibAndRender(qrEl);
+    }
+  }
+})();
+</script>
+
+<script src="./analytics.js" defer></script>
+</body>
+</html>
