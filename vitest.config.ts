@@ -22,6 +22,8 @@ export default defineConfig({
         // Below per-file branch threshold (83.33% < 85%). Remove as coverage improves.
         "app/api/posts/route.ts",
         "app/api/profile/route.ts",
+        // OG image route uses Edge runtime + ImageResponse — not testable in jsdom.
+        "app/api/og/**",
       ],
       thresholds: {
         statements: 90,

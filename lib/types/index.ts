@@ -7,3 +7,4 @@ export * from "./geospatial";
 export * from "./found";
 export * from "./conversations";
 export * from "./push";
+export * from "./health";

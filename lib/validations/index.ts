@@ -6,3 +6,4 @@ export * from "./posts";
 export * from "./auth";
 export * from "./found";
 export * from "./push";
+export * from "./health";
