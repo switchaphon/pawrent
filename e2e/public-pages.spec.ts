@@ -1,18 +1,32 @@
 import { test, expect } from "@playwright/test";
 
+/**
+ * Unauthenticated pages end up in one of two LIFF states depending on
+ * whether NEXT_PUBLIC_LIFF_ID is configured. See auth-flow.spec.ts for
+ * rationale.
+ */
+async function expectLineAuthState(page: import("@playwright/test").Page) {
+  await Promise.race([
+    page.waitForURL(/access\.line\.me/, { timeout: 15000 }),
+    page.getByText(/signing in with line/i).waitFor({ timeout: 15000 }),
+  ]);
+  const onLineAuth = /access\.line\.me/.test(page.url());
+  const seesLoadingText = await page
+    .getByText(/signing in with line/i)
+    .isVisible()
+    .catch(() => false);
+  expect(onLineAuth || seesLoadingText).toBe(true);
+}
+
 test.describe("Public pages (no auth required)", () => {
-  test("home page redirects to LINE login when unauthenticated", async ({ page }) => {
-    // LiffProvider triggers a LIFF OAuth redirect when there is no idToken and
-    // the browser is not inside LIFF.
+  test("home page hits LINE login flow when unauthenticated", async ({ page }) => {
     await page.goto("/");
-    await page.waitForURL(/access\.line\.me/, { timeout: 15000 });
-    expect(page.url()).toMatch(/access\.line\.me/);
+    await expectLineAuthState(page);
   });
 
   test("hospital page loads", async ({ page }) => {
     // /hospital is a truly public page (no LiffProvider gate); it renders the
-    // dynamic Leaflet map. Use a generous timeout for slower browsers and CDN
-    // tile loads.
+    // dynamic Leaflet map. Generous timeout for slower browsers and CDN tiles.
     await page.goto("/hospital");
     await expect(page.locator(".leaflet-container")).toBeVisible({
       timeout: 20000,
@@ -26,15 +40,13 @@ test.describe("Public pages (no auth required)", () => {
     });
   });
 
-  test("/pets redirects to LINE login when unauthenticated", async ({ page }) => {
+  test("/pets hits LINE login flow when unauthenticated", async ({ page }) => {
     await page.goto("/pets");
-    await page.waitForURL(/access\.line\.me/, { timeout: 15000 });
-    expect(page.url()).toMatch(/access\.line\.me/);
+    await expectLineAuthState(page);
   });
 
-  test("/profile redirects to LINE login when unauthenticated", async ({ page }) => {
+  test("/profile hits LINE login flow when unauthenticated", async ({ page }) => {
     await page.goto("/profile");
-    await page.waitForURL(/access\.line\.me/, { timeout: 15000 });
-    expect(page.url()).toMatch(/access\.line\.me/);
+    await expectLineAuthState(page);
   });
 });
