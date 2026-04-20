@@ -2,7 +2,9 @@ import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "edge";
+// Edge runtime exceeds the 1MB plan limit (bundle ~1.15MB with @supabase/supabase-js
+// + next/og). Use Node.js serverless instead — 50MB limit, slower cold start.
+export const runtime = "nodejs";
 
 /**
  * GET /api/og/passport/[petId]
