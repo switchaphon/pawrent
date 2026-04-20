@@ -577,7 +577,7 @@ export default function LostWizardPage() {
             <Card className="p-4 rounded-xl">
               <Label className="text-foreground font-semibold flex items-center gap-2 mb-2">
                 <Gift className="w-4 h-4 text-amber-500" />
-                รางวัลนำจับ (ไม่บังคับ)
+                รางวัลนำส่งคืน (ไม่บังคับ)
               </Label>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-foreground">฿</span>
@@ -719,7 +719,7 @@ export default function LostWizardPage() {
                 </div>
                 {rewardAmount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">รางวัลนำจับ</span>
+                    <span className="text-muted-foreground">รางวัลนำส่งคืน</span>
                     <span className="text-amber-600 font-bold">
                       ฿{rewardAmount.toLocaleString()}
                     </span>

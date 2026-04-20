@@ -336,7 +336,7 @@ describe("Alert Detail Page", () => {
 
   it("should display reward banner when reward_amount > 0", async () => {
     if (!AlertDetail) {
-      // Should show prominently: "รางวัลนำจับ ฿10,000"
+      // Should show prominently: "รางวัลนำส่งคืน ฿10,000"
       expect(true).toBe(true);
       return;
     }

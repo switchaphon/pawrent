@@ -313,7 +313,7 @@ export default function AlertDetailPage() {
           {/* Reward banner */}
           {alert.reward_amount > 0 && (
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-4 text-center">
-              <p className="text-xs text-amber-700 font-medium mb-1">รางวัลนำจับ</p>
+              <p className="text-xs text-amber-700 font-medium mb-1">รางวัลนำส่งคืน</p>
               <p className="text-2xl font-bold text-amber-600">
                 ฿{alert.reward_amount.toLocaleString()}
               </p>
