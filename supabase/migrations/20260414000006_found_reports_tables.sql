@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS found_reports (
   photo_urls      text[] NOT NULL DEFAULT '{}',
   lat             double precision NOT NULL,
   lng             double precision NOT NULL,
-  geog            geography(Point, 4326),
+  geog            extensions.geography(Point, 4326),
   species_guess   text CHECK (species_guess IN ('dog', 'cat', 'other')),
   breed_guess     text,
   color_description text CHECK (char_length(color_description) <= 200),
@@ -38,7 +38,7 @@ CREATE INDEX idx_found_reports_active ON found_reports(species_guess, is_active,
 -- Auto-sync geog from lat/lng (reuses existing trigger function)
 CREATE TRIGGER trg_found_reports_sync_geog
   BEFORE INSERT OR UPDATE OF lat, lng ON found_reports
-  FOR EACH ROW EXECUTE FUNCTION sync_geog_from_latlng();
+  FOR EACH ROW EXECUTE FUNCTION sync_geog_from_lat_lng();
 
 -- RLS
 ALTER TABLE found_reports ENABLE ROW LEVEL SECURITY;
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS pet_sightings (
   reporter_id uuid REFERENCES profiles(id) ON DELETE SET NULL,
   lat         double precision NOT NULL,
   lng         double precision NOT NULL,
-  geog        geography(Point, 4326),
+  geog        extensions.geography(Point, 4326),
   photo_url   text,
   note        text CHECK (char_length(note) <= 500),
   created_at  timestamptz DEFAULT now()
@@ -69,7 +69,7 @@ CREATE INDEX idx_pet_sightings_geog ON pet_sightings USING GIST (geog);
 
 CREATE TRIGGER trg_sightings_sync_geog
   BEFORE INSERT OR UPDATE OF lat, lng ON pet_sightings
-  FOR EACH ROW EXECUTE FUNCTION sync_geog_from_latlng();
+  FOR EACH ROW EXECUTE FUNCTION sync_geog_from_lat_lng();
 
 ALTER TABLE pet_sightings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view sightings" ON pet_sightings FOR SELECT USING (true);
