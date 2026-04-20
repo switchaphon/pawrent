@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
+import { Noto_Sans_Thai } from "next/font/google";
 import { LiffProvider } from "@/components/liff-provider";
 import { LocationProvider } from "@/components/location-provider";
 import { NavigationShell } from "@/components/navigation-shell";
@@ -7,10 +7,11 @@ import { ToastProvider } from "@/components/ui/toast";
 import { DebugConsole } from "@/components/debug-console";
 import "./globals.css";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
-  subsets: ["latin"],
+const notoSansThai = Noto_Sans_Thai({
+  variable: "--font-noto-sans-thai",
+  subsets: ["thai", "latin"],
   weight: ["400", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#FF8263",
 };
 
 export default function RootLayout({
@@ -31,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${nunito.variable} font-sans antialiased`}>
+    <html lang="th">
+      <body className={`${notoSansThai.variable} font-sans antialiased`}>
         <DebugConsole />
         <ToastProvider>
           <LiffProvider>
