@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, AlertTriangle, Check, QrCode } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface VaccineStatus {
   name: string;
@@ -20,6 +20,24 @@ interface PetCardProps {
   parasiteDaysLeft?: number;
 }
 
+const STATUS_META = {
+  protected: {
+    className: "bg-success-bg text-success",
+    label: "ครบ",
+    icon: <Check className="w-3 h-3" aria-hidden />,
+  },
+  due_soon: {
+    className: "bg-warning-bg text-warning",
+    label: "ใกล้หมดอายุ",
+    icon: <AlertTriangle className="w-3 h-3" aria-hidden />,
+  },
+  overdue: {
+    className: "bg-danger-bg text-danger",
+    label: "เลยกำหนด",
+    icon: <AlertTriangle className="w-3 h-3" aria-hidden />,
+  },
+} as const;
+
 export function PetCard({
   name,
   breed,
@@ -29,91 +47,65 @@ export function PetCard({
   vaccines,
   parasiteDaysLeft,
 }: PetCardProps) {
-  const getStatusColor = (status: VaccineStatus["status"]) => {
-    switch (status) {
-      case "protected":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "due_soon":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "overdue":
-        return "bg-red-100 text-red-700 border-red-200";
-    }
-  };
-
-  const getStatusIcon = (status: VaccineStatus["status"]) => {
-    switch (status) {
-      case "protected":
-        return <Check className="w-3 h-3" />;
-      case "due_soon":
-        return <AlertTriangle className="w-3 h-3" />;
-      case "overdue":
-        return <AlertTriangle className="w-3 h-3" />;
-    }
-  };
+  void microchipNumber;
 
   return (
-    <Card className="overflow-hidden rounded-2xl shadow-lg border-0 bg-white gradient-border">
-      {/* Hero Image */}
-      <div className="relative h-48 bg-gradient-to-br from-primary/20 to-secondary/20">
+    <Card className="overflow-hidden p-0 gap-0">
+      <div className="relative h-48 bg-pops-gradient">
         {photoUrl ? (
           <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-4xl">🐕</span>
+            <div className="w-24 h-24 rounded-full bg-surface/30 backdrop-blur-sm flex items-center justify-center">
+              <span className="text-4xl" aria-hidden>
+                🐕
+              </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Identity Section */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">{name}</h2>
-            <p className="text-muted-foreground">{breed}</p>
-            <p className="text-sm text-muted-foreground">{age}</p>
+      <div className="p-5 border-b border-border-subtle">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-text-main truncate">{name}</h2>
+            <p className="text-sm text-text-muted">{breed}</p>
+            <p className="text-xs text-text-muted mt-0.5">{age}</p>
           </div>
-          <div className="flex flex-col items-center">
-            <QrCode className="w-10 h-10 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground mt-1">Microchip</span>
+          <div className="flex flex-col items-center text-text-muted">
+            <QrCode className="w-10 h-10" aria-hidden />
+            <span className="text-[10px] font-semibold mt-1">Microchip</span>
           </div>
         </div>
       </div>
 
-      {/* Vaccine Status */}
-      <div className="p-4 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-primary" />
-          Vaccine Status
+      <div className="p-5 border-b border-border-subtle">
+        <h3 className="text-sm font-bold text-text-main mb-3 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-primary" aria-hidden />
+          สถานะวัคซีน
         </h3>
         <div className="space-y-2">
-          {vaccines.map((vaccine) => (
-            <div key={vaccine.name} className="flex items-center justify-between">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {vaccine.name}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={`flex items-center gap-1 ${getStatusColor(vaccine.status)}`}
-              >
-                {getStatusIcon(vaccine.status)}
-                {vaccine.status === "protected" && "Protected"}
-                {vaccine.status === "due_soon" && "Due Soon"}
-                {vaccine.status === "overdue" && "Overdue"}
-              </Badge>
-            </div>
-          ))}
+          {vaccines.map((vaccine) => {
+            const meta = STATUS_META[vaccine.status];
+            return (
+              <div key={vaccine.name} className="flex items-center justify-between gap-2">
+                <Badge variant="outline">{vaccine.name}</Badge>
+                <Badge className={cn("flex items-center gap-1", meta.className)}>
+                  {meta.icon}
+                  {meta.label}
+                </Badge>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Parasite Prevention */}
       {parasiteDaysLeft !== undefined && (
-        <div className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Parasite Prevention Log</h3>
+        <div className="p-5">
+          <h3 className="text-sm font-bold text-text-main mb-3">ยาป้องกันพยาธิ</h3>
           <div className="flex items-center gap-4">
             <div className="relative w-16 h-16">
-              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64" aria-hidden>
                 <circle
                   cx="32"
                   cy="32"
@@ -121,7 +113,7 @@ export function PetCard({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="4"
-                  className="text-muted/30"
+                  className="text-border"
                 />
                 <circle
                   cx="32"
@@ -136,15 +128,13 @@ export function PetCard({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-bold text-foreground">{parasiteDaysLeft}</span>
-                <span className="text-xs text-muted-foreground">Days</span>
+                <span className="text-lg font-bold text-text-main">{parasiteDaysLeft}</span>
+                <span className="text-[10px] text-text-muted">วัน</span>
               </div>
             </div>
             <div>
-              <p className="font-semibold text-foreground">Countdown timer</p>
-              <p className="text-sm text-muted-foreground">
-                Next dose due in {parasiteDaysLeft} days
-              </p>
+              <p className="font-bold text-text-main">นับถอยหลัง</p>
+              <p className="text-sm text-text-muted">ครบกำหนดถัดไปในอีก {parasiteDaysLeft} วัน</p>
             </div>
           </div>
         </div>

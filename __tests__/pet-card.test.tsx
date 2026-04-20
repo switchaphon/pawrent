@@ -43,10 +43,11 @@ describe("PetCard", () => {
     expect(screen.getByText("DHPP")).toBeInTheDocument();
   });
 
-  it("applies correct status colors to vaccine badges", () => {
+  it("applies correct status colors to vaccine badges via d2 semantic tokens", () => {
     const { container } = render(<PetCard {...defaultProps} />);
-    expect(container.querySelector(".bg-green-100")).toBeTruthy();
-    expect(container.querySelector(".bg-yellow-100")).toBeTruthy();
+    // protected → bg-success-bg, due_soon → bg-warning-bg
+    expect(container.querySelector(".bg-success-bg")).toBeTruthy();
+    expect(container.querySelector(".bg-warning-bg")).toBeTruthy();
   });
 
   it("shows parasite countdown when parasiteDaysLeft is provided", () => {
@@ -56,6 +57,7 @@ describe("PetCard", () => {
 
   it("does not show parasite section when parasiteDaysLeft is absent", () => {
     render(<PetCard {...defaultProps} />);
-    expect(screen.queryByText(/next dose/i)).not.toBeInTheDocument();
+    // Thai label "นับถอยหลัง" appears when parasiteDaysLeft is provided; absent otherwise
+    expect(screen.queryByText("นับถอยหลัง")).not.toBeInTheDocument();
   });
 });

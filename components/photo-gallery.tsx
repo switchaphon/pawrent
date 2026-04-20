@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { Plus, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import type { PetPhoto } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface PhotoGalleryProps {
   photos: PetPhoto[];
@@ -50,98 +50,106 @@ export function PhotoGallery({
   };
 
   return (
-    <Card className="rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <Images className="w-4 h-4 text-primary" />
-          Photo Gallery
-          <span className="text-xs text-muted-foreground font-normal">
-            ({photos.length}/{maxPhotos})
+    <section
+      aria-label="คลังรูปภาพ"
+      className="bg-surface border border-border rounded-[24px] shadow-soft overflow-hidden"
+    >
+      <header className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+        <h3 className="font-bold text-text-main flex items-center gap-2">
+          <Images className="w-4 h-4 text-primary" aria-hidden />
+          คลังรูปภาพ
+          <span className="text-xs text-text-muted font-semibold">
+            {photos.length}/{maxPhotos}
           </span>
         </h3>
         {canAdd && photos.length < maxPhotos && (
           <button
+            type="button"
             onClick={onAddPhoto}
-            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-bold transition-colors touch-target px-2 -mx-2"
           >
-            <Plus className="w-4 h-4" />
-            Photo
+            <Plus className="w-4 h-4" aria-hidden />
+            เพิ่มรูป
           </button>
         )}
-      </div>
+      </header>
 
-      {/* Gallery Content */}
       <div className="relative p-4">
         {photos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-            <Images className="w-12 h-12 mb-2 opacity-50" />
-            <p className="text-sm">No photos yet</p>
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+            <Images className="w-12 h-12 text-text-muted/50" aria-hidden />
+            <p className="text-sm text-text-muted">ยังไม่มีรูปภาพ</p>
             {canAdd && (
               <button
+                type="button"
                 onClick={onAddPhoto}
-                className="mt-2 text-sm text-primary hover:text-primary/80"
+                className="text-sm text-primary font-bold hover:text-primary/80 touch-target px-3"
               >
-                Add your first photo
+                เพิ่มรูปแรกของน้อง
               </button>
             )}
           </div>
         ) : (
           <>
-            {/* Left Arrow */}
             {showLeftArrow && (
               <button
+                type="button"
                 onClick={() => scroll("left")}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center hover:bg-white transition-colors"
+                aria-label="เลื่อนซ้าย"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface/95 shadow-soft border border-border-subtle flex items-center justify-center hover:bg-surface transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 text-foreground" />
+                <ChevronLeft className="w-5 h-5 text-text-main" aria-hidden />
               </button>
             )}
 
-            {/* Photos Carousel */}
             <div
               ref={scrollRef}
               onScroll={checkScrollButtons}
-              className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth"
+              className="flex gap-3 overflow-x-auto hide-scrollbar scroll-smooth"
               style={{ scrollSnapType: "x mandatory" }}
             >
               {photos.map((photo, index) => (
                 <button
                   key={photo.id}
+                  type="button"
                   onClick={() => onPhotoClick(index)}
-                  className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+                  className={cn(
+                    "flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden relative",
+                    "hover:ring-2 hover:ring-primary/50 transition-all",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  )}
                   style={{ scrollSnapAlign: "start" }}
                 >
                   <img
                     src={photo.photo_url}
-                    alt={`Photo ${index + 1}`}
+                    alt={`รูปที่ ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </button>
               ))}
             </div>
 
-            {/* Right Arrow */}
             {showRightArrow && (
               <button
+                type="button"
                 onClick={() => scroll("right")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center hover:bg-white transition-colors"
+                aria-label="เลื่อนขวา"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface/95 shadow-soft border border-border-subtle flex items-center justify-center hover:bg-surface transition-colors"
               >
-                <ChevronRight className="w-5 h-5 text-foreground" />
+                <ChevronRight className="w-5 h-5 text-text-main" aria-hidden />
               </button>
             )}
           </>
         )}
 
-        {/* Dot Indicators */}
         {photos.length > 4 && (
-          <div className="flex justify-center gap-1.5 mt-3">
+          <div className="flex justify-center gap-1.5 mt-3" aria-hidden>
             {Array.from({ length: Math.min(5, Math.ceil(photos.length / 3)) }).map((_, i) => (
-              <div key={i} className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-text-muted/30" />
             ))}
           </div>
         )}
       </div>
-    </Card>
+    </section>
   );
 }
