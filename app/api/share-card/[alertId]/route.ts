@@ -133,7 +133,7 @@ async function generateShareCard(alert: AlertData): Promise<Buffer> {
   const location = alert.location_description ? escapeXml(alert.location_description) : "";
   const rewardText =
     alert.reward_amount > 0
-      ? escapeXml(`รางวัลนำจับ ฿${alert.reward_amount.toLocaleString()}`)
+      ? escapeXml(`รางวัลนำส่งคืน ฿${alert.reward_amount.toLocaleString()}`)
       : "";
   const phoneText = alert.contact_phone ? escapeXml(`โทร: ${alert.contact_phone}`) : "";
 

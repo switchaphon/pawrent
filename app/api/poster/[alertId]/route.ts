@@ -268,7 +268,7 @@ async function generatePosterPdf(alert: AlertData): Promise<Uint8Array> {
       color: bgRed,
     });
 
-    const rewardText = `รางวัลนำจับ ฿${alert.reward_amount.toLocaleString()}`;
+    const rewardText = `รางวัลนำส่งคืน ฿${alert.reward_amount.toLocaleString()}`;
     const rewardSize = 28;
     const rewardWidth = boldFont.widthOfTextAtSize(rewardText, rewardSize);
     page.drawText(rewardText, {
@@ -297,7 +297,7 @@ async function generatePosterPdf(alert: AlertData): Promise<Uint8Array> {
   }
 
   // === QR CODE ===
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pawrent.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.pops.pet";
   const alertUrl = `${appUrl}/post/${alert.id}`;
   const qrBuffer = await QRCode.toBuffer(alertUrl, {
     width: 120,
