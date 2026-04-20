@@ -1,26 +1,22 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Authentication flow (unauthenticated via LIFF)", () => {
-  test("unauthenticated user sees LINE login prompt", async ({ page }) => {
+  test("unauthenticated user is redirected to LINE login", async ({ page }) => {
+    // LiffProvider initializes, detects no LIFF env + no idToken, then calls
+    // liffLogin() which navigates to access.line.me. Wait for that redirect.
     await page.goto("/");
-    // Without LIFF SDK (no LINE environment), the page shows a signing-in message
-    await expect(page.getByText(/signing in with line/i)).toBeVisible({
-      timeout: 10000,
-    });
+    await page.waitForURL(/access\.line\.me/, { timeout: 15000 });
+    expect(page.url()).toMatch(/access\.line\.me/);
   });
 
-  test("all protected routes stay on page without crashing when unauthenticated", async ({
-    page,
-  }) => {
+  test("protected routes redirect to LINE login when unauthenticated", async ({ page }) => {
     const protectedRoutes = ["/pets", "/profile", "/post", "/notifications"];
 
     for (const route of protectedRoutes) {
       await page.goto(route);
-      // Auth is handled client-side by LiffProvider. Without LIFF SDK,
-      // pages render a loading spinner (no user = no data fetch).
-      // Verify the page loads without error and stays on the route.
-      await expect(page).toHaveURL(new RegExp(route));
-      await expect(page.locator("body")).toBeVisible();
+      // Each protected route triggers the same LIFF auth redirect
+      await page.waitForURL(/access\.line\.me/, { timeout: 15000 });
+      expect(page.url()).toMatch(/access\.line\.me/);
     }
   });
 });
