@@ -767,9 +767,8 @@ describe("GET /api/post", () => {
     const chain: Record<string, unknown> = {};
     chain.eq = vi.fn(() => chain);
     chain.order = vi.fn(() => chain);
-    chain.then = (
-      resolve: (v: { data: null; error: { message: string } }) => unknown
-    ) => resolve({ data: null, error: { message: "DB error" } });
+    chain.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
+      resolve({ data: null, error: { message: "DB error" } });
     mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
 
     const req = makeGetRequest({ owner_id: "user-1" });
