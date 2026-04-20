@@ -224,4 +224,80 @@ describe("GET /api/found-reports", () => {
     const res = await GET(makeRequest("GET", undefined, "limit=20"));
     expect(res.status).toBe(200);
   });
+
+  it("returns 401 when getUser returns no user", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(401);
+  });
+
+  it("filters list by species (lowercases value) and returns hasMore + nextCursor", async () => {
+    const reports = Array.from({ length: 3 }, (_, i) => ({
+      id: `id-${i}`,
+      species_guess: "dog",
+      created_at: `2026-04-14T0${i}:00:00Z`,
+    }));
+    const speciesEq = vi.fn();
+    mockFrom.mockReturnValue({
+      insert: mockInsert,
+      select: vi.fn(() => {
+        const c: Record<string, unknown> = {};
+        c.eq = speciesEq.mockImplementation(() => c);
+        c.order = vi.fn(() => c);
+        c.limit = vi.fn(() => c);
+        c.or = vi.fn(() => c);
+        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
+          resolve({ data: reports, error: null });
+        return c;
+      }),
+    });
+
+    const res = await GET(makeRequest("GET", undefined, "limit=2&species=DOG"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.hasMore).toBe(true);
+    expect(data.cursor).toBeTruthy();
+    expect(speciesEq).toHaveBeenCalledWith("species_guess", "dog");
+  });
+
+  it("accepts cursor query param", async () => {
+    const cursor = Buffer.from(
+      JSON.stringify({ created_at: "2026-04-14T00:00:00Z", id: "id-0" })
+    ).toString("base64");
+    const orFn = vi.fn();
+    mockFrom.mockReturnValue({
+      insert: mockInsert,
+      select: vi.fn(() => {
+        const c = makeChain();
+        c.eq = vi.fn(() => c);
+        c.order = vi.fn(() => c);
+        c.limit = vi.fn(() => c);
+        c.or = orFn.mockImplementation(() => c);
+        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
+          resolve({ data: [], error: null });
+        return c;
+      }),
+    });
+    const res = await GET(makeRequest("GET", undefined, `limit=20&cursor=${cursor}`));
+    expect(res.status).toBe(200);
+    expect(orFn).toHaveBeenCalled();
+  });
+
+  it("returns 500 on list error", async () => {
+    mockFrom.mockReturnValue({
+      insert: mockInsert,
+      select: vi.fn(() => {
+        const c: Record<string, unknown> = {};
+        c.eq = vi.fn(() => c);
+        c.order = vi.fn(() => c);
+        c.limit = vi.fn(() => c);
+        c.or = vi.fn(() => c);
+        c.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
+          resolve({ data: null, error: { message: "boom" } });
+        return c;
+      }),
+    });
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(500);
+  });
 });
