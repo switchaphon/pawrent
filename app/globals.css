@@ -145,7 +145,7 @@
 
   --muted: #f5f1ea;
   --muted-foreground: #6b6560;
-  --accent: #ededE8;
+  --accent: #edede8;
   --accent-foreground: #2e2a2e;
 
   /* Destructive aligns with semantic danger */
@@ -157,7 +157,7 @@
 
   /* D2 surface + text */
   --surface: #ffffff;
-  --surface-alt: #ededE8;
+  --surface-alt: #edede8;
   --bg-start: #faf7f2;
   --bg-end: #f5f1ea;
   --text-main: #2e2a2e;

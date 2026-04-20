@@ -68,11 +68,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
           key={i}
           className={cn(
             "w-2.5 h-2.5 rounded-full transition-colors",
-            i === current
-              ? "bg-success scale-110"
-              : i < current
-                ? "bg-success/40"
-                : "bg-border"
+            i === current ? "bg-success scale-110" : i < current ? "bg-success/40" : "bg-border"
           )}
         />
       ))}
@@ -273,9 +269,7 @@ export default function FoundReportPage() {
             <CheckCircle className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-2xl font-bold text-text-main mb-2">รายงานถูกส่งแล้ว!</h2>
-          <p className="text-text-muted mb-6">
-            AI จะช่วยค้นหาและแจ้งเตือนเจ้าของให้อัตโนมัติ
-          </p>
+          <p className="text-text-muted mb-6">AI จะช่วยค้นหาและแจ้งเตือนเจ้าของให้อัตโนมัติ</p>
 
           <div className="space-y-3 mb-6">
             <Button
@@ -417,9 +411,7 @@ export default function FoundReportPage() {
 
             {/* Breed */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-text-main font-semibold mb-2 block">
-                สายพันธุ์ (ถ้าทราบ)
-              </Label>
+              <Label className="text-text-main font-semibold mb-2 block">สายพันธุ์ (ถ้าทราบ)</Label>
               <Input
                 value={breedGuess}
                 onChange={(e) => setBreedGuess(e.target.value)}
@@ -516,9 +508,7 @@ export default function FoundReportPage() {
 
             {/* Description */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-text-main font-semibold mb-2 block">
-                รายละเอียดเพิ่มเติม
-              </Label>
+              <Label className="text-text-main font-semibold mb-2 block">รายละเอียดเพิ่มเติม</Label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

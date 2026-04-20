@@ -220,9 +220,7 @@ export function VoiceRecorder({
               เริ่มบันทึกเสียง
             </Button>
             {!consentGiven && (
-              <p className="text-xs text-text-muted mt-2">
-                กรุณาให้ความยินยอมก่อนบันทึกเสียง
-              </p>
+              <p className="text-xs text-text-muted mt-2">กรุณาให้ความยินยอมก่อนบันทึกเสียง</p>
             )}
           </>
         )}
@@ -262,9 +260,7 @@ export function VoiceRecorder({
               <Mic className="w-8 h-8 text-success" />
             </div>
             <p className="text-sm font-semibold text-text-main mb-1">บันทึกเสียงเรียบร้อย!</p>
-            <p className="text-xs text-text-muted mb-4">
-              ความยาว {formatTime(elapsed)} วินาที
-            </p>
+            <p className="text-xs text-text-muted mb-4">ความยาว {formatTime(elapsed)} วินาที</p>
 
             {/* Playback controls */}
             <div className="flex items-center justify-center gap-3 mb-4">

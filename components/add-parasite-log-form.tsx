@@ -107,7 +107,10 @@ export function AddParasiteLogForm({
           <PillIcon className="w-5 h-5 text-primary" />
           Add Parasite Prevention
         </h3>
-        <button onClick={onCancel} className="p-1 rounded-full hover:bg-surface-alt transition-colors">
+        <button
+          onClick={onCancel}
+          className="p-1 rounded-full hover:bg-surface-alt transition-colors"
+        >
           <X className="w-5 h-5 text-text-muted" />
         </button>
       </div>

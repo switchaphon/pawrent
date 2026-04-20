@@ -356,10 +356,7 @@ export default function PostPage() {
                 )}
               >
                 <span
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    isActive ? "bg-surface" : tab.tone
-                  )}
+                  className={cn("w-2 h-2 rounded-full", isActive ? "bg-surface" : tab.tone)}
                   aria-hidden
                 />
                 {tab.label}
@@ -396,7 +393,9 @@ export default function PostPage() {
 
             {hasMoreFound && (
               <div ref={foundSentinelRef} className="flex justify-center py-4">
-                {loadingMoreFound && <Loader2 className="w-6 h-6 animate-spin text-success" aria-hidden />}
+                {loadingMoreFound && (
+                  <Loader2 className="w-6 h-6 animate-spin text-success" aria-hidden />
+                )}
               </div>
             )}
           </>
@@ -415,9 +414,7 @@ export default function PostPage() {
                 icon={<MapPin className="w-10 h-10" aria-hidden />}
                 title="ไม่พบประกาศ"
                 description={
-                  radius
-                    ? "ไม่มีประกาศในรัศมีที่เลือก ลองขยายรัศมีดู"
-                    : "ยังไม่มีประกาศในขณะนี้"
+                  radius ? "ไม่มีประกาศในรัศมีที่เลือก ลองขยายรัศมีดู" : "ยังไม่มีประกาศในขณะนี้"
                 }
               />
             ) : (
@@ -430,7 +427,9 @@ export default function PostPage() {
 
             {hasMore && (
               <div ref={sentinelRef} className="flex justify-center py-4">
-                {loadingMore && <Loader2 className="w-6 h-6 animate-spin text-primary" aria-hidden />}
+                {loadingMore && (
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" aria-hidden />
+                )}
               </div>
             )}
           </>

@@ -37,9 +37,11 @@ test.describe("Hospital map page", () => {
     await expect(page.locator(".leaflet-popup")).toBeVisible({ timeout: 5000 });
   });
 
-  test("bottom nav shows Hospital as active", async ({ page }) => {
+  test("bottom nav renders on hospital page (hospital tab dropped in prp-16)", async ({ page }) => {
     await page.goto("/hospital");
-    const hospitalNav = page.locator("nav").getByText("Hospital");
-    await expect(hospitalNav).toBeVisible({ timeout: 5000 });
+    const nav = page.locator("nav");
+    await expect(nav).toBeVisible({ timeout: 5000 });
+    // /hospital is still a valid route but no longer has a dedicated bottom-nav tab
+    await expect(nav.getByText("หน้าหลัก")).toBeVisible();
   });
 });

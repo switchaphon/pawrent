@@ -210,14 +210,12 @@ function FeedContent() {
                     <div className="w-10 h-10 rounded-full bg-pops-gradient p-[2px] overflow-hidden relative">
                       <div className="w-full h-full rounded-full bg-surface overflow-hidden">
                         {post.pets?.photo_url ? (
-                          <Image
-                            src={post.pets.photo_url}
-                            alt=""
-                            fill
-                            className="object-cover"
-                          />
+                          <Image src={post.pets.photo_url} alt="" fill className="object-cover" />
                         ) : (
-                          <span className="flex items-center justify-center h-full text-lg" aria-hidden>
+                          <span
+                            className="flex items-center justify-center h-full text-lg"
+                            aria-hidden
+                          >
                             🐕
                           </span>
                         )}
@@ -286,7 +284,9 @@ export default function HomePage() {
       <div className="min-h-screen-safe flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-full bg-pops-gradient shadow-glow flex items-center justify-center mx-auto animate-pulse">
-            <span className="text-2xl" aria-hidden>🐾</span>
+            <span className="text-2xl" aria-hidden>
+              🐾
+            </span>
           </div>
           <p className="text-text-muted text-sm">กำลังเข้าสู่ระบบ…</p>
         </div>
@@ -299,7 +299,9 @@ export default function HomePage() {
       <div className="min-h-screen-safe flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-full bg-pops-gradient shadow-glow flex items-center justify-center mx-auto animate-pulse">
-            <span className="text-2xl" aria-hidden>🐾</span>
+            <span className="text-2xl" aria-hidden>
+              🐾
+            </span>
           </div>
           <p className="text-text-muted text-sm">กำลังเข้าสู่ระบบผ่าน LINE…</p>
         </div>

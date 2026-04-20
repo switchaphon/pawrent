@@ -299,9 +299,7 @@ export default function LostWizardPage() {
             <CheckCircle className="w-10 h-10 text-success" />
           </div>
           <h2 className="text-2xl font-bold text-text-main mb-2">ประกาศถูกส่งแล้ว!</h2>
-          <p className="text-text-muted mb-6">
-            คนเลี้ยงสัตว์ใกล้เคียงจะได้รับแจ้งเตือน สู้ๆ นะคะ!
-          </p>
+          <p className="text-text-muted mb-6">คนเลี้ยงสัตว์ใกล้เคียงจะได้รับแจ้งเตือน สู้ๆ นะคะ!</p>
 
           {/* Share buttons */}
           <div className="space-y-3 mb-6">
@@ -720,9 +718,7 @@ export default function LostWizardPage() {
                 {rewardAmount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-text-muted">รางวัลนำส่งคืน</span>
-                    <span className="text-warning font-bold">
-                      ฿{rewardAmount.toLocaleString()}
-                    </span>
+                    <span className="text-warning font-bold">฿{rewardAmount.toLocaleString()}</span>
                   </div>
                 )}
               </div>

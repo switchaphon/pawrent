@@ -6,12 +6,7 @@ interface SkeletonLineProps {
 }
 
 export function SkeletonLine({ className }: SkeletonLineProps) {
-  return (
-    <span
-      aria-hidden
-      className={cn("skeleton block rounded-full h-3 w-full", className)}
-    />
-  );
+  return <span aria-hidden className={cn("skeleton block rounded-full h-3 w-full", className)} />;
 }
 
 interface SkeletonCardProps {

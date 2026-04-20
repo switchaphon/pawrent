@@ -286,12 +286,8 @@ export default function AlertDetailPage() {
                 {chip.label}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-text-main">
-              {alert.pet_name || "ไม่ระบุชื่อ"}
-            </h1>
-            <p className="text-sm text-text-muted mt-1">
-              {alert.pet_breed || "ไม่ระบุสายพันธุ์"}
-            </p>
+            <h1 className="text-2xl font-bold text-text-main">{alert.pet_name || "ไม่ระบุชื่อ"}</h1>
+            <p className="text-sm text-text-muted mt-1">{alert.pet_breed || "ไม่ระบุสายพันธุ์"}</p>
           </div>
 
           {/* Lost date/time */}
@@ -303,9 +299,7 @@ export default function AlertDetailPage() {
                   หายวันที่ {formatThaiDateFull(alert.lost_date)}
                   {alert.lost_time && ` ประมาณ ${alert.lost_time} น.`}
                 </p>
-                <p className="text-xs text-text-muted">
-                  ({getRelativeTimeThai(alert.created_at)})
-                </p>
+                <p className="text-xs text-text-muted">({getRelativeTimeThai(alert.created_at)})</p>
               </div>
             </div>
           </Card>
@@ -402,9 +396,7 @@ export default function AlertDetailPage() {
               <p className="text-sm text-text-main mb-3">{alert.location_description}</p>
             )}
             <ReadOnlyMap lat={alert.fuzzy_lat || alert.lat} lng={alert.fuzzy_lng || alert.lng} />
-            <p className="text-xs text-text-muted mt-2">
-              ตำแหน่งโดยประมาณ (เพื่อความเป็นส่วนตัว)
-            </p>
+            <p className="text-xs text-text-muted mt-2">ตำแหน่งโดยประมาณ (เพื่อความเป็นส่วนตัว)</p>
           </Card>
 
           {/* Action buttons (placeholders for PRP-05) */}

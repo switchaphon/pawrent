@@ -337,9 +337,7 @@ function PetsContent() {
           <>
             <nav
               aria-label="เลือกน้อง"
-              className={
-                pets.length > 3 ? "-mx-4 px-4 overflow-x-auto hide-scrollbar" : ""
-              }
+              className={pets.length > 3 ? "-mx-4 px-4 overflow-x-auto hide-scrollbar" : ""}
             >
               <ul className="flex items-end gap-3 pb-1">
                 {pets.map((pet) => {
@@ -374,7 +372,10 @@ function PetsContent() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <span className="flex items-center justify-center h-full text-xl" aria-hidden>
+                              <span
+                                className="flex items-center justify-center h-full text-xl"
+                                aria-hidden
+                              >
                                 🐕
                               </span>
                             )}
@@ -382,9 +383,7 @@ function PetsContent() {
                         </span>
                         <span
                           className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            isActive
-                              ? "bg-primary text-white"
-                              : "bg-surface-alt text-text-subtle"
+                            isActive ? "bg-primary text-white" : "bg-surface-alt text-text-subtle"
                           }`}
                         >
                           {pet.name.length > 8 ? pet.name.slice(0, 8) + "…" : pet.name}
@@ -596,9 +595,7 @@ function PetsContent() {
                         </defs>
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-text-main">
-                          {daysLeft ?? "–"}
-                        </span>
+                        <span className="text-2xl font-bold text-text-main">{daysLeft ?? "–"}</span>
                         <span className="text-xs text-text-muted">วัน</span>
                       </div>
                     </div>

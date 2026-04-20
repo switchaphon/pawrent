@@ -36,10 +36,7 @@ const buttonVariants = cva(
           "hover:bg-border active:bg-border",
           "rounded-full",
         ].join(" "),
-        ghost: [
-          "text-text-main hover:bg-surface-alt active:bg-border",
-          "rounded-full",
-        ].join(" "),
+        ghost: ["text-text-main hover:bg-surface-alt active:bg-border", "rounded-full"].join(" "),
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

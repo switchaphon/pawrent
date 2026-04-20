@@ -68,9 +68,7 @@ function NotificationsContent() {
             <h1 className="text-xl font-bold text-text-main">แจ้งเตือน</h1>
             <p className="text-xs text-text-muted">ประกาศในละแวกใกล้เคียง</p>
           </div>
-          {nearbyAlerts.length > 0 && (
-            <Badge variant="danger">ใกล้คุณ {nearbyAlerts.length}</Badge>
-          )}
+          {nearbyAlerts.length > 0 && <Badge variant="danger">ใกล้คุณ {nearbyAlerts.length}</Badge>}
         </div>
       </header>
 
@@ -191,9 +189,7 @@ function NotificationsContent() {
 
                 {otherAlerts.length > 0 && (
                   <section aria-label="ประกาศที่ยังใช้งานอยู่อื่น ๆ">
-                    <h2 className="text-sm font-bold text-text-muted mb-3 px-1">
-                      ประกาศอื่น ๆ
-                    </h2>
+                    <h2 className="text-sm font-bold text-text-muted mb-3 px-1">ประกาศอื่น ๆ</h2>
                     <div className="space-y-3">
                       {otherAlerts.map((alert) => (
                         <article

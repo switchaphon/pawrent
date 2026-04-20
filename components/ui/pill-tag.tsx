@@ -2,11 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-export function PillTag({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<"span">) {
+export function PillTag({ className, children, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="pill-tag"

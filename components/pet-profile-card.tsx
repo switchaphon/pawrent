@@ -202,8 +202,7 @@ export function PetProfileCard({
         >
           <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" aria-hidden />
           <p className="text-sm text-warning font-semibold">
-            กำลังแจ้งหายตั้งแต่{" "}
-            {new Date(activePetReport.created_at).toLocaleDateString("th-TH")}
+            กำลังแจ้งหายตั้งแต่ {new Date(activePetReport.created_at).toLocaleDateString("th-TH")}
           </p>
         </div>
       )}
@@ -216,11 +215,7 @@ export function PetProfileCard({
           <div className="flex gap-4">
             <div className="w-20 h-20 flex-shrink-0 rounded-2xl overflow-hidden bg-pops-gradient">
               {pet.photo_url ? (
-                <img
-                  src={pet.photo_url}
-                  alt={pet.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={pet.photo_url} alt={pet.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <span className="text-3xl" aria-hidden>

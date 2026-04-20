@@ -114,7 +114,10 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
           <Syringe className="w-5 h-5 text-primary" />
           Add Vaccination Record
         </h3>
-        <button onClick={onCancel} className="p-1 rounded-full hover:bg-surface-alt transition-colors">
+        <button
+          onClick={onCancel}
+          className="p-1 rounded-full hover:bg-surface-alt transition-colors"
+        >
           <X className="w-5 h-5 text-text-muted" />
         </button>
       </div>
@@ -137,9 +140,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
                 {selectedVaccineInfo.manufacturer}
                 <span className="mx-1">•</span>
                 <span
-                  className={
-                    selectedVaccineInfo.category === "core" ? "text-success" : "text-info"
-                  }
+                  className={selectedVaccineInfo.category === "core" ? "text-success" : "text-info"}
                 >
                   {selectedVaccineInfo.category === "core" ? "Core vaccine" : "Non-core vaccine"}
                 </span>

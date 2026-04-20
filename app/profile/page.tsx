@@ -117,9 +117,7 @@ function ProfileContent() {
               <div className="py-8 text-center">
                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
                 <h2 className="text-xl font-bold text-text-main mb-2">ขอบคุณ!</h2>
-                <p className="text-text-muted">
-                  Your feedback has been submitted successfully.
-                </p>
+                <p className="text-text-muted">Your feedback has been submitted successfully.</p>
               </div>
             ) : (
               <>
@@ -162,9 +160,7 @@ function ProfileContent() {
                   ) : (
                     <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-surface-alt/30 transition-colors">
                       <ImagePlus className="w-5 h-5 text-text-muted" />
-                      <span className="text-sm text-text-muted">
-                        Attach screenshot (optional)
-                      </span>
+                      <span className="text-sm text-text-muted">Attach screenshot (optional)</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -567,9 +563,7 @@ function ProfileContent() {
                     </div>
                     <div>
                       <p className="font-semibold text-text-main">{pet.name}</p>
-                      <p className="text-sm text-text-muted">
-                        {pet.breed || "Unknown breed"}
-                      </p>
+                      <p className="text-sm text-text-muted">{pet.breed || "Unknown breed"}</p>
                     </div>
                   </button>
                 ))}

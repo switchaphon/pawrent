@@ -62,9 +62,7 @@ export function SearchableSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full h-12 px-3 rounded-xl border border-input bg-background text-left flex items-center justify-between hover:bg-surface-alt transition-colors"
       >
-        <span className={value ? "text-text-main" : "text-text-muted"}>
-          {value || placeholder}
-        </span>
+        <span className={value ? "text-text-main" : "text-text-muted"}>{value || placeholder}</span>
         <ChevronDown
           className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
@@ -91,9 +89,7 @@ export function SearchableSelect({
           {/* Options List */}
           <div className="max-h-48 overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-text-muted text-center">
-                No results found
-              </div>
+              <div className="px-3 py-4 text-sm text-text-muted text-center">No results found</div>
             ) : (
               filteredOptions.map((option) => (
                 <button

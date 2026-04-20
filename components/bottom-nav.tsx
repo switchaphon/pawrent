@@ -11,13 +11,15 @@ const NAV_ITEMS = [
     href: "/post",
     label: "ฟีด",
     icon: Newspaper,
-    match: (p: string) => p === "/post" || p.startsWith("/post/") === false ? p === "/post" : false,
+    match: (p: string) =>
+      p === "/post" || p.startsWith("/post/") === false ? p === "/post" : false,
   },
   {
     href: "/post/lost",
     label: "แจ้ง",
     icon: Megaphone,
-    match: (p: string) => p.startsWith("/post/lost") || p.startsWith("/post/found") || p.startsWith("/post/new"),
+    match: (p: string) =>
+      p.startsWith("/post/lost") || p.startsWith("/post/found") || p.startsWith("/post/new"),
   },
   {
     href: "/notifications",

@@ -179,9 +179,7 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm text-text-muted">
-              เริ่มต้นสนทนาเพื่อประสานงานเรื่องสัตว์เลี้ยง
-            </p>
+            <p className="text-sm text-text-muted">เริ่มต้นสนทนาเพื่อประสานงานเรื่องสัตว์เลี้ยง</p>
           </div>
         )}
 

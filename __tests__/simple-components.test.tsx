@@ -46,41 +46,44 @@ import { LocationBanner } from "@/components/location-banner";
 // BottomNav
 // ---------------------------------------------------------------------------
 
-describe("BottomNav", () => {
+describe("BottomNav (D2 6-tab)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePathname.mockReturnValue("/");
   });
 
-  it("renders all 5 nav items", () => {
+  it("renders all 6 d2 nav items (thai labels)", () => {
     render(<BottomNav />);
-    expect(screen.getByText("Feed")).toBeInTheDocument();
-    expect(screen.getByText("Notify")).toBeInTheDocument();
-    expect(screen.getByText("Hospital")).toBeInTheDocument();
-    expect(screen.getByText("Pets")).toBeInTheDocument();
-    expect(screen.getByText("Profile")).toBeInTheDocument();
+    expect(screen.getByText("หน้าหลัก")).toBeInTheDocument();
+    expect(screen.getByText("ฟีด")).toBeInTheDocument();
+    expect(screen.getByText("แจ้ง")).toBeInTheDocument();
+    expect(screen.getByText("แจ้งเตือน")).toBeInTheDocument();
+    expect(screen.getByText("สัตว์เลี้ยง")).toBeInTheDocument();
+    expect(screen.getByText("โปรไฟล์")).toBeInTheDocument();
   });
 
   it("all links have correct hrefs", () => {
     render(<BottomNav />);
-    expect(screen.getByText("Feed").closest("a")).toHaveAttribute("href", "/");
-    expect(screen.getByText("Hospital").closest("a")).toHaveAttribute("href", "/hospital");
-    expect(screen.getByText("Pets").closest("a")).toHaveAttribute("href", "/pets");
-    expect(screen.getByText("Profile").closest("a")).toHaveAttribute("href", "/profile");
+    expect(screen.getByText("หน้าหลัก").closest("a")).toHaveAttribute("href", "/");
+    expect(screen.getByText("ฟีด").closest("a")).toHaveAttribute("href", "/post");
+    expect(screen.getByText("แจ้ง").closest("a")).toHaveAttribute("href", "/post/lost");
+    expect(screen.getByText("แจ้งเตือน").closest("a")).toHaveAttribute("href", "/notifications");
+    expect(screen.getByText("สัตว์เลี้ยง").closest("a")).toHaveAttribute("href", "/pets");
+    expect(screen.getByText("โปรไฟล์").closest("a")).toHaveAttribute("href", "/profile");
   });
 
-  it("highlights the active route", () => {
+  it("highlights the active route with coral primary", () => {
     mockUsePathname.mockReturnValue("/pets");
     render(<BottomNav />);
-    const petsLink = screen.getByText("Pets").closest("a");
+    const petsLink = screen.getByText("สัตว์เลี้ยง").closest("a");
     expect(petsLink?.className).toContain("text-primary");
   });
 
-  it("inactive routes have muted-foreground styling", () => {
+  it("inactive routes use d2 text-text-muted", () => {
     mockUsePathname.mockReturnValue("/pets");
     render(<BottomNav />);
-    const feedLink = screen.getByText("Feed").closest("a");
-    expect(feedLink?.className).toContain("text-muted-foreground");
+    const feedLink = screen.getByText("ฟีด").closest("a");
+    expect(feedLink?.className).toContain("text-text-muted");
   });
 });
 
@@ -99,25 +102,25 @@ describe("VaccineStatusBar", () => {
     expect(screen.getByText(/imrab/i)).toBeInTheDocument();
   });
 
-  it("applies green color for protected status", () => {
+  it("applies d2 success token for protected status", () => {
     const { container } = render(
       <VaccineStatusBar name="Rabies" status="protected" percentage={80} />
     );
-    expect(container.querySelector(".bg-green-500")).toBeTruthy();
+    expect(container.querySelector(".bg-success")).toBeTruthy();
   });
 
-  it("applies yellow color for due_soon status", () => {
+  it("applies d2 warning token for due_soon status", () => {
     const { container } = render(
       <VaccineStatusBar name="DHPP" status="due_soon" percentage={40} />
     );
-    expect(container.querySelector(".bg-yellow-500")).toBeTruthy();
+    expect(container.querySelector(".bg-warning")).toBeTruthy();
   });
 
-  it("applies red color for overdue status", () => {
+  it("applies d2 danger token for overdue status", () => {
     const { container } = render(
       <VaccineStatusBar name="Bordetella" status="overdue" percentage={10} />
     );
-    expect(container.querySelector(".bg-red-500")).toBeTruthy();
+    expect(container.querySelector(".bg-danger")).toBeTruthy();
   });
 });
 
