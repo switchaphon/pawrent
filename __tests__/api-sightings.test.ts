@@ -138,9 +138,7 @@ describe("POST /api/sightings", () => {
 
   it("returns 401 when getUser returns no user", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await POST(
-      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13, lng: 100 })
-    );
+    const res = await POST(makeRequest("POST", { alert_id: ALERT_UUID, lat: 13, lng: 100 }));
     expect(res.status).toBe(401);
   });
 

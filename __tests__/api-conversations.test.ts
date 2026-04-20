@@ -121,9 +121,7 @@ describe("POST /api/conversations", () => {
     };
     mockMaybeSingle.mockResolvedValue({ data: existing });
 
-    const res = await POST(
-      makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID })
-    );
+    const res = await POST(makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID }));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toEqual(existing);
@@ -139,9 +137,7 @@ describe("POST /api/conversations", () => {
     };
     mockSingle.mockResolvedValue({ data: created, error: null });
 
-    const res = await POST(
-      makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID })
-    );
+    const res = await POST(makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID }));
     expect(res.status).toBe(200);
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -173,9 +169,7 @@ describe("POST /api/conversations", () => {
 
   it("returns 500 on database insert error", async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: "DB write failed" } });
-    const res = await POST(
-      makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID })
-    );
+    const res = await POST(makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID }));
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe("DB write failed");

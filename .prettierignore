@@ -12,3 +12,7 @@ node_modules/
 tsconfig.tsbuildinfo
 package-lock.json
 PRPs/
+
+# Design exploration drafts and static landing assets — not source code
+ROADMAP/
+public/landing/
