@@ -67,7 +67,7 @@ function ToastContainer({
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-sm px-4">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-full max-w-sm px-4 safe-area-top">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}
@@ -75,26 +75,41 @@ function ToastContainer({
   );
 }
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
-  const Icon =
-    toast.variant === "success" ? CheckCircle2 : toast.variant === "error" ? AlertTriangle : Info;
+const VARIANT_STYLES = {
+  success: {
+    bg: "bg-success-bg",
+    border: "border-success/30",
+    text: "text-success",
+    Icon: CheckCircle2,
+  },
+  error: {
+    bg: "bg-danger-bg",
+    border: "border-danger/30",
+    text: "text-danger",
+    Icon: AlertTriangle,
+  },
+  info: {
+    bg: "bg-info-bg",
+    border: "border-info/30",
+    text: "text-info",
+    Icon: Info,
+  },
+} as const;
 
-  const bgClass =
-    toast.variant === "success"
-      ? "bg-success/10 border-success/30 text-success"
-      : toast.variant === "error"
-        ? "bg-destructive/10 border-destructive/30 text-destructive"
-        : "bg-primary/10 border-primary/30 text-primary";
+function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
+  const { bg, border, text, Icon } = VARIANT_STYLES[toast.variant];
 
   return (
     <div
-      className={`animate-slide-in-down flex items-start gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm ${bgClass}`}
+      role="status"
+      className={`animate-slide-in-down flex items-start gap-3 p-4 rounded-[20px] border ${border} ${bg} shadow-[0_4px_20px_rgba(46,42,46,0.12)] backdrop-blur-sm`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-      <p className="flex-1 text-sm font-medium text-foreground">{toast.message}</p>
+      <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${text}`} />
+      <p className="flex-1 text-sm font-semibold text-text-main">{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="flex-shrink-0 p-1 rounded-lg hover:bg-foreground/10 transition-colors"
+        aria-label="ปิด"
+        className="flex-shrink-0 p-1 rounded-full hover:bg-foreground/10 transition-colors touch-target"
       >
         <X className="w-4 h-4 text-muted-foreground" />
       </button>
