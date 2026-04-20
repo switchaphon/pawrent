@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Pawrent — ดูแลน้องผ่าน LINE">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FAF7F2"/>
+      <stop offset="100%" stop-color="#F5F1EA"/>
+    </linearGradient>
+    <linearGradient id="pops" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F06FA8"/>
+      <stop offset="50%" stop-color="#FF9285"/>
+      <stop offset="100%" stop-color="#FFCB6B"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF8263"/>
+      <stop offset="100%" stop-color="#FFA563"/>
+    </linearGradient>
+    <style><![CDATA[
+      .t { font-family: 'Noto Sans Thai', 'Noto Sans', system-ui, sans-serif; fill: #2E2A2E; }
+      .muted { fill: #6B6560; }
+      .pill { fill: #EDEDE8; }
+      .pill-t { fill: #3D3935; font-weight: 700; }
+    ]]></style>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1050" cy="-60" r="360" fill="url(#pops)" opacity="0.28"/>
+
+  <!-- Pill tag -->
+  <rect x="80" y="86" rx="24" ry="24" width="330" height="42" class="pill"/>
+  <text x="104" y="114" class="t pill-t" font-size="18">● เปิดใช้ผ่าน LINE OA ฟรี</text>
+
+  <!-- Headline -->
+  <text x="80" y="220" class="t" font-size="82" font-weight="800" letter-spacing="-1.5">ดูแลน้องอย่างอบอุ่น</text>
+  <text x="80" y="312" class="t" font-size="82" font-weight="800" letter-spacing="-1.5">พร้อมเครือข่าย<tspan fill="#FF8263">ตามหาเมื่อน้องหาย</tspan></text>
+
+  <!-- Subhead -->
+  <text x="80" y="386" class="t muted" font-size="28">สมุดสุขภาพ · วัคซีน · เครือข่ายสองทาง · ใช้ผ่าน LINE OA</text>
+
+  <!-- CTA pill -->
+  <rect x="80" y="436" rx="40" ry="40" width="340" height="76" fill="url(#primary)"/>
+  <text x="115" y="485" fill="#FFFFFF" font-size="28" font-weight="700" class="t">＋ เพิ่มเพื่อนใน LINE</text>
+
+  <!-- Brand -->
+  <g transform="translate(80 558)">
+    <circle r="22" cx="22" cy="22" fill="url(#pops)"/>
+    <text x="22" y="30" text-anchor="middle" fill="#FFFFFF" font-size="22" font-weight="800" class="t">P</text>
+    <text x="58" y="30" class="t" font-size="26" font-weight="800">Pawrent</text>
+    <text x="180" y="30" class="t muted" font-size="20">pawrent.pops.pet</text>
+  </g>
+
+  <!-- Right-side phone -->
+  <g transform="translate(820 120)">
+    <rect x="0" y="0" width="300" height="470" rx="44" fill="#2E2A2E"/>
+    <rect x="10" y="10" width="280" height="450" rx="36" fill="#FFFFFF"/>
+    <rect x="26" y="40" width="248" height="64" rx="20" fill="#FAF7F2"/>
+    <circle cx="54" cy="72" r="16" fill="url(#pops)"/>
+    <text x="80" y="68" class="t" font-size="13" fill="#6B6560">สวัสดีค่ะ คุณฟ้าใส</text>
+    <text x="80" y="86" class="t" font-size="14" font-weight="800">น้องข้าวสวย · พุดเดิ้ล</text>
+
+    <rect x="26" y="120" width="248" height="58" rx="16" fill="#EDF0EA"/>
+    <text x="40" y="146" class="t" font-size="12" font-weight="800" fill="#4C6B3C">● วัคซีนครบ</text>
+    <text x="40" y="164" class="t" font-size="12" font-weight="700">ฉีดครั้งถัดไป · 12 ก.ย.</text>
+
+    <rect x="26" y="188" width="248" height="58" rx="16" fill="#FFF3D9"/>
+    <text x="40" y="214" class="t" font-size="12" font-weight="800" fill="#B8730A">● ยาเห็บ · ใกล้หมดอายุ</text>
+    <text x="40" y="232" class="t" font-size="12" font-weight="700">เหลือ 4 วัน</text>
+
+    <rect x="26" y="256" width="248" height="66" rx="16" fill="#FFEBEE"/>
+    <text x="40" y="282" class="t" font-size="12" font-weight="800" fill="#D32F2F">● ระบบตามหา</text>
+    <text x="40" y="300" class="t" font-size="12" font-weight="700">น้องเหมียวหาย · 1.2 กม.</text>
+    <text x="40" y="316" class="t" font-size="10" fill="#6B6560">คลิกเพื่อแชร์ในพื้นที่</text>
+
+    <rect x="26" y="332" width="248" height="58" rx="16" fill="#E3F2FD"/>
+    <text x="40" y="358" class="t" font-size="12" font-weight="800" fill="#1565C0">● สมุดสุขภาพ</text>
+    <text x="40" y="376" class="t" font-size="12" font-weight="700">บันทึก 12 รายการ · รูป 48 ใบ</text>
+  </g>
+</svg>

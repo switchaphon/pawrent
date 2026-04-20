@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Pawrent paw mark">
+  <g fill="#FF8263">
+    <ellipse cx="14" cy="16" rx="4" ry="5"/>
+    <ellipse cx="34" cy="16" rx="4" ry="5"/>
+    <ellipse cx="7" cy="26" rx="3.5" ry="4.5"/>
+    <ellipse cx="41" cy="26" rx="3.5" ry="4.5"/>
+    <path d="M24 24c-6 0-11 5.5-11 11 0 3 2 4.5 6 4.5 2 0 3.5-.7 5-.7s3 .7 5 .7c4 0 6-1.5 6-4.5 0-5.5-5-11-11-11z"/>
+  </g>
+</svg>
