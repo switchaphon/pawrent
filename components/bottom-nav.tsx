@@ -13,8 +13,14 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: User },
 ];
 
+const HIDDEN_PATHS = ["/post/lost", "/post/found"];
+
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (HIDDEN_PATHS.some((p) => pathname.startsWith(p))) {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-border safe-area-bottom">
