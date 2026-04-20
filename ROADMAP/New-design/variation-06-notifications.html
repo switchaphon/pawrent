@@ -1,0 +1,524 @@
+<!--
+  ============================================================
+  Pawrent V6 + D2: Notifications Inbox (/notifications)
+  ============================================================
+
+  Design Thesis:
+  "An inbox that respects attention. Unread cards whisper with
+   a coral left-rail and faint tint — never shout. Every
+   notification is one bubble, grouped by day, sorted by urgency
+   at the top. The panic moments (match alerts, overdue meds)
+   lead with semantic color chips so the user can triage in a
+   single glance."
+
+  Framework Citations:
+  - NNG Progressive Disclosure: one card per notification, tap
+    for detail route — no nested expansion in list
+  - NNG Recognition over Recall: day-grouped headers (วันนี้ /
+    เมื่อวาน / สัปดาห์นี้) orient the user without reading
+  - Gestalt Proximity: grouped sections visually cluster related
+    time windows
+  - Material Semantic Color: danger/warning/info/success chips
+    on left icon circle encode urgency without words
+  - Apple HIG: 44x44 touch targets, pill tabs for filter, badge
+    counts on icon + tab
+  - NNG Aesthetic-Usability: bubble shapes soften heavy content
+    (lost pet match is intense — rounded cards make it human)
+
+  Hybrid Source Map:
+  - Layout: V6 vertical card stack + pill language (V1)
+  - Color/Tone: D2 POPS Balanced tokens (coral + warm stone)
+  - Unread signal: coral left border + faint coral bg tint
+  - Section headers: small pill labels for day grouping
+  - Filter: horizontal pill tabs (scroll on narrow)
+  - POPS gradient: only on community/social emotional avatar
+
+  Token Summary (D2 POPS Balanced):
+  --primary:    #FF8263  (coral)
+  --primary-g:  linear-gradient(135deg, #FF8263, #FFA563)
+  --pops-g:     linear-gradient(135deg, #F06FA8, #FF9285, #FFCB6B)
+  --bg:         linear-gradient(180deg, #FAF7F2, #F5F1EA)
+  --surface:    #FFFFFF   --surface-alt: #EDEDE8
+  --text:       #2E2A2E   --text-muted: #6B6560
+  --success:    #4C6B3C on #EDF0EA
+  --warning:    #B8730A on #FFF3D9
+  --danger:     #D32F2F on #FFEBEE
+  --info:       #1565C0 on #E3F2FD
+  --border:     #E8E2D8
+  Font: Noto Sans Thai (400, 600, 700, 800)
+  Radii: 12 / 16 / 24 / 9999 (pill)
+  Shadow: 0 2px 8px rgba(0,0,0,0.06)
+
+  Rules: no black, no pink-dominant UI, POPS gradient only on
+  avatars / emotional spots (community cheer avatar).
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pawrent V6+D2: Notifications Inbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { thai: ['"Noto Sans Thai"', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#FF8263', light: '#FFA563' },
+            'brand-pink': '#F06FA8',
+            'brand-yellow': '#FFCB6B',
+            success: { DEFAULT: '#4C6B3C', bg: '#EDF0EA' },
+            warning: { DEFAULT: '#B8730A', bg: '#FFF3D9' },
+            danger: { DEFAULT: '#D32F2F', bg: '#FFEBEE' },
+            info: { DEFAULT: '#1565C0', bg: '#E3F2FD' },
+            surface: { DEFAULT: '#FFFFFF', alt: '#EDEDE8' },
+            'text-main': '#2E2A2E',
+            'text-muted': '#6B6560',
+            'text-subtle': '#3D3935',
+            border: '#E8E2D8',
+            'border-subtle': '#F0EDE6',
+          },
+          borderRadius: {
+            'sm-r': '12px',
+            'md-r': '16px',
+            'lg-r': '24px',
+            'pill': '9999px',
+          },
+          boxShadow: {
+            'soft': '0 2px 8px rgba(0,0,0,0.06)',
+            'owner': '0 2px 10px rgba(46,42,46,0.08)',
+            'glow': '0 4px 16px rgba(255,146,133,0.3)',
+            'primary': '0 4px 14px rgba(255,130,99,0.3)',
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    :root {
+      --primary: #FF8263;
+      --primary-light: #FFA563;
+      --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+      --accent-brand: #F06FA8;
+      --accent-yellow: #FFCB6B;
+      --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+      --bg-start: #FAF7F2;
+      --bg-end: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface-alt: #EDEDE8;
+      --text: #2E2A2E;
+      --text-muted: #6B6560;
+      --text-subtle: #3D3935;
+      --success: #4C6B3C;
+      --success-bg: #EDF0EA;
+      --warning: #B8730A;
+      --warning-bg: #FFF3D9;
+      --danger: #D32F2F;
+      --danger-bg: #FFEBEE;
+      --info: #1565C0;
+      --info-bg: #E3F2FD;
+      --border: #E8E2D8;
+      --border-subtle: #F0EDE6;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+      --shadow-primary: 0 4px 14px rgba(255,130,99,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    .primary-gradient { background: var(--primary-gradient); }
+    .pops-gradient { background: var(--pops-gradient); }
+
+    /* Unread card: coral left rail + faint coral tint */
+    .unread {
+      background: linear-gradient(90deg, rgba(255,130,99,0.06) 0%, #FFFFFF 18%);
+      border-left: 3px solid var(--primary);
+    }
+    .unread-dot {
+      width: 8px; height: 8px; border-radius: 9999px;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255,130,99,0.18);
+    }
+
+    /* Filter tab scroll hint on narrow screens */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="font-thai">
+
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto min-h-screen relative pb-24 md:border-x md:border-[color:var(--border)]">
+
+    <!-- ───────────────────────────────────────────────────────
+         LINE Header placeholder (44px)
+         ─────────────────────────────────────────────────────── -->
+    <div class="h-[44px] bg-[#F0EDE6] flex items-center justify-center">
+      <span class="text-[10px] text-text-muted tracking-wider">LINE Header (44px)</span>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         1) Page header (pill bubble)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pt-4 pb-3">
+      <div class="bg-surface rounded-pill shadow-owner p-3 pl-4 flex items-center gap-3 border border-border">
+        <!-- Bell icon circle -->
+        <div class="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
+             style="background: linear-gradient(135deg, #FFF3E8, #FFE5D1); border: 1px solid #FFD1B5;">
+          🔔
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-extrabold text-text-main">แจ้งเตือน</p>
+            <span class="bg-primary text-white rounded-pill px-2 py-0.5 text-[10px] font-bold">3 ใหม่</span>
+          </div>
+          <p class="text-[11px] text-text-muted mt-0.5">ติดตามข่าวสารของน้องและชุมชน</p>
+        </div>
+        <button class="h-9 px-3 rounded-pill text-[10px] font-semibold text-primary bg-[#FFF3EE] border border-[#FFD1B5] shrink-0 min-w-[44px]">
+          ทำเครื่องหมายว่าอ่านแล้ว
+        </button>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         2) Filter tabs (pill, horizontal scroll)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-3">
+      <div class="flex gap-2 overflow-x-auto no-scrollbar py-1 -my-1">
+        <!-- Selected: coral pill -->
+        <button class="h-9 px-4 rounded-pill text-[11px] font-bold text-white shrink-0 flex items-center gap-1 primary-gradient shadow-primary">
+          ทั้งหมด <span class="bg-white/25 rounded-pill px-1.5 text-[9px]">12</span>
+        </button>
+        <!-- Outline -->
+        <button class="h-9 px-4 rounded-pill text-[11px] font-semibold text-text-muted shrink-0 flex items-center gap-1 bg-surface border border-border">
+          ยังไม่อ่าน <span class="bg-primary text-white rounded-pill px-1.5 text-[9px] font-bold">3</span>
+        </button>
+        <button class="h-9 px-4 rounded-pill text-[11px] font-semibold text-text-muted shrink-0 bg-surface border border-border">
+          สัตว์หาย
+        </button>
+        <button class="h-9 px-4 rounded-pill text-[11px] font-semibold text-text-muted shrink-0 bg-surface border border-border">
+          สุขภาพ
+        </button>
+        <button class="h-9 px-4 rounded-pill text-[11px] font-semibold text-text-muted shrink-0 bg-surface border border-border">
+          ชุมชน
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         DAY GROUP: วันนี้
+         ═══════════════════════════════════════════════════════ -->
+    <div class="px-4 pt-1 pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold text-text-subtle uppercase tracking-wider bg-surface-alt rounded-pill px-2.5 py-1">วันนี้</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 1 — MATCH ALERT (unread, urgent)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="unread bg-surface rounded-lg-r shadow-soft p-3 border border-border overflow-hidden">
+        <div class="flex items-start gap-3">
+          <!-- Danger icon circle -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg"
+               style="background: var(--danger-bg); color: var(--danger);">
+            🚨
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <p class="text-[13px] font-extrabold text-text-main leading-snug">พบสัตว์อาจตรงกับมะลิ!</p>
+              <div class="unread-dot mt-1.5 shrink-0"></div>
+            </div>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              มีคนพบชิวาวาผสม สีดำ ขาสั้น ห่าง <span class="font-bold text-danger">0.5 km</span>
+              <br>เมื่อ 15 นาทีที่แล้ว · ซอยลาดพร้าว 71
+            </p>
+            <!-- Semantic severity chip -->
+            <div class="mt-2 flex items-center gap-1.5 flex-wrap">
+              <span class="rounded-pill px-2 py-0.5 text-[9px] font-bold"
+                    style="background: var(--danger-bg); color: var(--danger);">
+                🚨 ฉุกเฉิน
+              </span>
+              <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                มะลิ · สัตว์หาย
+              </span>
+            </div>
+            <!-- CTA pill -->
+            <div class="mt-2.5 flex items-center gap-2">
+              <button class="h-9 px-4 rounded-pill text-[11px] font-bold text-white primary-gradient shadow-primary flex items-center gap-1">
+                ดูรายละเอียด →
+              </button>
+              <button class="h-9 px-3 rounded-pill text-[10px] font-semibold text-text-muted bg-surface border border-border">
+                ภายหลัง
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 2 — HEALTH REMINDER (unread, overdue)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="unread bg-surface rounded-lg-r shadow-soft p-3 border border-border overflow-hidden">
+        <div class="flex items-start gap-3">
+          <!-- Warning icon circle -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg"
+               style="background: var(--warning-bg); color: var(--warning);">
+            🐛
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <p class="text-[13px] font-extrabold text-text-main leading-snug">ฉีด Nexgard ให้มะลิ <span class="text-warning">(เกินกำหนด 2 วัน)</span></p>
+              <div class="unread-dot mt-1.5 shrink-0"></div>
+            </div>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              ครั้งล่าสุด 17 ก.พ. 69 · ควรฉีดทุก 30 วัน
+            </p>
+            <!-- Severity chip -->
+            <div class="mt-2 flex items-center gap-1.5 flex-wrap">
+              <span class="rounded-pill px-2 py-0.5 text-[9px] font-bold"
+                    style="background: var(--warning-bg); color: var(--warning);">
+                ⏰ เลยกำหนด
+              </span>
+              <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                มะลิ · สุขภาพ
+              </span>
+            </div>
+            <!-- CTA outline -->
+            <div class="mt-2.5 flex items-center gap-2">
+              <button class="h-9 px-4 rounded-pill text-[11px] font-bold text-primary bg-surface border-2 border-primary flex items-center gap-1">
+                บันทึกวันที่ฉีด
+              </button>
+              <button class="h-9 px-3 rounded-pill text-[10px] font-semibold text-text-muted bg-surface border border-border">
+                เลื่อน
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 3 — COMMUNITY (unread, social)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="unread bg-surface rounded-lg-r shadow-soft p-3 border border-border overflow-hidden">
+        <div class="flex items-start gap-3">
+          <!-- POPS gradient avatar circle (emotional spot) -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg pops-gradient ring-2 ring-white shadow-soft">
+            🎉
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <p class="text-[13px] font-extrabold text-text-main leading-snug">
+                <span class="text-primary">สมชาย</span> ถูกใจโพสต์ของคุณ
+              </p>
+              <div class="unread-dot mt-1.5 shrink-0"></div>
+            </div>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              เรื่องมะลิวัคซีนครบ 1 ปี
+            </p>
+            <div class="mt-2 flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                  ชุมชน
+                </span>
+                <span class="text-[10px] text-text-muted">2 ชม.ที่แล้ว</span>
+              </div>
+              <button class="text-[10px] text-primary font-semibold">ดูโพสต์ ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         DAY GROUP: เมื่อวาน
+         ═══════════════════════════════════════════════════════ -->
+    <div class="px-4 pt-3 pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold text-text-subtle uppercase tracking-wider bg-surface-alt rounded-pill px-2.5 py-1">เมื่อวาน</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 4 — VACCINE REMINDER (read, info)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="bg-surface rounded-lg-r shadow-soft p-3 border border-border">
+        <div class="flex items-start gap-3">
+          <!-- Info icon circle -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg"
+               style="background: var(--info-bg); color: var(--info);">
+            💉
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-bold text-text-main leading-snug mb-1">ใกล้ถึงวันฉีด Rabies</p>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              อีก 10 วัน · <span class="font-semibold text-text-subtle">28 เม.ย. 69</span>
+            </p>
+            <div class="mt-2 flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="rounded-pill px-2 py-0.5 text-[9px] font-bold"
+                      style="background: var(--info-bg); color: var(--info);">
+                  วัคซีน
+                </span>
+                <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                  มะลิ
+                </span>
+              </div>
+              <span class="text-[10px] text-text-muted">เมื่อวาน 14:30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 5 — SYSTEM (read, muted)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="bg-surface rounded-lg-r shadow-soft p-3 border border-border">
+        <div class="flex items-start gap-3">
+          <!-- Muted icon circle -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg bg-surface-alt text-text-muted">
+            ⚙️
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-bold text-text-main leading-snug mb-1">อัปเดตแอปเป็นเวอร์ชัน 0.6.0</p>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              มีฟีเจอร์ค้นหาสัตว์หายแบบ AI แล้ว
+            </p>
+            <div class="mt-2 flex items-center justify-between">
+              <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                ระบบ
+              </span>
+              <span class="text-[10px] text-text-muted">เมื่อวาน 09:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         DAY GROUP: สัปดาห์นี้
+         ═══════════════════════════════════════════════════════ -->
+    <div class="px-4 pt-3 pb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold text-text-subtle uppercase tracking-wider bg-surface-alt rounded-pill px-2.5 py-1">สัปดาห์นี้</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         Card 6 — ALERT RESOLVED (read, success)
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pb-2">
+      <div class="bg-surface rounded-lg-r shadow-soft p-3 border border-border">
+        <div class="flex items-start gap-3">
+          <!-- Success icon circle -->
+          <div class="w-11 h-11 rounded-full shrink-0 flex items-center justify-center text-lg"
+               style="background: var(--success-bg); color: var(--success);">
+            ✅
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-bold text-text-main leading-snug mb-1">ลูกหมาของพี่สมใจกลับบ้านแล้ว!</p>
+            <p class="text-[11px] text-text-muted leading-relaxed">
+              ประกาศที่คุณ 🙏 กดอธิษฐาน 3 วันก่อน · จบแล้ว
+            </p>
+            <div class="mt-2 flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="rounded-pill px-2 py-0.5 text-[9px] font-bold"
+                      style="background: var(--success-bg); color: var(--success);">
+                  ✓ พบแล้ว
+                </span>
+                <span class="bg-surface-alt text-text-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">
+                  ชุมชน
+                </span>
+              </div>
+              <span class="text-[10px] text-text-muted">3 วันที่แล้ว</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         5) Empty state / older link
+         ─────────────────────────────────────────────────────── -->
+    <div class="px-4 pt-3 pb-6 text-center">
+      <button class="text-[11px] text-text-muted font-semibold underline-offset-4 hover:underline inline-flex items-center gap-1 min-h-[44px]">
+        ดูรายการเก่ากว่านี้ ↓
+      </button>
+      <p class="text-[10px] text-text-muted mt-1 opacity-60">เราเก็บแจ้งเตือนไว้ 30 วัน</p>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────
+         6) Bottom Nav — แจ้งเตือน active
+         ─────────────────────────────────────────────────────── -->
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[768px] bg-white/95 backdrop-blur-md border-t border-border px-2 pb-2 pt-1 z-50">
+      <div class="flex items-center justify-around">
+        <!-- หน้าหลัก -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center">
+          <span class="text-lg">🏠</span>
+          <span class="text-[9px] text-text-muted">หน้าหลัก</span>
+        </button>
+        <!-- โพสต์ -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center">
+          <span class="text-lg">📄</span>
+          <span class="text-[9px] text-text-muted">โพสต์</span>
+        </button>
+        <!-- ค้นหา -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center">
+          <span class="text-lg">🔍</span>
+          <span class="text-[9px] text-text-muted">ค้นหา</span>
+        </button>
+        <!-- แจ้งเตือน ACTIVE — coral dot + badge -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center relative">
+          <div class="relative">
+            <span class="text-lg">🔔</span>
+            <span class="absolute -top-1 -right-2 bg-primary text-white rounded-pill px-1 text-[8px] font-bold leading-tight min-w-[14px] text-center border border-white">3</span>
+          </div>
+          <span class="text-[9px] text-primary font-bold">แจ้งเตือน</span>
+          <div class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary"></div>
+        </button>
+        <!-- สัตว์เลี้ยง -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center">
+          <span class="text-lg">🐾</span>
+          <span class="text-[9px] text-text-muted">สัตว์เลี้ยง</span>
+        </button>
+        <!-- โปรไฟล์ -->
+        <button class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center">
+          <span class="text-lg">👤</span>
+          <span class="text-[9px] text-text-muted">โปรไฟล์</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

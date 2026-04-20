@@ -1,0 +1,734 @@
+<!--
+  ============================================================
+  Pawrent V6: Combined Direction (Final Pick)
+  ============================================================
+
+  Design Thesis:
+  "Pill-shaped bubbly elements (V1) on a clean vertical card
+   stack (V4), infused with warm gradients & emotional mascot
+   accents (V2/V3). Approachable without childish — every card
+   is one topic, every shape is a bubble."
+
+  Framework Citations:
+  - NNG Aesthetic-Usability Effect: rounded pill shapes feel
+    safer and more approachable (V1 bubble language)
+  - Gestalt Law of Similarity: consistent roundness unifies
+    the system across all screens (V1)
+  - NNG Emotional Design: warm gradients + mascot emoji build
+    trust for panic moments (V2/V3)
+  - Material Progressive Disclosure: one card per topic,
+    tap-to-expand for detail (V4 vertical stack)
+  - Apple HIG: segmented navigation, grouped surfaces
+
+  Hybrid Source Map:
+  - Mood/Tone/Color: V1 + V2 + V3 (warm pink, bubbly, playful)
+  - Layout: V1 pill shapes + V4 clean vertical stack
+  - Selected/Active states: V2 gradient glow
+  - Form style: V1 pill inputs
+  - Card separation: V1/V4 one-topic-per-card
+  - Buttons: V2 (primary bigger than secondary)
+  - Stepper: V1 compact + V2 style + V3 descriptive labels
+  - Success: V2 cheer-up mascot + social share
+
+  Token Summary:
+  --primary:    #E8507A  (warm pink — from V1)
+  --primary-g:  linear-gradient(135deg, #FF6B9D, #FF9671) — V2
+  --secondary:  #FFB0C0  (soft pink)
+  --accent:     #FFD93D  (sunny yellow — V2/V3)
+  --success:    #2E7D32  | --warning: #E65100 | --danger: #D32F2F
+  --bg:         linear-gradient(180deg, #FFF5F8, #FFF8F5)
+  --surface:    white
+  --text:       #333  | --text-muted: #999
+  Font: Noto Sans Thai (400, 600, 700, 800)
+  Radii: 12px(sm) 16px(md) 24px(lg) 9999px(pill)
+  Shadows: 0 2px 8px rgba(0,0,0,0.06)
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pawrent V6: Combined Direction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { thai: ['"Noto Sans Thai"', 'sans-serif'] },
+          colors: {
+            primary: '#E8507A',
+            'primary-light': '#FFB0C0',
+            accent: '#FFD93D',
+            success: '#2E7D32',
+            'success-light': '#E8F5E9',
+            warning: '#E65100',
+            'warning-light': '#FFF3E0',
+            danger: '#D32F2F',
+            'danger-light': '#FFEBEE',
+            info: '#1565C0',
+            'info-light': '#E3F2FD',
+            surface: '#FFFFFF',
+            txt: '#333333',
+            muted: '#999999',
+          },
+          borderRadius: {
+            'sm-r': '12px',
+            'md-r': '16px',
+            'lg-r': '24px',
+            'pill': '9999px',
+          },
+          boxShadow: {
+            'soft': '0 2px 8px rgba(0,0,0,0.06)',
+            'glow': '0 4px 16px rgba(232,80,122,0.25)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      --primary: #E8507A;
+      --primary-gradient: linear-gradient(135deg, #FF6B9D, #FF9671);
+      --secondary: #FFB0C0;
+      --accent: #FFD93D;
+      --success: #2E7D32;
+      --warning: #E65100;
+      --danger: #D32F2F;
+      --info: #1565C0;
+      --bg: #FFF5F8;
+      --surface: white;
+      --text: #333333;
+      --text-muted: #999999;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Noto Sans Thai', sans-serif; background: linear-gradient(180deg, #FFF5F8 0%, #FFF8F5 100%); color: var(--text); -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 0; }
+
+    .gradient-active { background: linear-gradient(135deg, #FF6B9D, #FF9671); }
+    .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+    /* Popup overlay styling */
+    .popup-section { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+  </style>
+</head>
+<body class="font-thai">
+
+  <!-- ============================================================
+       SCREEN 1: /profile — Pet Profile Manager
+       ============================================================ -->
+
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto min-h-screen relative pb-24 md:border-x md:border-gray-200">
+
+    <!-- LINE Header placeholder -->
+    <div class="h-[44px] bg-gray-100 flex items-center justify-center">
+      <span class="text-[10px] text-muted tracking-wider">LINE Header (44px)</span>
+    </div>
+
+    <!-- ── Owner Profile Header (V1 style — owner at top of family) ── -->
+    <div class="px-4 pt-4 pb-3">
+      <div class="bg-white rounded-pill shadow-soft p-3 flex items-center gap-3">
+        <!-- Owner avatar -->
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-pink-300 to-pink-100 flex items-center justify-center text-2xl shrink-0 ring-2 ring-white shadow-glow">
+          👤
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-txt truncate">คุณนิว</p>
+          <p class="text-[11px] text-muted">เจ้าของ 2 ตัว · สมาชิกตั้งแต่ ม.ค. 2568</p>
+        </div>
+        <button class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-muted text-sm">⚙️</button>
+      </div>
+    </div>
+
+    <!-- ── Pet Selector / New Pet (V1 circular bubbles) ── -->
+    <div class="px-4 pb-3">
+      <div class="flex items-end gap-3 justify-center">
+        <!-- มะลิ (selected) -->
+        <div class="text-center">
+          <div class="w-[60px] h-[60px] rounded-full flex items-center justify-center text-[28px] ring-[3px] ring-primary shadow-glow" style="background: linear-gradient(135deg, #FF9A9E, #FECFEF);">
+            🐕
+          </div>
+          <div class="mt-1.5 bg-primary text-white rounded-pill px-3 py-0.5 text-[10px] font-bold inline-block">มะลิ</div>
+        </div>
+        <!-- เทา (unselected) -->
+        <div class="text-center opacity-50">
+          <div class="w-[60px] h-[60px] rounded-full bg-gray-100 flex items-center justify-center text-[28px] ring-[3px] ring-white">
+            🐈
+          </div>
+          <div class="mt-1.5 bg-gray-200 text-gray-500 rounded-pill px-3 py-0.5 text-[10px] font-semibold inline-block">เทา</div>
+        </div>
+        <!-- Add new -->
+        <div class="text-center">
+          <div class="w-[60px] h-[60px] rounded-full border-2 border-dashed border-primary-light flex items-center justify-center text-xl text-primary">
+            +
+          </div>
+          <div class="mt-1.5 text-[10px] text-primary font-semibold">เพิ่ม</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Pet Profile Card (V1 bubble + V4 compact, tap for digital ID) ── -->
+    <div class="px-4 pb-2">
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-11 h-11 rounded-full flex items-center justify-center text-xl" style="background: linear-gradient(135deg, #FFD1DC, #FFB6C1);">🌸</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-txt">มะลิ</p>
+            <p class="text-[11px] text-muted">ชิวาวาผสม · เพศเมีย · สีดำ</p>
+          </div>
+          <!-- Tap for Digital ID -->
+          <button class="h-9 px-3 rounded-pill text-[10px] font-bold text-primary bg-pink-50 border border-primary-light flex items-center gap-1 shrink-0">
+            🪪 ดู ID
+          </button>
+        </div>
+        <!-- Pill tags (V1 style) -->
+        <div class="flex flex-wrap gap-1.5">
+          <span class="bg-pink-50 text-primary rounded-pill px-2.5 py-0.5 text-[10px] font-semibold">4 ปี 2 เดือน</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2.5 py-0.5 text-[10px] font-semibold">3.2 kg</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2.5 py-0.5 text-[10px] font-semibold">ขาสั้น ถุงเท้าสีขาว</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2.5 py-0.5 text-[10px] font-semibold">ปลอกคอสีแดง</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Digital ID Card Popup (shown inline as expanded state) ── -->
+    <div class="px-4 pb-2">
+      <div class="bg-gradient-to-br from-pink-50 to-yellow-50 rounded-lg-r shadow-soft p-4 border border-primary-light/30 relative">
+        <div class="absolute top-2 right-2 text-[9px] text-muted bg-white/80 rounded-pill px-2 py-0.5">↕ Popup State</div>
+        <div class="flex items-start gap-3">
+          <div class="w-20 h-20 rounded-md-r bg-white flex items-center justify-center text-4xl shadow-soft shrink-0">🐕</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-base font-extrabold text-txt">มะลิ</p>
+            <p class="text-[11px] text-muted leading-relaxed">ชิวาวาผสม · เพศเมีย · สีดำ<br>เกิด 2 มี.ค. 2562 · 4 ปี 2 เดือน<br>น้ำหนัก 3.2 kg · ทำหมันแล้ว</p>
+            <p class="text-[10px] text-muted mt-1">ลักษณะเฉพาะ: ขาสั้น ใส่ถุงเท้าสีขาว</p>
+          </div>
+        </div>
+        <!-- QR Code placeholder -->
+        <div class="mt-3 flex items-center gap-3 bg-white rounded-md-r p-3 shadow-soft">
+          <div class="w-16 h-16 bg-gray-100 rounded-sm-r flex items-center justify-center text-[10px] text-muted border border-gray-200 shrink-0">
+            <div class="text-center">
+              <span class="text-2xl">📱</span><br>
+              <span class="text-[8px]">QR Code</span>
+            </div>
+          </div>
+          <div class="flex-1">
+            <p class="text-[10px] font-bold text-txt">Microchip ID</p>
+            <p class="text-[11px] font-mono text-muted">900-118-000-1234</p>
+            <p class="text-[9px] text-primary mt-1">สแกน QR เพื่อเช็คอินคลินิก/โรงพยาบาล</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Weight Card (Separate — latest weight + status + expandable chart) ── -->
+    <div class="px-4 pb-2">
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-sm">⚖️</div>
+            <div>
+              <p class="text-xs font-bold text-txt">น้ำหนักล่าสุด</p>
+              <p class="text-[10px] text-muted">บันทึกเมื่อ 3 เม.ย. 2569</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-lg font-extrabold text-txt">3.2 <span class="text-xs font-normal text-muted">kg</span></p>
+            <span class="bg-success-light text-success rounded-pill px-2 py-0.5 text-[9px] font-bold">✓ ปกติ</span>
+          </div>
+        </div>
+        <!-- Status warning if outdated -->
+        <div class="bg-warning-light rounded-sm-r p-2 flex items-center gap-2">
+          <span class="text-sm">⏰</span>
+          <p class="text-[10px] text-warning font-semibold flex-1">ควรชั่งน้ำหนักใหม่ (เกิน 30 วัน)</p>
+          <button class="h-7 px-2.5 rounded-pill text-[9px] font-bold text-white bg-warning flex items-center">บันทึก</button>
+        </div>
+        <!-- Expandable chart preview -->
+        <div class="mt-2 pt-2 border-t border-gray-100">
+          <div class="flex items-center justify-between mb-1.5">
+            <p class="text-[10px] font-semibold text-muted">📊 ประวัติน้ำหนัก</p>
+            <button class="text-[10px] text-primary font-semibold">ดูทั้งหมด ▾</button>
+          </div>
+          <!-- Mini chart placeholder -->
+          <div class="h-16 bg-gradient-to-r from-pink-50 to-blue-50 rounded-sm-r flex items-end gap-1 px-2 pb-1">
+            <div class="flex-1 bg-primary/20 rounded-t" style="height: 60%"></div>
+            <div class="flex-1 bg-primary/25 rounded-t" style="height: 65%"></div>
+            <div class="flex-1 bg-primary/30 rounded-t" style="height: 55%"></div>
+            <div class="flex-1 bg-primary/35 rounded-t" style="height: 70%"></div>
+            <div class="flex-1 bg-primary/40 rounded-t" style="height: 68%"></div>
+            <div class="flex-1 bg-primary/50 rounded-t" style="height: 72%"></div>
+            <div class="flex-1 bg-primary rounded-t" style="height: 75%"></div>
+          </div>
+          <div class="flex justify-between mt-1 text-[8px] text-muted px-1">
+            <span>ต.ค.</span><span>พ.ย.</span><span>ธ.ค.</span><span>ม.ค.</span><span>ก.พ.</span><span>มี.ค.</span><span>เม.ย.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Vaccine Summary Cards (V1 bubble style — one card per vaccine) ── -->
+    <div class="px-4 pb-2">
+      <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1">💉 สรุปวัคซีน <span class="text-[10px] font-normal text-muted">(3 รายการ)</span></p>
+
+      <!-- Vaccine 1: DHPP - up to date -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3 mb-2">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-success-light flex items-center justify-center shrink-0">
+            <span class="text-lg">💉</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">DHPP (5 in 1)</p>
+            <p class="text-[10px] text-success font-semibold">✓ วัคซีนครบ</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[10px] text-muted">Booster</p>
+            <p class="text-[11px] font-bold text-txt">15 ธ.ค. 68</p>
+          </div>
+          <span class="text-muted text-sm">›</span>
+        </div>
+        <!-- Coverage progress bar -->
+        <div class="mt-2 h-1.5 bg-success-light rounded-full overflow-hidden">
+          <div class="h-full bg-success rounded-full" style="width: 85%"></div>
+        </div>
+      </div>
+
+      <!-- Vaccine 2: Rabies - due soon -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3 mb-2">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-warning-light flex items-center justify-center shrink-0">
+            <span class="text-lg">💉</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">Rabies</p>
+            <p class="text-[10px] text-warning font-semibold">⚠ ใกล้หมดอายุ</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[10px] text-muted">หมดอายุ</p>
+            <p class="text-[11px] font-bold text-warning">28 เม.ย. 69</p>
+          </div>
+          <span class="text-muted text-sm">›</span>
+        </div>
+        <div class="mt-2 h-1.5 bg-warning-light rounded-full overflow-hidden">
+          <div class="h-full bg-warning rounded-full" style="width: 25%"></div>
+        </div>
+      </div>
+
+      <!-- Vaccine 3: Leptospirosis - overdue -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3 mb-2 ring-1 ring-danger/20">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-danger-light flex items-center justify-center shrink-0">
+            <span class="text-lg">💉</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">Leptospirosis</p>
+            <p class="text-[10px] text-danger font-semibold">✗ เลยกำหนด</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[10px] text-muted">หมดอายุ</p>
+            <p class="text-[11px] font-bold text-danger">1 มี.ค. 69</p>
+          </div>
+          <span class="text-muted text-sm">›</span>
+        </div>
+        <div class="mt-2 h-1.5 bg-danger-light rounded-full overflow-hidden">
+          <div class="h-full bg-danger rounded-full" style="width: 100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Vaccine Detail Popup (shown inline as expanded state) ── -->
+    <div class="px-4 pb-2">
+      <div class="bg-white rounded-lg-r shadow-soft p-4 border border-primary-light/30 relative">
+        <div class="absolute top-2 right-2 text-[9px] text-muted bg-white/80 rounded-pill px-2 py-0.5">↕ Popup State: DHPP Detail</div>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-9 h-9 rounded-full bg-success-light flex items-center justify-center"><span class="text-base">💉</span></div>
+          <div>
+            <p class="text-sm font-bold text-txt">DHPP (5 in 1)</p>
+            <p class="text-[10px] text-success font-semibold">✓ วัคซีนครบ — คุ้มครองถึง 15 ธ.ค. 2568</p>
+          </div>
+        </div>
+        <!-- Detail grid -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span class="text-[10px] text-muted">ยี่ห้อ</span>
+            <span class="text-[11px] font-semibold text-txt">Nobivac DHPPi</span>
+          </div>
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span class="text-[10px] text-muted">เลขล็อต</span>
+            <span class="text-[11px] font-mono text-txt">A1B2C345</span>
+          </div>
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span class="text-[10px] text-muted">วันที่ฉีด</span>
+            <span class="text-[11px] font-semibold text-txt">15 ธ.ค. 2567</span>
+          </div>
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span class="text-[10px] text-muted">สถานที่</span>
+            <span class="text-[11px] font-semibold text-txt">รพส.ทองหล่อ</span>
+          </div>
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span class="text-[10px] text-muted">สัตวแพทย์</span>
+            <span class="text-[11px] font-semibold text-txt">นพ.สมชาย วงศ์เวช</span>
+          </div>
+          <!-- Coverage gauge -->
+          <div class="pt-1">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] text-muted">ระยะคุ้มครอง</span>
+              <span class="text-[10px] font-bold text-success">85%</span>
+            </div>
+            <div class="h-2.5 bg-success-light rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style="width: 85%"></div>
+            </div>
+            <div class="flex justify-between mt-1 text-[9px] text-muted">
+              <span>15 ธ.ค. 67</span>
+              <span>15 ธ.ค. 68 (Booster)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Gallery Card (V4 style + emergency markers + album popup) ── -->
+    <div class="px-4 pb-2">
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-xs font-bold text-txt">📷 อัลบั้มรูป <span class="text-[10px] font-normal text-muted">(7 รูป)</span></p>
+          <button class="text-[10px] text-primary font-semibold">+ เพิ่มรูป</button>
+        </div>
+        <!-- Photo grid with emergency markers -->
+        <div class="grid grid-cols-4 gap-1.5">
+          <!-- Photo 1 - emergency marked -->
+          <div class="aspect-square rounded-md-r overflow-hidden relative" style="background: linear-gradient(135deg, #FFE0B2, #FFCCBC);">
+            <div class="absolute top-1 left-1 bg-danger text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold flex items-center gap-0.5">🚨 ฉุกเฉิน</div>
+          </div>
+          <!-- Photo 2 - emergency marked -->
+          <div class="aspect-square rounded-md-r overflow-hidden relative" style="background: linear-gradient(135deg, #FFCCBC, #FFB8A0);">
+            <div class="absolute top-1 left-1 bg-danger text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold flex items-center gap-0.5">🚨 ฉุกเฉิน</div>
+          </div>
+          <!-- Photo 3 - emergency marked -->
+          <div class="aspect-square rounded-md-r overflow-hidden relative" style="background: linear-gradient(135deg, #FFB8A0, #FFA490);">
+            <div class="absolute top-1 left-1 bg-danger text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold flex items-center gap-0.5">🚨 ฉุกเฉิน</div>
+          </div>
+          <!-- Photo 4 - regular -->
+          <div class="aspect-square rounded-md-r overflow-hidden" style="background: linear-gradient(135deg, #E8D4C0, #DBC4B0);"></div>
+          <!-- Photo 5 - regular -->
+          <div class="aspect-square rounded-md-r overflow-hidden" style="background: linear-gradient(135deg, #DBC4B0, #CEB4A0);"></div>
+          <!-- Photo 6 - regular -->
+          <div class="aspect-square rounded-md-r overflow-hidden" style="background: linear-gradient(135deg, #CEB4A0, #C1A490);"></div>
+          <!-- Photo 7 - regular -->
+          <div class="aspect-square rounded-md-r overflow-hidden" style="background: linear-gradient(135deg, #D4C4B0, #C8B8A4);"></div>
+          <!-- Add photo -->
+          <div class="aspect-square rounded-md-r border-2 border-dashed border-primary-light flex items-center justify-center text-primary text-lg">+</div>
+        </div>
+        <p class="text-[9px] text-muted mt-2 text-center">🚨 = รูปฉุกเฉินสำหรับแจ้งหาย (3/5 รูป) · แตะรูปเพื่อดูแบบเต็มจอ</p>
+      </div>
+    </div>
+
+    <!-- ── Photo Album Popup (shown inline as expanded state) ── -->
+    <div class="px-4 pb-4">
+      <div class="bg-black/90 rounded-lg-r p-3 relative">
+        <div class="absolute top-2 right-2 text-[9px] text-white/60 bg-white/10 rounded-pill px-2 py-0.5">↕ Popup State: Album</div>
+        <!-- Large photo -->
+        <div class="aspect-[4/3] rounded-md-r mb-2 flex items-center justify-center" style="background: linear-gradient(135deg, #FFE0B2, #FFCCBC);">
+          <span class="text-5xl">🐕</span>
+        </div>
+        <!-- Photo strip -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1">
+          <div class="w-12 h-12 rounded-sm-r shrink-0 ring-2 ring-white" style="background: linear-gradient(135deg, #FFE0B2, #FFCCBC);"></div>
+          <div class="w-12 h-12 rounded-sm-r shrink-0 opacity-60" style="background: linear-gradient(135deg, #FFCCBC, #FFB8A0);"></div>
+          <div class="w-12 h-12 rounded-sm-r shrink-0 opacity-60" style="background: linear-gradient(135deg, #FFB8A0, #FFA490);"></div>
+          <div class="w-12 h-12 rounded-sm-r shrink-0 opacity-60" style="background: linear-gradient(135deg, #E8D4C0, #DBC4B0);"></div>
+        </div>
+        <!-- Actions -->
+        <div class="flex gap-2 mt-2">
+          <button class="flex-1 h-9 rounded-pill text-[10px] font-semibold text-white bg-white/20 flex items-center justify-center gap-1">❤️ ถูกใจ</button>
+          <button class="flex-1 h-9 rounded-pill text-[10px] font-semibold text-white bg-white/20 flex items-center justify-center gap-1">💬 แชร์</button>
+          <button class="flex-1 h-9 rounded-pill text-[10px] font-semibold text-white bg-danger/80 flex items-center justify-center gap-1">🚨 ตั้งเป็นฉุกเฉิน</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Bottom Nav (Screen 1) — สัตว์เลี้ยง active ── -->
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[768px] bg-white/95 backdrop-blur-md border-t border-gray-100 px-2 pb-2 pt-1 z-50">
+      <div class="flex items-center justify-around">
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center"><span class="text-lg">🏠</span><span class="text-[9px] text-muted">หน้าหลัก</span></div>
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center"><span class="text-lg">📄</span><span class="text-[9px] text-muted">โพสต์</span></div>
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center"><span class="text-lg">🔍</span><span class="text-[9px] text-muted">ค้นหา</span></div>
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center"><span class="text-lg">🔔</span><span class="text-[9px] text-muted">แจ้งเตือน</span></div>
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center relative"><span class="text-lg">🐾</span><span class="text-[9px] text-primary font-bold">สัตว์เลี้ยง</span><div class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-primary"></div></div>
+        <div class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center"><span class="text-lg">👤</span><span class="text-[9px] text-muted">โปรไฟล์</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Screen Separator ── -->
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto py-6 flex items-center justify-center gap-3 md:border-x md:border-gray-200">
+    <div class="h-px flex-1 bg-gray-200"></div>
+    <span class="text-[10px] font-bold text-muted tracking-widest uppercase bg-gray-100 rounded-pill px-4 py-1.5">Screen 2: /post/lost</span>
+    <div class="h-px flex-1 bg-gray-200"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 2: /post/lost — Lost Pet Emergency Wizard
+       ============================================================ -->
+
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto min-h-screen relative pb-32 md:border-x md:border-gray-200">
+
+    <!-- LINE Header placeholder -->
+    <div class="h-[44px] bg-gray-100 flex items-center justify-center">
+      <span class="text-[10px] text-muted tracking-wider">LINE Header (44px)</span>
+    </div>
+
+    <!-- ── Compact Header (V1 compact + V2 stepper + V3 descriptive labels) ── -->
+    <div class="gradient-active px-4 py-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🚨</span>
+          <div>
+            <p class="text-sm font-bold text-white">แจ้งสัตว์เลี้ยงหาย</p>
+          </div>
+        </div>
+        <button class="h-8 px-3 rounded-pill bg-white/20 text-white text-[10px] font-semibold">✕ ยกเลิก</button>
+      </div>
+      <!-- Stepper with descriptive labels (V2 dots + V3 labels) -->
+      <div class="flex items-center gap-1">
+        <!-- Step 1 (active) -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white mb-1"></div>
+          <span class="text-[8px] text-white font-semibold">เลือกน้อง</span>
+        </div>
+        <!-- Step 2 -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white/30 mb-1"></div>
+          <span class="text-[8px] text-white/60">เวลา+ที่</span>
+        </div>
+        <!-- Step 3 -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white/30 mb-1"></div>
+          <span class="text-[8px] text-white/60">รูปภาพ</span>
+        </div>
+        <!-- Step 4 -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white/30 mb-1"></div>
+          <span class="text-[8px] text-white/60">เสียง</span>
+        </div>
+        <!-- Step 5 -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white/30 mb-1"></div>
+          <span class="text-[8px] text-white/60">รางวัล</span>
+        </div>
+        <!-- Step 6 -->
+        <div class="flex-1 text-center">
+          <div class="h-1.5 rounded-full bg-white/30 mb-1"></div>
+          <span class="text-[8px] text-white/60">ตรวจสอบ</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-4 pt-3 space-y-2">
+
+      <!-- ── Step 1: เลือกสัตว์เลี้ยง (simple + compact V2) ── -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full gradient-active text-white text-[10px] font-bold flex items-center justify-center">1</span>
+          เลือกสัตว์เลี้ยงที่หาย
+        </p>
+        <!-- Pet selection (gradient active from V2) -->
+        <div class="flex gap-2">
+          <!-- มะลิ selected -->
+          <div class="flex-1 rounded-md-r p-2.5 flex items-center gap-2 shadow-glow ring-2 ring-primary" style="background: linear-gradient(135deg, #FFF0F5, #FFF5F8);">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style="background: linear-gradient(135deg, #FF9A9E, #FECFEF);">🐕</div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-txt">มะลิ</p>
+              <p class="text-[9px] text-muted truncate">ชิวาวาผสม · ♀</p>
+            </div>
+            <span class="text-primary text-sm shrink-0">✓</span>
+          </div>
+          <!-- เทา unselected -->
+          <div class="flex-1 rounded-md-r p-2.5 flex items-center gap-2 bg-gray-50 opacity-50">
+            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shrink-0">🐈</div>
+            <div class="min-w-0">
+              <p class="text-xs font-bold text-txt">เทา</p>
+              <p class="text-[9px] text-muted truncate">แมวไทย · ♂</p>
+            </div>
+          </div>
+        </div>
+        <!-- Auto-filled info pills -->
+        <div class="flex flex-wrap gap-1 mt-2">
+          <span class="bg-pink-50 text-primary rounded-pill px-2 py-0.5 text-[9px] font-semibold">สีดำ</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2 py-0.5 text-[9px] font-semibold">3.2 kg</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2 py-0.5 text-[9px] font-semibold">ขาสั้น ถุงเท้าสีขาว</span>
+          <span class="bg-pink-50 text-primary rounded-pill px-2 py-0.5 text-[9px] font-semibold">ปลอกคอสีแดง</span>
+        </div>
+      </div>
+
+      <!-- ── Step 2: วัน เวลา สถานที่ (simple + compact V2) ── -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full gradient-active text-white text-[10px] font-bold flex items-center justify-center">2</span>
+          หายเมื่อไหร่ ที่ไหน
+        </p>
+        <div class="space-y-2">
+          <!-- Date + Time side by side -->
+          <div class="flex gap-2">
+            <div class="flex-1">
+              <label class="text-[10px] text-muted font-semibold mb-1 block">📅 วันที่</label>
+              <div class="h-10 rounded-pill border border-gray-200 bg-gray-50 px-3 flex items-center text-xs text-txt">19 ต.ค. 2568</div>
+            </div>
+            <div class="flex-1">
+              <label class="text-[10px] text-muted font-semibold mb-1 block">⏰ เวลา</label>
+              <div class="h-10 rounded-pill border border-gray-200 bg-gray-50 px-3 flex items-center text-xs text-txt">18:45</div>
+            </div>
+          </div>
+          <!-- Location -->
+          <div>
+            <label class="text-[10px] text-muted font-semibold mb-1 block">📍 สถานที่เห็นล่าสุด</label>
+            <div class="h-10 rounded-pill border border-gray-200 bg-gray-50 px-3 flex items-center text-xs text-txt">ซอยลาดพร้าว 71 หน้าร้าน 7-Eleven</div>
+          </div>
+          <!-- Map placeholder -->
+          <div class="h-28 rounded-md-r bg-gradient-to-br from-green-50 to-blue-50 border border-gray-200 flex items-center justify-center">
+            <div class="text-center">
+              <span class="text-2xl">📍</span>
+              <p class="text-[10px] text-muted mt-1">แตะเพื่อปักหมุดบนแผนที่</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Step 3: รูปภาพ (emergency gallery + upload) ── -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full gradient-active text-white text-[10px] font-bold flex items-center justify-center">3</span>
+          รูปภาพและลักษณะเฉพาะ
+        </p>
+        <!-- Gallery with emergency markers -->
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-[10px] text-muted">🚨 รูปฉุกเฉินจากอัลบั้ม</p>
+          <span class="bg-primary text-white rounded-pill px-2 py-0.5 text-[10px] font-bold">3/5 ภาพ</span>
+        </div>
+        <div class="flex gap-1.5 mb-2">
+          <!-- Emergency photos -->
+          <div class="w-16 h-16 rounded-md-r shrink-0 ring-2 ring-danger relative" style="background: linear-gradient(135deg, #FFE0B2, #FFCCBC);">
+            <div class="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white rounded-full text-[8px] flex items-center justify-center">✓</div>
+          </div>
+          <div class="w-16 h-16 rounded-md-r shrink-0 ring-2 ring-danger relative" style="background: linear-gradient(135deg, #FFCCBC, #FFB8A0);">
+            <div class="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white rounded-full text-[8px] flex items-center justify-center">✓</div>
+          </div>
+          <div class="w-16 h-16 rounded-md-r shrink-0 ring-2 ring-danger relative" style="background: linear-gradient(135deg, #FFB8A0, #FFA490);">
+            <div class="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white rounded-full text-[8px] flex items-center justify-center">✓</div>
+          </div>
+          <!-- Upload new -->
+          <div class="w-16 h-16 rounded-md-r shrink-0 border-2 border-dashed border-primary-light flex flex-col items-center justify-center gap-0.5">
+            <span class="text-primary text-lg">+</span>
+            <span class="text-[7px] text-primary font-semibold">เพิ่มรูป</span>
+          </div>
+        </div>
+        <!-- Description -->
+        <div>
+          <label class="text-[10px] text-muted font-semibold mb-1 block">📝 ลักษณะเพิ่มเติม</label>
+          <div class="min-h-[60px] rounded-md-r border border-gray-200 bg-gray-50 p-3 text-xs text-txt leading-relaxed">ใส่ปลอกคอสีแดง มีป้ายชื่อ กลัวมอเตอร์ไซค์ อย่าไล่</div>
+        </div>
+      </div>
+
+      <!-- ── Step 5: รางวัลและติดต่อ (pre-filled from owner profile) ── -->
+      <div class="bg-white rounded-lg-r shadow-soft p-3">
+        <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full gradient-active text-white text-[10px] font-bold flex items-center justify-center">5</span>
+          รางวัลและช่องทางติดต่อ
+        </p>
+        <!-- Reward -->
+        <div class="mb-3">
+          <label class="text-[10px] text-muted font-semibold mb-1 block">🎁 เงินรางวัล (ไม่บังคับ)</label>
+          <div class="h-11 rounded-pill border border-gray-200 bg-gray-50 px-4 flex items-center gap-2">
+            <span class="text-xs text-muted font-bold">฿</span>
+            <span class="text-sm font-bold text-txt">2,000</span>
+          </div>
+        </div>
+        <!-- Contact (pre-filled from owner profile) -->
+        <div class="mb-3">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] text-muted font-semibold">📱 ช่องทางติดต่อ</label>
+            <span class="text-[9px] text-primary font-semibold">ดึงจากโปรไฟล์แล้ว ✓</span>
+          </div>
+          <div class="space-y-1.5">
+            <div class="h-10 rounded-pill border border-gray-200 bg-gray-50 px-3 flex items-center gap-2">
+              <span class="text-sm">💬</span>
+              <span class="text-xs text-txt">LINE: @malim_mom</span>
+              <button class="ml-auto text-[9px] text-primary font-semibold">แก้ไข</button>
+            </div>
+            <div class="h-10 rounded-pill border border-gray-200 bg-gray-50 px-3 flex items-center gap-2">
+              <span class="text-sm">📞</span>
+              <span class="text-xs text-txt">088-888-8888</span>
+              <button class="ml-auto text-[9px] text-primary font-semibold">แก้ไข</button>
+            </div>
+          </div>
+        </div>
+        <!-- Broadcast radius -->
+        <div>
+          <label class="text-[10px] text-muted font-semibold mb-1.5 block">📡 รัศมีประกาศ</label>
+          <div class="flex gap-1.5">
+            <span class="h-8 px-3 rounded-pill bg-gray-100 text-[10px] text-muted font-semibold flex items-center">1 km</span>
+            <span class="h-8 px-3 rounded-pill text-[10px] text-white font-bold flex items-center shadow-glow gradient-active">3 km</span>
+            <span class="h-8 px-3 rounded-pill bg-gray-100 text-[10px] text-muted font-semibold flex items-center">5 km</span>
+            <span class="h-8 px-3 rounded-pill bg-gray-100 text-[10px] text-muted font-semibold flex items-center">10 km</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Action Buttons (V2: primary bigger than secondary) ── -->
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[768px] bg-white/95 backdrop-blur-md border-t border-gray-100 px-4 py-3 z-50">
+      <div class="flex gap-2">
+        <button class="h-10 px-4 rounded-pill border-2 border-gray-200 text-xs font-semibold text-muted bg-white flex items-center justify-center">
+          ← ย้อนกลับ
+        </button>
+        <button class="flex-1 h-12 rounded-pill text-sm font-bold text-white shadow-glow flex items-center justify-center gradient-active">
+          ถัดไป →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Success Popup (V2 cheer up + share links, shown inline) ── -->
+    <div class="px-4 pt-4 pb-4">
+      <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg-r shadow-soft p-5 text-center border border-green-200/50 relative">
+        <div class="absolute top-2 right-2 text-[9px] text-muted bg-white/80 rounded-pill px-2 py-0.5">↕ Popup State: สำเร็จ</div>
+
+        <!-- Celebration mascot -->
+        <div class="text-5xl mb-2">🎉🐾</div>
+        <p class="text-base font-extrabold text-txt mb-1">ส่งประกาศเรียบร้อยแล้ว!</p>
+        <p class="text-xs text-muted mb-3 leading-relaxed">ไม่ต้องกังวลนะ เราส่งแจ้งเตือนให้คนใกล้เคียง<br>ในรัศมี 3 km แล้ว 💪 มะลิจะกลับบ้านเร็วๆ นี้!</p>
+
+        <!-- Share buttons -->
+        <div class="space-y-2">
+          <button class="w-full h-11 rounded-pill text-sm font-bold text-white flex items-center justify-center gap-2" style="background: #06C755;">
+            💬 แชร์ผ่าน LINE
+          </button>
+          <div class="flex gap-2">
+            <button class="flex-1 h-10 rounded-pill text-[11px] font-semibold text-white flex items-center justify-center gap-1" style="background: #1877F2;">
+              📘 Facebook
+            </button>
+            <button class="flex-1 h-10 rounded-pill text-[11px] font-semibold text-white bg-black flex items-center justify-center gap-1">
+              𝕏 Twitter
+            </button>
+          </div>
+          <button class="w-full h-10 rounded-pill text-[11px] font-semibold text-primary border-2 border-primary-light bg-white flex items-center justify-center gap-1">
+            🔗 คัดลอกลิงก์
+          </button>
+          <button class="w-full h-10 rounded-pill text-[11px] font-semibold text-primary border-2 border-primary-light bg-white flex items-center justify-center gap-1">
+            📄 ดาวน์โหลดโปสเตอร์
+          </button>
+        </div>
+
+        <!-- Back to home -->
+        <button class="mt-3 text-xs text-muted underline">กลับหน้าหลัก</button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

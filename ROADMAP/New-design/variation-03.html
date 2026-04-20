@@ -1,0 +1,619 @@
+<!--
+  ============================================================
+  Pawrent V3: Illustrative Playful
+  ============================================================
+
+  Design Thesis:
+    "Emotion-first with mascot, gradient header, card carousel.
+     A friend who helps in your panic moment."
+
+  Framework Citation:
+    NNG Emotional Design (all 3 layers):
+      - Visceral: warm gradients, mascot paw, emoji-heavy, playful curves
+      - Behavioral: intuitive card carousel, clear step progression, touch-friendly
+      - Reflective: "friend who helps" personality, Thai LINE sticker culture affinity
+
+  Token Summary:
+    --primary:          #FF6B9D (pink)
+    --secondary:        #FFD93D (yellow)
+    --success:          #6BCB77 (green)
+    --warning:          #FF9800 (orange)
+    --danger:           #FF4757 (red)
+    --info:             #4D96FF (blue)
+    --bg:               #FFFAF0 (warm cream)
+    --header-gradient:  linear-gradient(135deg, #FF6B9D, #FFD93D)
+    --text:             #2D1B40 (deep plum)
+    --text-muted:       #888888
+    Font:               Sarabun 400/600/700
+    Radius:             12px (sm) / 16px (md) / 20px (lg)
+    Shadow:             0 4px 12px rgba(255,107,157,0.15)
+    Border accent:      2px solid #FFE0E0
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pawrent V3: Illustrative Playful</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #FF6B9D;
+      --secondary: #FFD93D;
+      --success: #6BCB77;
+      --warning: #FF9800;
+      --danger: #FF4757;
+      --info: #4D96FF;
+      --bg: #FFFAF0;
+      --header-gradient: linear-gradient(135deg, #FF6B9D, #FFD93D);
+      --text: #2D1B40;
+      --text-muted: #888888;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 20px;
+      --shadow-primary: 0 4px 12px rgba(255, 107, 157, 0.15);
+      --border-accent: 2px solid #FFE0E0;
+    }
+
+    * {
+      font-family: 'Sarabun', sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Hide scrollbar on carousel */
+    .scroll-hidden::-webkit-scrollbar {
+      display: none;
+    }
+    .scroll-hidden {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#FF6B9D',
+            secondary: '#FFD93D',
+            success: '#6BCB77',
+            warning: '#FF9800',
+            danger: '#FF4757',
+            info: '#4D96FF',
+            bg: '#FFFAF0',
+            text: '#2D1B40',
+            'text-muted': '#888888',
+          },
+          fontFamily: {
+            sarabun: ['Sarabun', 'sans-serif'],
+          },
+          borderRadius: {
+            sm: '12px',
+            md: '16px',
+            lg: '20px',
+          },
+          boxShadow: {
+            primary: '0 4px 12px rgba(255,107,157,0.15)',
+            'primary-lg': '0 6px 20px rgba(255,107,157,0.25)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="font-sarabun max-w-[768px] mx-auto">
+
+  <!-- ============================================================
+       SCREEN 1: /pets — My Pets Dashboard
+       ============================================================ -->
+  <section class="relative pb-24 min-h-screen" style="background-color: var(--bg);">
+
+    <!-- Gradient Header with Mascot -->
+    <header class="relative overflow-hidden" style="background: var(--header-gradient); border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+      <!-- Decorative circles -->
+      <div class="absolute top-[-20px] right-[-20px] w-[100px] h-[100px] rounded-full" style="background: rgba(255,255,255,0.15);"></div>
+      <div class="absolute top-[60px] right-[60px] w-[50px] h-[50px] rounded-full" style="background: rgba(255,255,255,0.1);"></div>
+      <div class="absolute bottom-[-10px] left-[30px] w-[70px] h-[70px] rounded-full" style="background: rgba(255,255,255,0.12);"></div>
+
+      <div class="px-5 pt-12 pb-8 relative z-10">
+        <!-- Mascot paw -->
+        <div class="text-6xl mb-3" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));">
+          <span role="img" aria-label="paw print">🐾</span>
+        </div>
+        <h1 class="text-white text-2xl font-bold mb-1">ลูกรักของฉัน</h1>
+        <p class="text-white/80 text-base font-semibold">
+          <span role="img" aria-label="star">🌟</span> 2 ตัว · สุขภาพดีทุกตัว!
+        </p>
+      </div>
+    </header>
+
+    <!-- Pet Card Carousel -->
+    <div class="px-5 mt-5">
+      <div class="flex gap-3 overflow-x-auto scroll-hidden pb-2">
+
+        <!-- Mali card (selected) -->
+        <div class="flex-shrink-0 w-[130px] p-4 bg-white text-center"
+             style="border-radius: var(--radius-md); border: 2px solid var(--primary); box-shadow: 0 6px 20px rgba(255,107,157,0.25);">
+          <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-2"
+               style="background: linear-gradient(135deg, #FFECD2, #FCB69F);">
+            <span role="img" aria-label="dog">🐕</span>
+          </div>
+          <p class="font-bold text-sm" style="color: var(--text);">มะลิ</p>
+          <p class="text-xs mt-1" style="color: var(--primary);">
+            <span role="img" aria-label="health">❤️‍🩹</span> สุขภาพดี
+          </p>
+        </div>
+
+        <!-- Tao card (unselected) -->
+        <div class="flex-shrink-0 w-[130px] p-4 bg-white text-center opacity-70"
+             style="border-radius: var(--radius-md); box-shadow: var(--shadow-primary);">
+          <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-2"
+               style="background: linear-gradient(135deg, #E0E7FF, #C7D2FE);">
+            <span role="img" aria-label="cat">🐈</span>
+          </div>
+          <p class="font-bold text-sm" style="color: var(--text);">เทา</p>
+          <p class="text-xs mt-1" style="color: var(--success);">
+            <span role="img" aria-label="health">❤️‍🩹</span> สุขภาพดี
+          </p>
+        </div>
+
+        <!-- Add card -->
+        <div class="flex-shrink-0 w-[130px] p-4 text-center flex flex-col items-center justify-center"
+             style="border-radius: var(--radius-md); border: 2px dashed var(--primary); min-height: 140px;">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-2xl mb-2"
+               style="background: rgba(255,107,157,0.1); color: var(--primary);">
+            +
+          </div>
+          <p class="text-xs font-semibold" style="color: var(--primary);">เพิ่ม</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="px-5 mt-5">
+      <div class="bg-white p-5" style="border-radius: var(--radius-md); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+        <h2 class="text-base font-bold mb-4" style="color: var(--text);">
+          <span role="img" aria-label="flower">🌸</span> โปรไฟล์มะลิ
+        </h2>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div>
+            <p class="text-text-muted text-xs mb-0.5">พันธุ์</p>
+            <p class="font-semibold">ปอมเมอเรเนียน</p>
+          </div>
+          <div>
+            <p class="text-text-muted text-xs mb-0.5">อายุ</p>
+            <p class="font-semibold">3 ปี 2 เดือน</p>
+          </div>
+          <div>
+            <p class="text-text-muted text-xs mb-0.5">น้ำหนัก</p>
+            <p class="font-semibold">4.2 กก.</p>
+          </div>
+          <div>
+            <p class="text-text-muted text-xs mb-0.5">สี</p>
+            <p class="font-semibold">ครีมส้ม</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-text-muted text-xs mb-0.5">ลักษณะเด่น</p>
+            <p class="font-semibold">หน้ากลม ขนฟู หางม้วน</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Emoji Trio -->
+    <div class="px-5 mt-5">
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- Vaccine - Green -->
+        <div class="p-3 text-center bg-white" style="border-radius: var(--radius-sm); border: 2px solid #D4EDDA; box-shadow: var(--shadow-primary);">
+          <div class="text-2xl mb-1">
+            <span role="img" aria-label="vaccine">💉</span>
+          </div>
+          <p class="text-xs font-bold" style="color: var(--success);">วัคซีนครบ!</p>
+          <p class="text-[10px] mt-1 text-text-muted">Booster ธ.ค. 68</p>
+        </div>
+
+        <!-- Deworming - Orange -->
+        <div class="p-3 text-center bg-white" style="border-radius: var(--radius-sm); border: 2px solid #FFE0B2; box-shadow: var(--shadow-primary);">
+          <div class="text-2xl mb-1">
+            <span role="img" aria-label="parasite">🐛</span>
+          </div>
+          <p class="text-xs font-bold" style="color: var(--warning);">อีก 5 วัน!</p>
+          <p class="text-[10px] mt-1 text-text-muted">Nexgard</p>
+        </div>
+
+        <!-- Photos - Blue -->
+        <div class="p-3 text-center bg-white" style="border-radius: var(--radius-sm); border: 2px solid #CCE5FF; box-shadow: var(--shadow-primary);">
+          <div class="text-2xl mb-1">
+            <span role="img" aria-label="camera">📷</span>
+          </div>
+          <p class="text-xs font-bold" style="color: var(--info);">5 รูป</p>
+          <p class="text-[10px] mt-1 text-text-muted">พร้อมแจ้งหาย</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom Nav (Screen 1) -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-[768px] mx-auto bg-white border-t border-gray-100 z-50"
+         style="box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
+      <div class="grid grid-cols-6 py-2">
+        <!-- Home -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">🏠</span>
+          <span class="text-[10px] mt-0.5">หน้าแรก</span>
+        </a>
+        <!-- Pets (active) -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--primary);">
+          <span class="text-lg">🐾</span>
+          <span class="text-[10px] mt-0.5 font-bold">สัตว์เลี้ยง</span>
+        </a>
+        <!-- Post -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">📢</span>
+          <span class="text-[10px] mt-0.5">โพสต์</span>
+        </a>
+        <!-- Map -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">🗺️</span>
+          <span class="text-[10px] mt-0.5">แผนที่</span>
+        </a>
+        <!-- Chat -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">💬</span>
+          <span class="text-[10px] mt-0.5">แชท</span>
+        </a>
+        <!-- Profile -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">👤</span>
+          <span class="text-[10px] mt-0.5">โปรไฟล์</span>
+        </a>
+      </div>
+    </nav>
+
+  </section>
+
+  <!-- Spacer between screens -->
+  <div class="h-16" style="background: #E8E0D8;"></div>
+
+  <!-- ============================================================
+       SCREEN 2: /post/lost — Lost Pet Wizard
+       ============================================================ -->
+  <section class="relative pb-24" style="background-color: var(--bg);">
+
+    <!-- Urgent Red-Orange Gradient Header -->
+    <header class="relative overflow-hidden" style="background: linear-gradient(135deg, #FF4757, #FF9800); border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
+      <!-- Decorative circles -->
+      <div class="absolute top-[-15px] left-[-15px] w-[80px] h-[80px] rounded-full" style="background: rgba(255,255,255,0.12);"></div>
+      <div class="absolute top-[40px] right-[20px] w-[60px] h-[60px] rounded-full" style="background: rgba(255,255,255,0.1);"></div>
+      <div class="absolute bottom-[5px] right-[80px] w-[40px] h-[40px] rounded-full" style="background: rgba(255,255,255,0.08);"></div>
+
+      <div class="px-5 pt-12 pb-8 relative z-10">
+        <div class="text-5xl mb-2" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.15));">
+          <span role="img" aria-label="worried">😰</span><span role="img" aria-label="paw">🐾</span>
+        </div>
+        <h1 class="text-white text-2xl font-bold mb-1">แจ้งน้องหาย!</h1>
+        <p class="text-white/80 text-sm font-semibold">ขั้นตอนที่ 1/6</p>
+      </div>
+    </header>
+
+    <!-- Colorful Progress Bar -->
+    <div class="px-5 mt-5">
+      <div class="flex gap-1.5">
+        <div class="h-2 flex-1 rounded-full" style="background: linear-gradient(90deg, #FF4757, #FF6B9D);"></div>
+        <div class="h-2 flex-1 rounded-full bg-gray-200"></div>
+        <div class="h-2 flex-1 rounded-full bg-gray-200"></div>
+        <div class="h-2 flex-1 rounded-full bg-gray-200"></div>
+        <div class="h-2 flex-1 rounded-full bg-gray-200"></div>
+        <div class="h-2 flex-1 rounded-full bg-gray-200"></div>
+      </div>
+      <div class="flex justify-between mt-1.5 text-[9px] text-text-muted px-1">
+        <span style="color: var(--danger); font-weight: 700;">เลือกน้อง</span>
+        <span>เวลา/ที่</span>
+        <span>รูปภาพ</span>
+        <span>รายละเอียด</span>
+        <span>ติดต่อ</span>
+        <span>ยืนยัน</span>
+      </div>
+    </div>
+
+    <!-- Step 1: เลือกน้องที่หาย -->
+    <div class="px-5 mt-6">
+      <h2 class="text-base font-bold mb-3" style="color: var(--text);">
+        <span role="img" aria-label="dog">🐕</span> ขั้นตอน 1 — เลือกน้องที่หาย
+      </h2>
+
+      <div class="flex gap-3 overflow-x-auto scroll-hidden pb-2">
+        <!-- Mali (selected) -->
+        <div class="flex-shrink-0 w-[140px] p-4 bg-white text-center relative"
+             style="border-radius: var(--radius-md); border: 2.5px solid var(--primary); box-shadow: 0 6px 20px rgba(255,107,157,0.25);">
+          <!-- Selected check -->
+          <div class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs"
+               style="background: var(--primary);">
+            ✓
+          </div>
+          <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl mb-2"
+               style="background: linear-gradient(135deg, #FFECD2, #FCB69F);">
+            <span role="img" aria-label="dog">🐕</span>
+          </div>
+          <p class="font-bold text-sm" style="color: var(--text);">มะลิ</p>
+          <p class="text-[10px] mt-1 text-text-muted">ปอมเมอเรเนียน</p>
+        </div>
+
+        <!-- Tao (unselected) -->
+        <div class="flex-shrink-0 w-[140px] p-4 bg-white text-center opacity-50"
+             style="border-radius: var(--radius-md); box-shadow: var(--shadow-primary);">
+          <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center text-2xl mb-2"
+               style="background: linear-gradient(135deg, #E0E7FF, #C7D2FE);">
+            <span role="img" aria-label="cat">🐈</span>
+          </div>
+          <p class="font-bold text-sm" style="color: var(--text);">เทา</p>
+          <p class="text-[10px] mt-1 text-text-muted">สก็อตติชโฟลด์</p>
+        </div>
+      </div>
+
+      <!-- Auto-filled info badges -->
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-white"
+              style="border-radius: 20px; border: var(--border-accent); color: var(--text);">
+          🐾 ปอมเมอเรเนียน
+        </span>
+        <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-white"
+              style="border-radius: 20px; border: var(--border-accent); color: var(--text);">
+          🎨 ครีมส้ม
+        </span>
+        <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-white"
+              style="border-radius: 20px; border: var(--border-accent); color: var(--text);">
+          ⚖️ 4.2 กก.
+        </span>
+        <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-white"
+              style="border-radius: 20px; border: var(--border-accent); color: var(--text);">
+          ♀️ เพศเมีย
+        </span>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="px-5 my-5">
+      <div class="border-t-2 border-dashed" style="border-color: #FFE0E0;"></div>
+    </div>
+
+    <!-- Step 2: หายเมื่อไหร่ ที่ไหน -->
+    <div class="px-5">
+      <h2 class="text-base font-bold mb-4" style="color: var(--text);">
+        <span role="img" aria-label="pin">📍</span> ขั้นตอน 2 — หายเมื่อไหร่ ที่ไหน
+      </h2>
+
+      <div class="space-y-3">
+        <!-- Date -->
+        <div class="bg-white p-4 flex items-center gap-3"
+             style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+          <span class="text-2xl"><span role="img" aria-label="calendar">📅</span></span>
+          <div class="flex-1">
+            <p class="text-xs text-text-muted mb-0.5">วันที่หาย</p>
+            <p class="text-sm font-bold" style="color: var(--text);">19 ต.ค. 2568</p>
+          </div>
+        </div>
+
+        <!-- Time -->
+        <div class="bg-white p-4 flex items-center gap-3"
+             style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+          <span class="text-2xl"><span role="img" aria-label="clock">⏰</span></span>
+          <div class="flex-1">
+            <p class="text-xs text-text-muted mb-0.5">เวลาโดยประมาณ</p>
+            <p class="text-sm font-bold" style="color: var(--text);">18:45</p>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="bg-white p-4"
+             style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-2xl"><span role="img" aria-label="location">📍</span></span>
+            <div class="flex-1">
+              <p class="text-xs text-text-muted mb-0.5">สถานที่หาย</p>
+              <p class="text-sm font-bold" style="color: var(--text);">ซอยลาดพร้าว 71 หน้าร้าน 7-Eleven</p>
+            </div>
+          </div>
+          <!-- Map placeholder -->
+          <div class="w-full h-[120px] rounded-xl flex items-center justify-center"
+               style="background: linear-gradient(135deg, #E8F4FD, #D1E8FF); border: 2px dashed #B0D4F1;">
+            <div class="text-center">
+              <span class="text-3xl">🗺️</span>
+              <p class="text-xs text-text-muted mt-1">แผนที่ตำแหน่ง</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="px-5 my-5">
+      <div class="border-t-2 border-dashed" style="border-color: #FFE0E0;"></div>
+    </div>
+
+    <!-- Step 3: รูปภาพและลักษณะเฉพาะ -->
+    <div class="px-5">
+      <h2 class="text-base font-bold mb-4" style="color: var(--text);">
+        <span role="img" aria-label="camera">📸</span> ขั้นตอน 3 — รูปภาพและลักษณะเฉพาะ
+      </h2>
+
+      <!-- Photo cards -->
+      <div class="flex gap-3 overflow-x-auto scroll-hidden pb-2">
+        <div class="flex-shrink-0 w-[100px] h-[100px] rounded-xl flex items-center justify-center"
+             style="background: linear-gradient(135deg, #FFECD2, #FCB69F); border: var(--border-accent);">
+          <span class="text-3xl">🐕</span>
+        </div>
+        <div class="flex-shrink-0 w-[100px] h-[100px] rounded-xl flex items-center justify-center"
+             style="background: linear-gradient(135deg, #FFE0E0, #FFB8C9); border: var(--border-accent);">
+          <span class="text-3xl">📷</span>
+        </div>
+        <div class="flex-shrink-0 w-[100px] h-[100px] rounded-xl flex items-center justify-center"
+             style="background: linear-gradient(135deg, #E0F7E0, #B8F0C9); border: var(--border-accent);">
+          <span class="text-3xl">🖼️</span>
+        </div>
+        <!-- Add photo -->
+        <div class="flex-shrink-0 w-[100px] h-[100px] rounded-xl flex flex-col items-center justify-center"
+             style="border: 2px dashed var(--primary); background: rgba(255,107,157,0.05);">
+          <span class="text-2xl" style="color: var(--primary);">+</span>
+          <span class="text-[10px] mt-1" style="color: var(--primary);">เพิ่มรูป</span>
+        </div>
+      </div>
+
+      <!-- Textarea -->
+      <div class="mt-4 bg-white p-4"
+           style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+        <p class="text-xs text-text-muted mb-2">
+          <span role="img" aria-label="pencil">✏️</span> ลักษณะเฉพาะ / ข้อสังเกต
+        </p>
+        <div class="w-full p-3 text-sm leading-relaxed"
+             style="border-radius: var(--radius-sm); background: #FFF5F5; border: 1.5px solid #FFE0E0; color: var(--text); min-height: 80px;">
+          ใส่ปลอกคอสีแดง มีป้ายชื่อ กลัวมอเตอร์ไซค์ อย่าไล่
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="px-5 my-5">
+      <div class="border-t-2 border-dashed" style="border-color: #FFE0E0;"></div>
+    </div>
+
+    <!-- Step 5: รางวัลและติดต่อ -->
+    <div class="px-5">
+      <h2 class="text-base font-bold mb-4" style="color: var(--text);">
+        <span role="img" aria-label="gift">🎁</span> ขั้นตอน 5 — รางวัลและติดต่อ
+      </h2>
+
+      <!-- Reward -->
+      <div class="bg-white p-4 mb-3 flex items-center gap-3"
+           style="border-radius: var(--radius-sm); border: 2px solid #FFD93D; box-shadow: var(--shadow-primary);">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+             style="background: linear-gradient(135deg, #FFF8DC, #FFD93D);">
+          <span role="img" aria-label="coin">🪙</span>
+        </div>
+        <div>
+          <p class="text-xs text-text-muted mb-0.5">ค่าตอบแทนผู้พบ</p>
+          <p class="text-xl font-bold" style="color: var(--warning);">฿2,000</p>
+        </div>
+      </div>
+
+      <!-- Contact cards -->
+      <div class="space-y-3 mb-4">
+        <div class="bg-white p-4 flex items-center gap-3"
+             style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+               style="background: #E8FCE8;">
+            <span role="img" aria-label="LINE">💚</span>
+          </div>
+          <div>
+            <p class="text-xs text-text-muted mb-0.5">LINE</p>
+            <p class="text-sm font-bold" style="color: var(--text);">@malim_mom</p>
+          </div>
+        </div>
+        <div class="bg-white p-4 flex items-center gap-3"
+             style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+               style="background: #E8F0FC;">
+            <span role="img" aria-label="phone">📞</span>
+          </div>
+          <div>
+            <p class="text-xs text-text-muted mb-0.5">โทรศัพท์</p>
+            <p class="text-sm font-bold" style="color: var(--text);">088-888-8888</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Broadcast radius -->
+      <div class="bg-white p-4"
+           style="border-radius: var(--radius-sm); border: var(--border-accent); box-shadow: var(--shadow-primary);">
+        <p class="text-xs text-text-muted mb-3">
+          <span role="img" aria-label="broadcast">📡</span> รัศมีประกาศ
+        </p>
+        <div class="flex gap-2">
+          <span class="px-4 py-2 text-xs font-semibold bg-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                style="border-radius: 20px; border: 1.5px solid #E0E0E0; color: var(--text-muted);">
+            1 km
+          </span>
+          <span class="px-4 py-2 text-xs font-bold text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                style="border-radius: 20px; background: linear-gradient(135deg, #FF6B9D, #FFD93D); box-shadow: 0 3px 10px rgba(255,107,157,0.3);">
+            3 km
+          </span>
+          <span class="px-4 py-2 text-xs font-semibold bg-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                style="border-radius: 20px; border: 1.5px solid #E0E0E0; color: var(--text-muted);">
+            5 km
+          </span>
+          <span class="px-4 py-2 text-xs font-semibold bg-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                style="border-radius: 20px; border: 1.5px solid #E0E0E0; color: var(--text-muted);">
+            10 km
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="px-5 mt-6 flex gap-3">
+      <button class="flex-1 py-3.5 px-4 text-sm font-bold bg-white min-h-[48px] flex items-center justify-center gap-2"
+              style="border-radius: var(--radius-sm); border: 2px solid var(--primary); color: var(--primary);"
+              type="button">
+        <span role="img" aria-label="back">👈</span> ย้อนกลับ
+      </button>
+      <button class="flex-[2] py-3.5 px-4 text-sm font-bold text-white min-h-[48px] flex items-center justify-center gap-2"
+              style="border-radius: var(--radius-sm); background: linear-gradient(135deg, #FF6B9D, #FF4757); box-shadow: 0 4px 15px rgba(255,71,87,0.3);"
+              type="button">
+        ถัดไป <span role="img" aria-label="next">▶️</span>
+      </button>
+    </div>
+
+    <!-- Bottom Nav (Screen 2) -->
+    <nav class="mt-8 bg-white border-t border-gray-100"
+         style="box-shadow: 0 -2px 10px rgba(0,0,0,0.05);">
+      <div class="grid grid-cols-6 py-2">
+        <!-- Home -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">🏠</span>
+          <span class="text-[10px] mt-0.5">หน้าแรก</span>
+        </a>
+        <!-- Pets -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">🐾</span>
+          <span class="text-[10px] mt-0.5">สัตว์เลี้ยง</span>
+        </a>
+        <!-- Post (active) -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--primary);">
+          <span class="text-lg">📢</span>
+          <span class="text-[10px] mt-0.5 font-bold">โพสต์</span>
+        </a>
+        <!-- Map -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">🗺️</span>
+          <span class="text-[10px] mt-0.5">แผนที่</span>
+        </a>
+        <!-- Chat -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">💬</span>
+          <span class="text-[10px] mt-0.5">แชท</span>
+        </a>
+        <!-- Profile -->
+        <a href="#" class="flex flex-col items-center justify-center py-1 min-h-[44px]" style="color: var(--text-muted);">
+          <span class="text-lg">👤</span>
+          <span class="text-[10px] mt-0.5">โปรไฟล์</span>
+        </a>
+      </div>
+    </nav>
+
+  </section>
+
+</body>
+</html>

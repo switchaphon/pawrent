@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V6 Tone Options — Funny / Family / Home / Paw / Cute</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Noto Sans Thai', system-ui, sans-serif; margin: 0; padding: 16px; background: #f0f0f0; }
+    h1 { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 4px; color: #1a1a1a; }
+    .subtitle { font-size: 12px; color: #888; text-align: center; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; max-width: 1400px; margin: 0 auto; }
+
+    .tone { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+    .tone-header { padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .tone-name { font-size: 16px; font-weight: 800; }
+    .tone-tag { font-size: 10px; padding: 3px 10px; border-radius: 12px; font-weight: 700; color: white; }
+    .tone-desc { padding: 0 16px 12px; font-size: 11px; color: #666; line-height: 1.5; }
+
+    /* Swatches row */
+    .swatches { padding: 0 16px 12px; display: flex; gap: 4px; }
+    .swatch { flex: 1; height: 32px; border-radius: 6px; position: relative; display: flex; align-items: end; justify-content: center; font-size: 7px; color: white; font-weight: 700; padding-bottom: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+    /* Mini mockup */
+    .mock { margin: 0 16px 16px; border-radius: 20px; overflow: hidden; padding: 14px; min-height: 420px; }
+
+    /* Tone A: Peach Pup */
+    .tone-a .mock { background: linear-gradient(180deg, #FFF4ED 0%, #FFEEE0 100%); }
+    .tone-a .owner-bubble { background: white; }
+    .tone-a .owner-avatar { background: linear-gradient(135deg, #FFB39C, #FF9B85); }
+    .tone-a .pet-active { background: linear-gradient(135deg, #FFB39C, #FF9B85); box-shadow: 0 4px 16px rgba(255,155,133,0.35); }
+    .tone-a .pet-badge { background: #FF9B85; color: white; }
+    .tone-a .card-border { border: 1px solid #FFE0D0; }
+    .tone-a .accent-pill { background: #EEF6EB; color: #5A8548; }
+    .tone-a .primary-btn { background: linear-gradient(135deg, #FF9B85, #E8835E); box-shadow: 0 4px 14px rgba(232,131,94,0.3); }
+    .tone-a .status-ok { background: #EEF6EB; color: #5A8548; }
+    .tone-a .heading { color: #5C4033; }
+    .tone-a .muted { color: #9B7E6A; }
+
+    /* Tone B: Bubble Gum */
+    .tone-b .mock { background: linear-gradient(180deg, #FFF0F5 0%, #F5FFF8 100%); }
+    .tone-b .owner-bubble { background: white; }
+    .tone-b .owner-avatar { background: linear-gradient(135deg, #FFB5CC, #FF85A2); }
+    .tone-b .pet-active { background: linear-gradient(135deg, #FFB5CC, #FF85A2); box-shadow: 0 4px 16px rgba(255,133,162,0.35); }
+    .tone-b .pet-badge { background: #FF85A2; color: white; }
+    .tone-b .card-border { border: 1px solid #FFD9E3; }
+    .tone-b .accent-pill { background: #E6F7ED; color: #2E7D32; }
+    .tone-b .primary-btn { background: linear-gradient(135deg, #FF85A2, #FFB5CC); box-shadow: 0 4px 14px rgba(255,133,162,0.3); }
+    .tone-b .status-ok { background: #E6F7ED; color: #2E7D32; }
+    .tone-b .heading { color: #4A2040; }
+    .tone-b .muted { color: #9C8090; }
+
+    /* Tone C: Honey Paw */
+    .tone-c .mock { background: linear-gradient(180deg, #FFF8ED 0%, #FDF3E2 100%); }
+    .tone-c .owner-bubble { background: white; }
+    .tone-c .owner-avatar { background: linear-gradient(135deg, #F5C87A, #E8A94F); }
+    .tone-c .pet-active { background: linear-gradient(135deg, #F5C87A, #E8A94F); box-shadow: 0 4px 16px rgba(232,169,79,0.35); }
+    .tone-c .pet-badge { background: #D69138; color: white; }
+    .tone-c .card-border { border: 1px solid #F0D9A8; }
+    .tone-c .accent-pill { background: #FFF3E0; color: #BF6C3D; }
+    .tone-c .primary-btn { background: linear-gradient(135deg, #E8A94F, #D69138); box-shadow: 0 4px 14px rgba(214,145,56,0.3); }
+    .tone-c .status-ok { background: #F0EDE0; color: #5A6B3C; }
+    .tone-c .heading { color: #3D2817; }
+    .tone-c .muted { color: #8F7259; }
+
+    /* Tone D1: POPS Soft (BEFORE — softened brand palette, pink-dominant) */
+    .tone-d1 .mock { background: linear-gradient(180deg, #FFF8FB 0%, #FFF4E8 100%); }
+    .tone-d1 .owner-bubble { background: white; box-shadow: 0 2px 10px rgba(240,111,168,0.12); }
+    .tone-d1 .owner-avatar { background: linear-gradient(135deg, #F47CB0, #FF9285 50%, #FFCB6B); }
+    .tone-d1 .pet-active { background: linear-gradient(135deg, #F47CB0, #FF9285 50%, #FFCB6B); box-shadow: 0 4px 16px rgba(244,124,176,0.3); }
+    .tone-d1 .pet-badge { background: #F06FA8; color: white; }
+    .tone-d1 .card-border { border: 1px solid #FAD9E6; }
+    .tone-d1 .accent-pill { background: #FFF3D9; color: #B8730A; }
+    .tone-d1 .primary-btn { background: linear-gradient(135deg, #F06FA8, #FF9285); box-shadow: 0 4px 14px rgba(240,111,168,0.28); }
+    .tone-d1 .status-ok { background: #FFF3D9; color: #B8730A; }
+    .tone-d1 .heading { color: #4A2040; }
+    .tone-d1 .muted { color: #8B6B7A; }
+
+    /* Tone D2: POPS Balanced (AFTER — unisex, neutral base, POPS as accent) */
+    .tone-d2 .mock { background: linear-gradient(180deg, #FAF7F2 0%, #F5F1EA 100%); }
+    .tone-d2 .owner-bubble { background: white; box-shadow: 0 2px 10px rgba(46,42,46,0.08); }
+    .tone-d2 .owner-avatar { background: linear-gradient(135deg, #F06FA8, #FF9285 50%, #FFCB6B); }
+    .tone-d2 .pet-active { background: linear-gradient(135deg, #F06FA8, #FF9285 50%, #FFCB6B); box-shadow: 0 4px 16px rgba(255,146,133,0.3); }
+    .tone-d2 .pet-badge { background: #FF8263; color: white; }
+    .tone-d2 .card-border { border: 1px solid #E8E2D8; }
+    .tone-d2 .accent-pill { background: #EDEDE8; color: #3D3935; }
+    .tone-d2 .primary-btn { background: linear-gradient(135deg, #FF8263, #FFA563); box-shadow: 0 4px 14px rgba(255,130,99,0.3); }
+    .tone-d2 .status-ok { background: #EDF0EA; color: #4C6B3C; }
+    .tone-d2 .heading { color: #2E2A2E; }
+    .tone-d2 .muted { color: #6B6560; }
+
+    /* Before/After banner */
+    .ba-banner { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 10px; border-radius: 10px; display: inline-block; margin-bottom: 4px; }
+    .ba-before { background: #FFE4E4; color: #A13F3F; }
+    .ba-after { background: #D4EFDB; color: #2E6B3F; }
+
+    /* Common mockup elements */
+    .owner-bubble { border-radius: 9999px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .owner-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .pets-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+    .pet-circle { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+    .pet-active { border: 3px solid white; }
+    .pet-dim { background: #eee; border: 3px solid white; opacity: 0.5; }
+    .pet-add { background: white; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #ccc; }
+    .pet-label { text-align: center; font-size: 10px; margin-top: 4px; }
+    .pet-badge { border-radius: 9999px; padding: 2px 10px; font-size: 10px; font-weight: 700; }
+    .card { background: white; border-radius: 20px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .pill-tag { border-radius: 9999px; padding: 3px 10px; font-size: 9px; font-weight: 600; display: inline-block; margin: 1px; }
+    .primary-btn { border-radius: 9999px; padding: 10px 16px; color: white; font-size: 11px; font-weight: 700; display: inline-block; }
+    .status-ok { border-radius: 9999px; padding: 2px 10px; font-size: 9px; font-weight: 700; display: inline-block; }
+
+    .section-label { font-size: 10px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+    .emotion { font-size: 11px; color: #444; margin-top: 8px; padding: 10px 12px; background: rgba(0,0,0,0.03); border-radius: 10px; line-height: 1.4; }
+    .emotion strong { color: #000; }
+  </style>
+</head>
+<body>
+
+<h1>V6 Tone Options — Funny · Family · Home · Paw · Cute</h1>
+<p class="subtitle">Same V6 layout, 3 different color palettes. Pick the one that feels most Pawrent.</p>
+
+<div class="grid">
+
+  <!-- ========== TONE A: PEACH PUP ========== -->
+  <div class="tone tone-a">
+    <div class="tone-header">
+      <div class="tone-name" style="color: #E8835E;">A. Peach Pup 🍑🐾</div>
+      <div class="tone-tag" style="background: #E8835E;">Warm & Grounded</div>
+    </div>
+    <div class="tone-desc">
+      Peach + sage + cream. Like a golden-hour family photo. Feels <strong>home, warm, safe</strong>. Works best for pet-parent trust.
+    </div>
+    <div class="swatches">
+      <div class="swatch" style="background: #FF9B85;">Primary</div>
+      <div class="swatch" style="background: #E8835E;">Deeper</div>
+      <div class="swatch" style="background: #FFF4ED; color: #333 !important; text-shadow: none;">BG</div>
+      <div class="swatch" style="background: #A8C686;">Sage</div>
+      <div class="swatch" style="background: #5C4033;">Text</div>
+    </div>
+
+    <div class="mock">
+      <!-- Owner header -->
+      <div class="owner-bubble">
+        <div class="owner-avatar">👤</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #5C4033;">คุณนิว</div>
+          <div style="font-size: 10px; color: #9B7E6A;">เจ้าของ 2 ตัว</div>
+        </div>
+      </div>
+      <!-- Pet selector -->
+      <div class="pets-row">
+        <div>
+          <div class="pet-circle pet-active">🐕</div>
+          <div class="pet-label"><span class="pet-badge">มะลิ</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-dim">🐈</div>
+          <div class="pet-label"><span style="background:#ddd; color:#888;" class="pet-badge">เทา</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-add">+</div>
+        </div>
+      </div>
+      <!-- Profile card -->
+      <div class="card card-border">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FFD0BE, #FFB39C); display: flex; align-items: center; justify-content: center; font-size: 18px;">🌸</div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 800; color: #5C4033;">มะลิ</div>
+            <div style="font-size: 9px; color: #9B7E6A;">ชิวาวาผสม · เพศเมีย</div>
+          </div>
+          <span class="primary-btn" style="padding: 5px 10px; font-size: 9px;">🪪 ดู ID</span>
+        </div>
+        <div>
+          <span class="pill-tag" style="background: #FFEEE0; color: #BF6C3D;">4 ปี 2 เดือน</span>
+          <span class="pill-tag" style="background: #FFEEE0; color: #BF6C3D;">3.2 kg</span>
+          <span class="pill-tag" style="background: #FFEEE0; color: #BF6C3D;">สีดำ</span>
+        </div>
+      </div>
+      <!-- Vaccine card sample -->
+      <div class="card card-border">
+        <div class="section-label" style="color: #5C4033;">💉 วัคซีน DHPP</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-ok">✓ ครบ</span>
+          <span style="font-size: 10px; color: #9B7E6A;">Booster 15 ธ.ค. 68</span>
+        </div>
+        <div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #EEF6EB; overflow: hidden;">
+          <div style="width: 85%; height: 100%; background: #A8C686;"></div>
+        </div>
+      </div>
+      <div class="emotion">
+        <strong>Feels like:</strong> ขนมปังอบใหม่ตอนเช้า, ครอบครัวนั่งล้อมวงกินข้าว, พระอาทิตย์ตกที่สวนหน้าบ้าน
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TONE B: BUBBLE GUM ========== -->
+  <div class="tone tone-b">
+    <div class="tone-header">
+      <div class="tone-name" style="color: #FF85A2;">B. Bubble Gum 🍬🐾</div>
+      <div class="tone-tag" style="background: #FF85A2;">Sweet & Playful</div>
+    </div>
+    <div class="tone-desc">
+      Bubblegum pink + mint + buttercup. Like a kawaii sticker pack. Feels <strong>funny, cute, friendly</strong>. Best for emotional engagement.
+    </div>
+    <div class="swatches">
+      <div class="swatch" style="background: #FF85A2;">Primary</div>
+      <div class="swatch" style="background: #FFB5CC;">Soft</div>
+      <div class="swatch" style="background: #FFF0F5; color: #333 !important; text-shadow: none;">BG</div>
+      <div class="swatch" style="background: #B4E7CE; color: #2E7D32 !important; text-shadow: none;">Mint</div>
+      <div class="swatch" style="background: #FFD93D; color: #333 !important; text-shadow: none;">Sun</div>
+    </div>
+
+    <div class="mock">
+      <div class="owner-bubble">
+        <div class="owner-avatar">👤</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #4A2040;">คุณนิว</div>
+          <div style="font-size: 10px; color: #9C8090;">เจ้าของ 2 ตัว</div>
+        </div>
+      </div>
+      <div class="pets-row">
+        <div>
+          <div class="pet-circle pet-active">🐕</div>
+          <div class="pet-label"><span class="pet-badge">มะลิ</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-dim">🐈</div>
+          <div class="pet-label"><span style="background:#ddd; color:#888;" class="pet-badge">เทา</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-add">+</div>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FFE0EE, #FFB5CC); display: flex; align-items: center; justify-content: center; font-size: 18px;">🌸</div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 800; color: #4A2040;">มะลิ</div>
+            <div style="font-size: 9px; color: #9C8090;">ชิวาวาผสม · เพศเมีย</div>
+          </div>
+          <span class="primary-btn" style="padding: 5px 10px; font-size: 9px;">🪪 ดู ID</span>
+        </div>
+        <div>
+          <span class="pill-tag" style="background: #FFE8EF; color: #C24968;">4 ปี 2 เดือน</span>
+          <span class="pill-tag" style="background: #FFE8EF; color: #C24968;">3.2 kg</span>
+          <span class="pill-tag" style="background: #FFE8EF; color: #C24968;">สีดำ</span>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div class="section-label" style="color: #4A2040;">💉 วัคซีน DHPP</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-ok">✓ ครบ</span>
+          <span style="font-size: 10px; color: #9C8090;">Booster 15 ธ.ค. 68</span>
+        </div>
+        <div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #E6F7ED; overflow: hidden;">
+          <div style="width: 85%; height: 100%; background: #6BCB77;"></div>
+        </div>
+      </div>
+      <div class="emotion">
+        <strong>Feels like:</strong> LINE sticker pack, ไอศกรีม Swensen's, ลูกบอลยางให้หมาเคี้ยว, ยิ้มแก้มปริของน้อง
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TONE C: HONEY PAW ========== -->
+  <div class="tone tone-c">
+    <div class="tone-header">
+      <div class="tone-name" style="color: #D69138;">C. Honey Paw 🍯🐾</div>
+      <div class="tone-tag" style="background: #D69138;">Cozy & Rich</div>
+    </div>
+    <div class="tone-desc">
+      Honey amber + terracotta + cream. Like a warm wool blanket. Feels <strong>home, cozy, premium family</strong>. Best for long-term trust, Thai warmth.
+    </div>
+    <div class="swatches">
+      <div class="swatch" style="background: #E8A94F;">Honey</div>
+      <div class="swatch" style="background: #D69138;">Deep</div>
+      <div class="swatch" style="background: #FFF8ED; color: #333 !important; text-shadow: none;">Cream</div>
+      <div class="swatch" style="background: #E8835E;">Clay</div>
+      <div class="swatch" style="background: #3D2817;">Text</div>
+    </div>
+
+    <div class="mock">
+      <div class="owner-bubble">
+        <div class="owner-avatar">👤</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: #3D2817;">คุณนิว</div>
+          <div style="font-size: 10px; color: #8F7259;">เจ้าของ 2 ตัว</div>
+        </div>
+      </div>
+      <div class="pets-row">
+        <div>
+          <div class="pet-circle pet-active">🐕</div>
+          <div class="pet-label"><span class="pet-badge">มะลิ</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-dim">🐈</div>
+          <div class="pet-label"><span style="background:#ddd; color:#888;" class="pet-badge">เทา</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-add">+</div>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FFE3B8, #F5C87A); display: flex; align-items: center; justify-content: center; font-size: 18px;">🌸</div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 800; color: #3D2817;">มะลิ</div>
+            <div style="font-size: 9px; color: #8F7259;">ชิวาวาผสม · เพศเมีย</div>
+          </div>
+          <span class="primary-btn" style="padding: 5px 10px; font-size: 9px;">🪪 ดู ID</span>
+        </div>
+        <div>
+          <span class="pill-tag" style="background: #FFF3E0; color: #BF6C3D;">4 ปี 2 เดือน</span>
+          <span class="pill-tag" style="background: #FFF3E0; color: #BF6C3D;">3.2 kg</span>
+          <span class="pill-tag" style="background: #FFF3E0; color: #BF6C3D;">สีดำ</span>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div class="section-label" style="color: #3D2817;">💉 วัคซีน DHPP</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-ok">✓ ครบ</span>
+          <span style="font-size: 10px; color: #8F7259;">Booster 15 ธ.ค. 68</span>
+        </div>
+        <div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #F0EDE0; overflow: hidden;">
+          <div style="width: 85%; height: 100%; background: #A8C686;"></div>
+        </div>
+      </div>
+      <div class="emotion">
+        <strong>Feels like:</strong> ชาไทยเย็นๆในบ่ายวันอาทิตย์, บ้านยายมีกลิ่นกาแฟ, ผ้าห่มขนสัตว์, หมาตัวโตขดข้างเตา
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TONE D1: POPS SOFT (BEFORE) ========== -->
+  <div class="tone tone-d1">
+    <div class="tone-header" style="background: linear-gradient(135deg, #FFF0F7, #FFF6E8);">
+      <div>
+        <span class="ba-banner ba-before">Before</span>
+        <div class="tone-name" style="color: #F06FA8;">D1. POPS Soft 🌷🐾</div>
+      </div>
+      <div class="tone-tag" style="background: linear-gradient(135deg, #F06FA8, #FF9285 50%, #FFCB6B); color: white;">Pink-forward</div>
+    </div>
+    <div class="tone-desc">
+      Softened POPS palette: pastel pink + warm coral + butter yellow — carries <strong>parent-brand DNA</strong>. Feminine lean ⚠️ may feel too sweet for male pet parents.
+    </div>
+    <div class="swatches">
+      <div class="swatch" style="background: #F06FA8;">Soft Pink</div>
+      <div class="swatch" style="background: #FF9285;">Coral</div>
+      <div class="swatch" style="background: #FFCB6B; color: #4A2040 !important; text-shadow: none;">Butter</div>
+      <div class="swatch" style="background: #FFF4E8; color: #4A2040 !important; text-shadow: none;">Cream</div>
+      <div class="swatch" style="background: #4A2040;">Plum</div>
+    </div>
+
+    <div class="mock">
+      <div class="owner-bubble">
+        <div class="owner-avatar" style="color: white;">👤</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 800; color: #4A2040;">คุณนิว</div>
+          <div style="font-size: 10px; color: #8B6B7A;">เจ้าของ 2 ตัว</div>
+        </div>
+      </div>
+      <div class="pets-row">
+        <div>
+          <div class="pet-circle pet-active">🐕</div>
+          <div class="pet-label"><span class="pet-badge">มะลิ</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-dim">🐈</div>
+          <div class="pet-label"><span style="background:#ddd; color:#888;" class="pet-badge">เทา</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-add">+</div>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #FFC2DD, #FFB5A6 50%, #FFE2A8); display: flex; align-items: center; justify-content: center; font-size: 18px;">🌸</div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 800; color: #4A2040;">มะลิ</div>
+            <div style="font-size: 9px; color: #8B6B7A;">ชิวาวาผสม · เพศเมีย</div>
+          </div>
+          <span class="primary-btn" style="padding: 5px 10px; font-size: 9px;">🪪 ดู ID</span>
+        </div>
+        <div>
+          <span class="pill-tag" style="background: #FFEEF5; color: #C2548A;">4 ปี 2 เดือน</span>
+          <span class="pill-tag" style="background: #FFEEF5; color: #C2548A;">3.2 kg</span>
+          <span class="pill-tag" style="background: #FFEEF5; color: #C2548A;">สีดำ</span>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div class="section-label" style="color: #4A2040;">💉 วัคซีน DHPP</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-ok">✓ ครบ</span>
+          <span style="font-size: 10px; color: #8B6B7A; font-weight: 600;">Booster 15 ธ.ค. 68</span>
+        </div>
+        <div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #FFF3D9; overflow: hidden;">
+          <div style="width: 85%; height: 100%; background: linear-gradient(90deg, #FFCB6B, #FF9285);"></div>
+        </div>
+      </div>
+      <div class="emotion">
+        <strong>Feels like:</strong> POPS brand family ใส่เสื้อนอนนุ่มๆ, ขนมหวานสีพาสเทล, ลูกหมาแก้มแดงในแสงอ่อนๆ
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TONE D2: POPS BALANCED (AFTER) ========== -->
+  <div class="tone tone-d2">
+    <div class="tone-header" style="background: linear-gradient(135deg, #FAF7F2, #F5F1EA);">
+      <div>
+        <span class="ba-banner ba-after">After — Unisex</span>
+        <div class="tone-name" style="color: #2E2A2E;">D2. POPS Balanced 🧡🐾</div>
+      </div>
+      <div class="tone-tag" style="background: linear-gradient(135deg, #FF8263, #FFA563); color: white;">Unisex</div>
+    </div>
+    <div class="tone-desc">
+      Warm stone + cream base, with POPS tri-color as <strong>accent only</strong>. Primary actions use coral-orange (not pink). Confident not sweet. Works for both male and female pet parents.
+    </div>
+    <div class="swatches">
+      <div class="swatch" style="background: #FF8263;">Coral</div>
+      <div class="swatch" style="background: #FFA563;">Amber</div>
+      <div class="swatch" style="background: #F06FA8;">Accent</div>
+      <div class="swatch" style="background: #F5F1EA; color: #2E2A2E !important; text-shadow: none;">Stone</div>
+      <div class="swatch" style="background: #2E2A2E;">Charcoal</div>
+    </div>
+
+    <div class="mock">
+      <div class="owner-bubble">
+        <div class="owner-avatar" style="color: white;">👤</div>
+        <div>
+          <div style="font-size: 12px; font-weight: 800; color: #2E2A2E;">คุณนิว</div>
+          <div style="font-size: 10px; color: #6B6560;">เจ้าของ 2 ตัว</div>
+        </div>
+      </div>
+      <div class="pets-row">
+        <div>
+          <div class="pet-circle pet-active">🐕</div>
+          <div class="pet-label"><span class="pet-badge">มะลิ</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-dim">🐈</div>
+          <div class="pet-label"><span style="background:#ddd; color:#888;" class="pet-badge">เทา</span></div>
+        </div>
+        <div>
+          <div class="pet-circle pet-add">+</div>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #F06FA8, #FF9285 50%, #FFCB6B); display: flex; align-items: center; justify-content: center; font-size: 18px;">🌸</div>
+          <div style="flex: 1;">
+            <div style="font-size: 12px; font-weight: 800; color: #2E2A2E;">มะลิ</div>
+            <div style="font-size: 9px; color: #6B6560;">ชิวาวาผสม · เพศเมีย</div>
+          </div>
+          <span class="primary-btn" style="padding: 5px 10px; font-size: 9px;">🪪 ดู ID</span>
+        </div>
+        <div>
+          <span class="pill-tag" style="background: #EDEDE8; color: #3D3935;">4 ปี 2 เดือน</span>
+          <span class="pill-tag" style="background: #EDEDE8; color: #3D3935;">3.2 kg</span>
+          <span class="pill-tag" style="background: #EDEDE8; color: #3D3935;">สีดำ</span>
+        </div>
+      </div>
+      <div class="card card-border">
+        <div class="section-label" style="color: #2E2A2E;">💉 วัคซีน DHPP</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-ok">✓ ครบ</span>
+          <span style="font-size: 10px; color: #6B6560; font-weight: 600;">Booster 15 ธ.ค. 68</span>
+        </div>
+        <div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #EDEDE8; overflow: hidden;">
+          <div style="width: 85%; height: 100%; background: linear-gradient(90deg, #FFA563, #FF8263);"></div>
+        </div>
+      </div>
+      <div class="emotion">
+        <strong>Feels like:</strong> ของแต่งบ้านเรียบๆ แต่มีชีวิตชีวา, กาแฟร้อนในถ้วยเซรามิก, สายคล้องคอสีน้ำตาล-ส้ม, เจ้าของหมาทั้งพ่อและแม่ใช้ได้เหมือนกัน
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="max-width: 1400px; margin: 24px auto 0; padding: 16px 20px; background: white; border-radius: 12px; font-size: 12px; line-height: 1.7; color: #444;">
+  <strong style="font-size: 13px;">How to decide:</strong>
+  <ul style="margin: 8px 0 0 20px; padding: 0;">
+    <li><strong>Tone A (Peach Pup):</strong> if "family + home" is your #1 anchor — grounded, photo-ready, Pinterest-mom vibe</li>
+    <li><strong>Tone B (Bubble Gum):</strong> if "funny + cute" is your #1 anchor — sticker-pack energy, LINE-native, shareable</li>
+    <li><strong>Tone C (Honey Paw):</strong> if "cozy + Thai warmth" is your #1 anchor — premium trust, long-term family, richness</li>
+    <li><strong>Tone D1 (POPS Soft) — BEFORE:</strong> pink-dominant, softened POPS palette. Warm but reads feminine. Kept for comparison.</li>
+    <li><strong>Tone D2 (POPS Balanced) — AFTER:</strong> neutral stone base, POPS tri-color used only for accents. Unisex — works for both male and female pet parents.</li>
+  </ul>
+  <p style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #f0f0f0; color: #666;">
+    <strong style="color: #FF8263;">D1 → D2 rebalance notes:</strong><br>
+    • Background: pink-tinted <code>#FFF4E8</code> → warm stone <code>#F5F1EA</code><br>
+    • Primary button: pink→coral gradient → <strong>coral→amber</strong> gradient (less sweet, more confident)<br>
+    • Text heading: warm plum <code>#4A2040</code> → warm charcoal <code>#2E2A2E</code><br>
+    • Pills/tags: pink backgrounds → <strong>neutral stone</strong> backgrounds<br>
+    • Status bar gradient: butter→coral → <strong>amber→coral</strong> (dropped yellow-pink lean)<br>
+    • POPS tri-color: used everywhere → <strong>accent only</strong> (avatars + active pet selector)<br>
+    → Same V6 bubble layout, same POPS brand DNA, different emotional register.
+  </p>
+</div>
+
+</body>
+</html>
