@@ -60,23 +60,23 @@ export function SearchableSelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full h-12 px-3 rounded-xl border border-input bg-background text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full h-12 px-3 rounded-xl border border-input bg-background text-left flex items-center justify-between hover:bg-surface-alt transition-colors"
       >
-        <span className={value ? "text-foreground" : "text-muted-foreground"}>
+        <span className={value ? "text-text-main" : "text-text-muted"}>
           {value || placeholder}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-border rounded-xl shadow-lg overflow-hidden">
           {/* Search Input */}
           <div className="p-2 border-b">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input
                 ref={inputRef}
                 type="text"
@@ -91,7 +91,7 @@ export function SearchableSelect({
           {/* Options List */}
           <div className="max-h-48 overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+              <div className="px-3 py-4 text-sm text-text-muted text-center">
                 No results found
               </div>
             ) : (
@@ -100,8 +100,8 @@ export function SearchableSelect({
                   key={option}
                   type="button"
                   onClick={() => handleSelect(option)}
-                  className={`w-full px-3 py-2.5 text-left text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                    value === option ? "bg-primary/5 text-primary" : "text-foreground"
+                  className={`w-full px-3 py-2.5 text-left text-sm flex items-center justify-between hover:bg-surface-alt transition-colors ${
+                    value === option ? "bg-primary/5 text-primary" : "text-text-main"
                   }`}
                 >
                   {option}

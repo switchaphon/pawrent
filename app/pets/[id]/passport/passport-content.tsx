@@ -45,7 +45,7 @@ export function PassportContent({
             className="h-20 w-20 rounded-full border-2 border-white object-cover"
           />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white bg-white/20 text-3xl">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white bg-surface/20 text-3xl">
             🐾
           </div>
         )}
@@ -56,7 +56,7 @@ export function PassportContent({
           </p>
           {age && <p className="text-sm text-white/80">{age}</p>}
           {pet.microchip_number && (
-            <span className="mt-1 inline-block rounded-full bg-white/20 px-2 py-0.5 text-xs">
+            <span className="mt-1 inline-block rounded-full bg-surface/20 px-2 py-0.5 text-xs">
               📡 {pet.microchip_number}
             </span>
           )}
@@ -65,9 +65,9 @@ export function PassportContent({
 
       {/* Vaccine Status */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">สถานะวัคซีน</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-main">สถานะวัคซีน</h2>
         {vaccinations.length === 0 ? (
-          <p className="text-sm text-gray-400">ยังไม่มีข้อมูลวัคซีน</p>
+          <p className="text-sm text-text-muted">ยังไม่มีข้อมูลวัคซีน</p>
         ) : (
           <div className="space-y-2">
             {vaccinations.map((v) => (
@@ -75,7 +75,7 @@ export function PassportContent({
                 <div>
                   <span className="text-sm font-medium">{v.name}</span>
                   {v.next_due_date && (
-                    <p className="text-xs text-gray-500">นัดถัดไป: {v.next_due_date}</p>
+                    <p className="text-xs text-text-muted">นัดถัดไป: {v.next_due_date}</p>
                   )}
                 </div>
                 <VaccineStatusBadge status={v.status} />
@@ -87,18 +87,18 @@ export function PassportContent({
 
       {/* Parasite Prevention */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">ป้องกันพยาธิ</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-main">ป้องกันพยาธิ</h2>
         {parasiteLogs.length === 0 ? (
-          <p className="text-sm text-gray-400">ยังไม่มีข้อมูล</p>
+          <p className="text-sm text-text-muted">ยังไม่มีข้อมูล</p>
         ) : (
           <div className="space-y-2">
             {parasiteLogs.map((p) => (
               <div key={p.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div>
                   <span className="text-sm font-medium">{p.medicine_name ?? "ยาถ่ายพยาธิ"}</span>
-                  <p className="text-xs text-gray-500">ให้ยาวันที่: {p.administered_date}</p>
+                  <p className="text-xs text-text-muted">ให้ยาวันที่: {p.administered_date}</p>
                 </div>
-                <span className="text-xs text-gray-400">ถัดไป: {p.next_due_date}</span>
+                <span className="text-xs text-text-muted">ถัดไป: {p.next_due_date}</span>
               </div>
             ))}
           </div>
@@ -107,21 +107,21 @@ export function PassportContent({
 
       {/* Weight Chart */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">น้ำหนัก (กก.)</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-main">น้ำหนัก (กก.)</h2>
         <WeightChart data={weightLogs} />
       </section>
 
       {/* Milestone Timeline */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Milestone Timeline</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-main">Milestone Timeline</h2>
         <MilestoneTimeline milestones={milestones} />
       </section>
 
       {/* Upcoming Reminders */}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">แจ้งเตือนที่กำลังจะถึง</h2>
+        <h2 className="mb-3 text-lg font-semibold text-text-main">แจ้งเตือนที่กำลังจะถึง</h2>
         {reminders.length === 0 ? (
-          <p className="text-sm text-gray-400">ไม่มีแจ้งเตือน</p>
+          <p className="text-sm text-text-muted">ไม่มีแจ้งเตือน</p>
         ) : (
           <div className="space-y-2">
             {reminders.map((r) => (
@@ -142,9 +142,9 @@ export function PassportContent({
 
 function VaccineStatusBadge({ status }: { status: "protected" | "due_soon" | "overdue" }) {
   const config = {
-    protected: { label: "ป้องกันแล้ว", color: "bg-green-100 text-green-700" },
-    due_soon: { label: "ใกล้ครบกำหนด", color: "bg-yellow-100 text-yellow-700" },
-    overdue: { label: "เลยกำหนด", color: "bg-red-100 text-red-700" },
+    protected: { label: "ป้องกันแล้ว", color: "bg-success-bg text-success" },
+    due_soon: { label: "ใกล้ครบกำหนด", color: "bg-warning-bg text-warning" },
+    overdue: { label: "เลยกำหนด", color: "bg-danger-bg text-danger" },
   };
   const { label, color } = config[status];
   return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>{label}</span>;

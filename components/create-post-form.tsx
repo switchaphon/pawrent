@@ -83,9 +83,9 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
   return (
     <Card className="p-6 rounded-2xl">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-foreground">Create Post</h2>
+        <h2 className="text-xl font-bold text-text-main">Create Post</h2>
         {onCancel && (
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onCancel} className="text-text-muted hover:text-text-main">
             <X className="w-5 h-5" />
           </button>
         )}
@@ -106,7 +106,7 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
               ) : (
                 <div className="text-center p-4">
                   <Camera className="w-10 h-10 text-primary mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Tap to upload</p>
+                  <p className="text-sm text-text-muted">Tap to upload</p>
                 </div>
               )}
             </div>
@@ -128,7 +128,7 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
               id="pet"
               value={selectedPetId}
               onChange={(e) => setSelectedPetId(e.target.value)}
-              className="w-full p-3 border border-border rounded-xl bg-background text-foreground"
+              className="w-full p-3 border border-border rounded-xl bg-background text-text-main"
             >
               <option value="">No tag</option>
               {pets.map((pet) => (
@@ -148,7 +148,7 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Share something about this moment..."
-            className="w-full p-3 border border-border rounded-xl bg-background text-foreground min-h-[80px] resize-none"
+            className="w-full p-3 border border-border rounded-xl bg-background text-text-main min-h-[80px] resize-none"
           />
         </div>
 

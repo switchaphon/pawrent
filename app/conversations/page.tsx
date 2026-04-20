@@ -24,9 +24,9 @@ function getRelativeTimeThai(dateStr: string): string {
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  open: { label: "เปิด", className: "bg-green-100 text-green-700" },
-  closed: { label: "ปิด", className: "bg-gray-100 text-gray-600" },
-  resolved: { label: "สำเร็จ", className: "bg-blue-100 text-blue-700" },
+  open: { label: "เปิด", className: "bg-success-bg text-success" },
+  closed: { label: "ปิด", className: "bg-surface-alt text-text-muted" },
+  resolved: { label: "สำเร็จ", className: "bg-info-bg text-info" },
 };
 
 export default function ConversationsPage() {
@@ -52,14 +52,14 @@ export default function ConversationsPage() {
   }, [fetchConversations]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+    <div className="min-h-screen bg-surface-alt pb-24">
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <Link href="/post" className="p-1 -ml-1">
-            <ArrowLeft className="w-5 h-5 text-foreground" />
+            <ArrowLeft className="w-5 h-5 text-text-main" />
           </Link>
           <MessageCircle className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">ข้อความ</h1>
+          <h1 className="text-xl font-bold text-text-main">ข้อความ</h1>
         </div>
       </header>
 
@@ -73,8 +73,8 @@ export default function ConversationsPage() {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-primary/50" />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">ยังไม่มีข้อความ</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-lg font-bold text-text-main mb-1">ยังไม่มีข้อความ</h3>
+            <p className="text-sm text-text-muted">
               เมื่อคุณติดต่อผู้พบหรือเจ้าของสัตว์เลี้ยง ข้อความจะแสดงที่นี่
             </p>
           </div>
@@ -86,13 +86,13 @@ export default function ConversationsPage() {
 
               return (
                 <Link key={conv.id} href={`/conversations/${conv.id}`} className="block">
-                  <div className="bg-white rounded-xl border border-border p-4 active:scale-[0.98] transition-transform">
+                  <div className="bg-surface rounded-xl border border-border p-4 active:scale-[0.98] transition-transform">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-foreground truncate">
+                        <p className="font-semibold text-sm text-text-main truncate">
                           {isOwner ? "ผู้พบสัตว์เลี้ยง" : "เจ้าของสัตว์เลี้ยง"}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-xs text-text-muted mt-0.5">
                           {conv.alert_id ? "เกี่ยวกับประกาศหาย" : "เกี่ยวกับสัตว์ที่พบ"}
                         </p>
                       </div>
@@ -105,7 +105,7 @@ export default function ConversationsPage() {
                         >
                           {statusInfo.label}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-text-muted">
                           {getRelativeTimeThai(conv.created_at)}
                         </span>
                       </div>

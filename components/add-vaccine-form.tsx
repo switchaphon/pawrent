@@ -108,14 +108,14 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
   };
 
   return (
-    <Card className="rounded-2xl p-4 shadow-sm">
+    <Card className="rounded-2xl p-4 shadow-soft">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-foreground flex items-center gap-2">
+        <h3 className="font-bold text-text-main flex items-center gap-2">
           <Syringe className="w-5 h-5 text-primary" />
           Add Vaccination Record
         </h3>
-        <button onClick={onCancel} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
-          <X className="w-5 h-5 text-muted-foreground" />
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-surface-alt transition-colors">
+          <X className="w-5 h-5 text-text-muted" />
         </button>
       </div>
 
@@ -132,13 +132,13 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
           {selectedVaccineInfo && (
             <div className="flex items-start gap-2 p-2 bg-primary/5 rounded-lg text-sm">
               <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-              <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{selectedVaccineInfo.brand}</span> by{" "}
+              <div className="text-text-muted">
+                <span className="font-medium text-text-main">{selectedVaccineInfo.brand}</span> by{" "}
                 {selectedVaccineInfo.manufacturer}
                 <span className="mx-1">•</span>
                 <span
                   className={
-                    selectedVaccineInfo.category === "core" ? "text-green-600" : "text-blue-600"
+                    selectedVaccineInfo.category === "core" ? "text-success" : "text-info"
                   }
                 >
                   {selectedVaccineInfo.category === "core" ? "Core vaccine" : "Non-core vaccine"}
@@ -179,7 +179,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
             className="h-12 rounded-xl"
           />
           {selectedVaccineInfo && injectionDate && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-text-muted">
               Auto-calculated based on typical {selectedVaccineInfo.typicalDurationMonths}-month
               duration
             </p>

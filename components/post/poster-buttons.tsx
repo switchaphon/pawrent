@@ -69,14 +69,14 @@ export function PosterButtons({ alertId, ownerId, currentUserId }: PosterButtons
 
   return (
     <Card className="p-4 rounded-xl">
-      <h3 className="font-bold text-foreground text-sm mb-3">สร้างสื่อประชาสัมพันธ์</h3>
+      <h3 className="font-bold text-text-main text-sm mb-3">สร้างสื่อประชาสัมพันธ์</h3>
       <div className="space-y-2">
         <Button
           onClick={() =>
             downloadFile(`/api/poster/${alertId}`, `poster-${alertId}.pdf`, setPosterLoading)
           }
           disabled={posterLoading}
-          className="w-full h-11 rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
+          className="w-full h-11 rounded-xl bg-warning hover:bg-warning text-white"
         >
           {posterLoading ? (
             <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -105,7 +105,7 @@ export function PosterButtons({ alertId, ownerId, currentUserId }: PosterButtons
           ดาวน์โหลดรูปแชร์ 1080x1350
         </Button>
       </div>
-      {error && <p className="text-xs text-red-500 text-center mt-2">{error}</p>}
+      {error && <p className="text-xs text-danger text-center mt-2">{error}</p>}
     </Card>
   );
 }

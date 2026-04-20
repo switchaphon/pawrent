@@ -107,14 +107,14 @@ function FeedbackContent() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="text-muted-foreground hover:text-foreground">
+          <button onClick={handleBack} className="text-text-muted hover:text-text-main">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold text-foreground">Feedback</h1>
+          <h1 className="text-xl font-bold text-text-main">Feedback</h1>
           {!user && (
-            <span className="ml-auto text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+            <span className="ml-auto text-xs text-text-muted bg-surface-alt px-2 py-1 rounded-full">
               Anonymous
             </span>
           )}
@@ -126,9 +126,9 @@ function FeedbackContent() {
         <Card className="p-6 rounded-2xl">
           {success ? (
             <div className="py-8 text-center">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-foreground mb-2">Thank You!</h2>
-              <p className="text-muted-foreground mb-6">
+              <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-text-main mb-2">Thank You!</h2>
+              <p className="text-text-muted mb-6">
                 Your feedback has been submitted successfully.
               </p>
               <Button onClick={() => setSuccess(false)} className="bg-primary hover:bg-primary/90">
@@ -139,10 +139,10 @@ function FeedbackContent() {
             <>
               <div className="flex items-center gap-3 mb-4">
                 <MessageSquare className="w-8 h-8 text-primary" />
-                <h2 className="text-xl font-bold text-foreground">Send Feedback</h2>
+                <h2 className="text-xl font-bold text-text-main">Send Feedback</h2>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-text-muted mb-4">
                 Help us improve Pawrent! Share your experience, report issues, or suggest new
                 features.
               </p>
@@ -174,9 +174,9 @@ function FeedbackContent() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
-                    <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
+                  <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-surface-alt/30 transition-colors">
+                    <ImagePlus className="w-5 h-5 text-text-muted" />
+                    <span className="text-sm text-text-muted">
                       Attach screenshot (optional)
                     </span>
                     <input

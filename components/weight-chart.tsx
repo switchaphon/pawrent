@@ -15,7 +15,7 @@ interface WeightChartProps {
 export function WeightChart({ data, width = 340, height = 200 }: WeightChartProps) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-sm text-gray-400">
+      <div className="flex items-center justify-center rounded-lg border border-dashed border-border p-8 text-sm text-text-muted">
         ยังไม่มีข้อมูลน้ำหนัก
       </div>
     );

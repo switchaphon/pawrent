@@ -108,16 +108,16 @@ function ProfileContent() {
                 setFeedbackImagePreview(null);
                 setFeedbackSuccess(false);
               }}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              className="absolute top-4 right-4 text-text-muted hover:text-text-main"
             >
               <X className="w-5 h-5" />
             </button>
 
             {feedbackSuccess ? (
               <div className="py-8 text-center">
-                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-foreground mb-2">Thank You!</h2>
-                <p className="text-muted-foreground">
+                <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-text-main mb-2">Thank You!</h2>
+                <p className="text-text-muted">
                   Your feedback has been submitted successfully.
                 </p>
               </div>
@@ -125,10 +125,10 @@ function ProfileContent() {
               <>
                 <div className="flex items-center gap-3 mb-4">
                   <MessageSquare className="w-8 h-8 text-primary" />
-                  <h2 className="text-xl font-bold text-foreground">Send Feedback</h2>
+                  <h2 className="text-xl font-bold text-text-main">Send Feedback</h2>
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-text-muted mb-4">
                   Help us improve Pawrent! Share your experience, report issues, or suggest new
                   features.
                 </p>
@@ -160,9 +160,9 @@ function ProfileContent() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/30 transition-colors">
-                      <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
+                    <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-surface-alt/30 transition-colors">
+                      <ImagePlus className="w-5 h-5 text-text-muted" />
+                      <span className="text-sm text-text-muted">
                         Attach screenshot (optional)
                       </span>
                       <input
@@ -262,19 +262,19 @@ function ProfileContent() {
           <Card className="relative p-6 rounded-2xl max-w-md w-full shadow-2xl max-h-[80vh] overflow-y-auto">
             <button
               onClick={() => setShowPrivacy(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              className="absolute top-4 right-4 text-text-muted hover:text-text-main"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-3 mb-4">
               <Shield className="w-8 h-8 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">Privacy & Security</h2>
+              <h2 className="text-xl font-bold text-text-main">Privacy & Security</h2>
             </div>
 
-            <div className="space-y-4 text-sm text-muted-foreground">
+            <div className="space-y-4 text-sm text-text-muted">
               <section>
-                <h3 className="font-semibold text-foreground mb-2">PDPA Privacy Notice</h3>
+                <h3 className="font-semibold text-text-main mb-2">PDPA Privacy Notice</h3>
                 <p>
                   Pawrent respects your privacy and is committed to protecting your personal data in
                   accordance with Thailand&apos;s Personal Data Protection Act (PDPA) B.E. 2562.
@@ -282,7 +282,7 @@ function ProfileContent() {
               </section>
 
               <section>
-                <h3 className="font-semibold text-foreground mb-2">Data We Collect</h3>
+                <h3 className="font-semibold text-text-main mb-2">Data We Collect</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Account information (email, name)</li>
                   <li>Pet information (name, species, breed, photos)</li>
@@ -292,7 +292,7 @@ function ProfileContent() {
               </section>
 
               <section>
-                <h3 className="font-semibold text-foreground mb-2">How We Use Your Data</h3>
+                <h3 className="font-semibold text-text-main mb-2">How We Use Your Data</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>To provide pet passport services</li>
                   <li>To alert nearby users about pet reports</li>
@@ -301,7 +301,7 @@ function ProfileContent() {
               </section>
 
               <section>
-                <h3 className="font-semibold text-foreground mb-2">Your Rights</h3>
+                <h3 className="font-semibold text-text-main mb-2">Your Rights</h3>
                 <p>
                   Under PDPA, you have the right to access, correct, delete, or transfer your
                   personal data. Contact us at privacy@pawrent.app for any data-related requests.
@@ -309,7 +309,7 @@ function ProfileContent() {
               </section>
 
               <section>
-                <h3 className="font-semibold text-foreground mb-2">Data Security</h3>
+                <h3 className="font-semibold text-text-main mb-2">Data Security</h3>
                 <p>
                   We use industry-standard encryption and security measures to protect your data.
                   Your information is stored securely and never shared with third parties without
@@ -346,12 +346,12 @@ function ProfileContent() {
                 setEditAvatarFile(null);
                 setEditAvatarPreview(null);
               }}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              className="absolute top-4 right-4 text-text-muted hover:text-text-main"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-foreground mb-6">Edit Profile</h2>
+            <h2 className="text-xl font-bold text-text-main mb-6">Edit Profile</h2>
 
             {/* Image Cropper Modal */}
             {showAvatarCropper && avatarImageToCrop && (
@@ -406,13 +406,13 @@ function ProfileContent() {
                 />
               </label>
             </div>
-            <p className="text-xs text-center text-muted-foreground mt-2 mb-4">
+            <p className="text-xs text-center text-text-muted mt-2 mb-4">
               Tap to change & crop photo
             </p>
 
             {/* Name Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-foreground mb-2">Display Name</label>
+              <label className="block text-sm font-medium text-text-main mb-2">Display Name</label>
               <input
                 type="text"
                 value={editName}
@@ -493,8 +493,8 @@ function ProfileContent() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
-        <h1 className="text-xl font-bold text-foreground">Profile</h1>
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
+        <h1 className="text-xl font-bold text-text-main">Profile</h1>
       </header>
 
       {/* Profile Content */}
@@ -513,9 +513,9 @@ function ProfileContent() {
             <Card className="p-6 rounded-2xl text-center relative">
               <button
                 onClick={() => setShowEditProfile(true)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-surface-alt transition-colors"
               >
-                <Pencil className="w-4 h-4 text-muted-foreground" />
+                <Pencil className="w-4 h-4 text-text-muted" />
               </button>
               <Avatar className="w-20 h-20 mx-auto mb-4">
                 {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} /> : null}
@@ -523,18 +523,18 @@ function ProfileContent() {
                   {user?.line_display_name ? getInitials(user.line_display_name) : "?"}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-bold text-foreground">
+              <h2 className="text-xl font-bold text-text-main">
                 {profile?.full_name || user?.line_display_name || "Pet Parent"}
               </h2>
-              <p className="text-muted-foreground">{user?.line_display_name}</p>
+              <p className="text-text-muted">{user?.line_display_name}</p>
               <div className="flex justify-center gap-6 mt-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-primary">{pets.length}</p>
-                  <p className="text-xs text-muted-foreground">Pets</p>
+                  <p className="text-xs text-text-muted">Pets</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-secondary">0</p>
-                  <p className="text-xs text-muted-foreground">Pet Reports</p>
+                  <p className="text-xs text-text-muted">Pet Reports</p>
                 </div>
               </div>
             </Card>
@@ -543,7 +543,7 @@ function ProfileContent() {
             {pets.length > 0 && (
               <Card className="rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-border">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <h3 className="font-semibold text-text-main flex items-center gap-2">
                     <PawPrint className="w-4 h-4 text-primary" />
                     My Pets
                   </h3>
@@ -552,7 +552,7 @@ function ProfileContent() {
                   <button
                     key={pet.id}
                     onClick={() => router.push(`/pets?pet=${pet.id}`)}
-                    className="w-full flex items-center gap-3 p-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-4 border-b border-border last:border-0 hover:bg-surface-alt/50 transition-colors text-left"
                   >
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                       {pet.photo_url ? (
@@ -566,8 +566,8 @@ function ProfileContent() {
                       )}
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">{pet.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-semibold text-text-main">{pet.name}</p>
+                      <p className="text-sm text-text-muted">
                         {pet.breed || "Unknown breed"}
                       </p>
                     </div>
@@ -580,24 +580,24 @@ function ProfileContent() {
             <div className="space-y-2">
               <button
                 onClick={() => router.push("/notifications")}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-surface-alt/50 transition-colors rounded-lg border border-border"
               >
-                <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm text-foreground">Notifications</span>
+                <Bell className="w-4 h-4 text-text-muted flex-shrink-0" />
+                <span className="text-sm text-text-main">Notifications</span>
               </button>
               <button
                 onClick={() => setShowPrivacy(true)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-surface-alt/50 transition-colors rounded-lg border border-border"
               >
-                <Shield className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm text-foreground">Privacy & Security</span>
+                <Shield className="w-4 h-4 text-text-muted flex-shrink-0" />
+                <span className="text-sm text-text-main">Privacy & Security</span>
               </button>
               <button
                 onClick={() => router.push("/feedback")}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-muted/50 transition-colors rounded-lg border border-border"
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-surface-alt/50 transition-colors rounded-lg border border-border"
               >
-                <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm text-foreground">Feedback</span>
+                <MessageSquare className="w-4 h-4 text-text-muted flex-shrink-0" />
+                <span className="text-sm text-text-main">Feedback</span>
               </button>
             </div>
 
@@ -607,7 +607,7 @@ function ProfileContent() {
                 await signOut();
                 router.push("/");
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-destructive transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-text-muted hover:text-destructive transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign Out

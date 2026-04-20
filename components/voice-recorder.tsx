@@ -180,7 +180,7 @@ export function VoiceRecorder({
   return (
     <div className="space-y-4">
       {/* PDPA Consent */}
-      <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+      <div className="flex items-start gap-3 p-3 bg-warning-bg border border-warning/30 rounded-xl">
         <input
           type="checkbox"
           id="voice-consent"
@@ -189,7 +189,7 @@ export function VoiceRecorder({
           className="mt-1 w-5 h-5 rounded accent-primary flex-shrink-0"
           data-testid="voice-consent-checkbox"
         />
-        <label htmlFor="voice-consent" className="text-xs text-amber-800 leading-relaxed">
+        <label htmlFor="voice-consent" className="text-xs text-warning leading-relaxed">
           ยินยอมให้อัปโหลดเสียง เสียงจะเปิดให้ฟังได้โดยทุกคนที่ดูประกาศนี้
         </label>
       </div>
@@ -198,7 +198,7 @@ export function VoiceRecorder({
       <div
         className={cn(
           "p-6 rounded-xl text-center border",
-          state === "recording" ? "border-red-300 bg-red-50" : "border-border bg-white"
+          state === "recording" ? "border-red-300 bg-danger-bg" : "border-border bg-surface"
         )}
       >
         {/* Idle state */}
@@ -207,20 +207,20 @@ export function VoiceRecorder({
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-text-muted mb-4">
               กดปุ่มด้านล่างเพื่อบันทึกเสียงเรียกน้อง (สูงสุด {MAX_DURATION_S} วินาที)
             </p>
             <Button
               onClick={startRecording}
               disabled={!consentGiven}
-              className="h-12 px-6 bg-red-500 hover:bg-red-600 text-white rounded-full"
+              className="h-12 px-6 bg-danger hover:bg-danger text-white rounded-full"
               data-testid="start-recording-btn"
             >
               <Mic className="w-5 h-5 mr-2" />
               เริ่มบันทึกเสียง
             </Button>
             {!consentGiven && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-text-muted mt-2">
                 กรุณาให้ความยินยอมก่อนบันทึกเสียง
               </p>
             )}
@@ -232,21 +232,21 @@ export function VoiceRecorder({
           <>
             <div className="flex items-center justify-center gap-2 mb-3">
               <span
-                className="w-3 h-3 rounded-full bg-red-500 animate-pulse"
+                className="w-3 h-3 rounded-full bg-danger animate-pulse"
                 data-testid="recording-indicator"
               />
-              <span className="text-red-600 font-bold text-sm">กำลังบันทึก...</span>
+              <span className="text-danger font-bold text-sm">กำลังบันทึก...</span>
             </div>
             <p
-              className="text-2xl font-mono font-bold text-red-600 mb-1"
+              className="text-2xl font-mono font-bold text-danger mb-1"
               data-testid="recording-timer"
             >
               {formatTime(elapsed)}
             </p>
-            <p className="text-xs text-muted-foreground mb-4">เหลือ {remaining} วินาที</p>
+            <p className="text-xs text-text-muted mb-4">เหลือ {remaining} วินาที</p>
             <Button
               onClick={stopRecording}
-              className="h-12 px-6 bg-gray-700 hover:bg-gray-800 text-white rounded-full"
+              className="h-12 px-6 bg-text-main hover:bg-text-main text-white rounded-full"
               data-testid="stop-recording-btn"
             >
               <Square className="w-5 h-5 mr-2" />
@@ -258,11 +258,11 @@ export function VoiceRecorder({
         {/* Recorded state */}
         {state === "recorded" && (
           <>
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-              <Mic className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-3">
+              <Mic className="w-8 h-8 text-success" />
             </div>
-            <p className="text-sm font-semibold text-foreground mb-1">บันทึกเสียงเรียบร้อย!</p>
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="text-sm font-semibold text-text-main mb-1">บันทึกเสียงเรียบร้อย!</p>
+            <p className="text-xs text-text-muted mb-4">
               ความยาว {formatTime(elapsed)} วินาที
             </p>
 
@@ -309,7 +309,7 @@ export function VoiceRecorder({
                 onClick={deleteRecording}
                 variant="outline"
                 size="sm"
-                className="rounded-full text-red-600 hover:text-red-700"
+                className="rounded-full text-danger hover:text-danger"
                 data-testid="delete-recording-btn"
               >
                 <Trash2 className="w-4 h-4 mr-1" />

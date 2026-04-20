@@ -36,21 +36,21 @@ const ReadOnlyMap = dynamic(
     }),
   {
     ssr: false,
-    loading: () => <div className="h-48 bg-muted rounded-xl animate-pulse" />,
+    loading: () => <div className="h-48 bg-surface-alt rounded-xl animate-pulse" />,
   }
 );
 
 function getStatusChip(status: AlertStatus, alertType: string) {
   if (status === "resolved_found" || status === "resolved_owner") {
-    return { label: "กลับบ้านแล้ว", className: "bg-blue-500 text-white" };
+    return { label: "กลับบ้านแล้ว", className: "bg-info text-white" };
   }
   if (status === "resolved_other" || status === "expired") {
-    return { label: "ปิดประกาศ", className: "bg-gray-400 text-white" };
+    return { label: "ปิดประกาศ", className: "bg-text-muted text-white" };
   }
   if (alertType === "found" || alertType === "stray") {
-    return { label: "พบแล้ว", className: "bg-green-500 text-white" };
+    return { label: "พบแล้ว", className: "bg-success text-white" };
   }
-  return { label: "หาย", className: "bg-red-500 text-white" };
+  return { label: "หาย", className: "bg-danger text-white" };
 }
 
 function formatThaiDateFull(dateStr: string): string {
@@ -196,14 +196,14 @@ export default function AlertDetailPage() {
   if (!alert) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-foreground">
+        <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-text-main">
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">กลับ</span>
           </button>
         </header>
         <div className="px-4 py-12 text-center">
-          <p className="text-muted-foreground">ไม่พบประกาศ</p>
+          <p className="text-text-muted">ไม่พบประกาศ</p>
         </div>
       </div>
     );
@@ -219,11 +219,11 @@ export default function AlertDetailPage() {
   const age = calculateAge(alert.pet_date_of_birth);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-surface-alt pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-foreground">
+          <button onClick={() => router.back()} className="flex items-center gap-2 text-text-main">
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">กลับ</span>
           </button>
@@ -248,7 +248,7 @@ export default function AlertDetailPage() {
                   className="w-full flex-shrink-0 snap-center"
                   style={{ scrollSnapAlign: "center" }}
                 >
-                  <div className="relative w-full aspect-square bg-muted">
+                  <div className="relative w-full aspect-square bg-surface-alt">
                     <Image
                       src={url}
                       alt={`รูปที่ ${i + 1}`}
@@ -269,7 +269,7 @@ export default function AlertDetailPage() {
                     key={i}
                     className={cn(
                       "w-2 h-2 rounded-full transition-colors",
-                      i === currentPhoto ? "bg-white" : "bg-white/50"
+                      i === currentPhoto ? "bg-surface" : "bg-surface/50"
                     )}
                   />
                 ))}
@@ -286,10 +286,10 @@ export default function AlertDetailPage() {
                 {chip.label}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold text-text-main">
               {alert.pet_name || "ไม่ระบุชื่อ"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-text-muted mt-1">
               {alert.pet_breed || "ไม่ระบุสายพันธุ์"}
             </p>
           </div>
@@ -299,11 +299,11 @@ export default function AlertDetailPage() {
             <div className="flex items-center gap-2 text-sm">
               <Clock className="w-4 h-4 text-destructive flex-shrink-0" />
               <div>
-                <p className="font-semibold text-foreground">
+                <p className="font-semibold text-text-main">
                   หายวันที่ {formatThaiDateFull(alert.lost_date)}
                   {alert.lost_time && ` ประมาณ ${alert.lost_time} น.`}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-text-muted">
                   ({getRelativeTimeThai(alert.created_at)})
                 </p>
               </div>
@@ -313,39 +313,39 @@ export default function AlertDetailPage() {
           {/* Reward banner */}
           {alert.reward_amount > 0 && (
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-4 text-center">
-              <p className="text-xs text-amber-700 font-medium mb-1">รางวัลนำส่งคืน</p>
-              <p className="text-2xl font-bold text-amber-600">
+              <p className="text-xs text-warning font-medium mb-1">รางวัลนำส่งคืน</p>
+              <p className="text-2xl font-bold text-warning">
                 ฿{alert.reward_amount.toLocaleString()}
               </p>
               {alert.reward_note && (
-                <p className="text-xs text-amber-600 mt-1">{alert.reward_note}</p>
+                <p className="text-xs text-warning mt-1">{alert.reward_note}</p>
               )}
             </div>
           )}
 
           {/* Pet metadata grid */}
           <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-foreground text-sm mb-3">ข้อมูลสัตว์เลี้ยง</h3>
+            <h3 className="font-bold text-text-main text-sm mb-3">ข้อมูลสัตว์เลี้ยง</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground text-xs">ชื่อ</span>
-                <p className="font-medium text-foreground">{alert.pet_name || "-"}</p>
+                <span className="text-text-muted text-xs">ชื่อ</span>
+                <p className="font-medium text-text-main">{alert.pet_name || "-"}</p>
               </div>
               <div>
-                <span className="text-muted-foreground text-xs">สายพันธุ์</span>
-                <p className="font-medium text-foreground">{alert.pet_breed || "-"}</p>
+                <span className="text-text-muted text-xs">สายพันธุ์</span>
+                <p className="font-medium text-text-main">{alert.pet_breed || "-"}</p>
               </div>
               <div>
-                <span className="text-muted-foreground text-xs">สี</span>
-                <p className="font-medium text-foreground">{alert.pet_color || "-"}</p>
+                <span className="text-text-muted text-xs">สี</span>
+                <p className="font-medium text-text-main">{alert.pet_color || "-"}</p>
               </div>
               <div>
-                <span className="text-muted-foreground text-xs">เพศ</span>
-                <p className="font-medium text-foreground">{getSexLabel(alert.pet_sex)}</p>
+                <span className="text-text-muted text-xs">เพศ</span>
+                <p className="font-medium text-text-main">{getSexLabel(alert.pet_sex)}</p>
               </div>
               <div>
-                <span className="text-muted-foreground text-xs">ทำหมัน</span>
-                <p className="font-medium text-foreground">
+                <span className="text-text-muted text-xs">ทำหมัน</span>
+                <p className="font-medium text-text-main">
                   {alert.pet_neutered === true
                     ? "ทำหมันแล้ว ✓"
                     : alert.pet_neutered === false
@@ -354,13 +354,13 @@ export default function AlertDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-muted-foreground text-xs">อายุ</span>
-                <p className="font-medium text-foreground">{age || "-"}</p>
+                <span className="text-text-muted text-xs">อายุ</span>
+                <p className="font-medium text-text-main">{age || "-"}</p>
               </div>
               {alert.pet_microchip && (
                 <div className="col-span-2">
-                  <span className="text-muted-foreground text-xs">ไมโครชิป</span>
-                  <p className="font-medium text-foreground font-mono text-xs">
+                  <span className="text-text-muted text-xs">ไมโครชิป</span>
+                  <p className="font-medium text-text-main font-mono text-xs">
                     {alert.pet_microchip}
                   </p>
                 </div>
@@ -371,11 +371,11 @@ export default function AlertDetailPage() {
           {/* Distinguishing marks */}
           {alert.distinguishing_marks && (
             <Card className="p-4 rounded-xl">
-              <h3 className="font-bold text-foreground text-sm mb-2 flex items-center gap-2">
+              <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
                 <Eye className="w-4 h-4 text-primary" />
                 จุดสังเกต / ลักษณะเฉพาะ
               </h3>
-              <p className="text-sm text-foreground whitespace-pre-line">
+              <p className="text-sm text-text-main whitespace-pre-line">
                 {alert.distinguishing_marks}
               </p>
             </Card>
@@ -384,32 +384,32 @@ export default function AlertDetailPage() {
           {/* Description */}
           {alert.description && (
             <Card className="p-4 rounded-xl">
-              <h3 className="font-bold text-foreground text-sm mb-2 flex items-center gap-2">
+              <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
                 รายละเอียดเพิ่มเติม
               </h3>
-              <p className="text-sm text-foreground whitespace-pre-line">{alert.description}</p>
+              <p className="text-sm text-text-main whitespace-pre-line">{alert.description}</p>
             </Card>
           )}
 
           {/* Location */}
           <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-foreground text-sm mb-2 flex items-center gap-2">
+            <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-destructive" />
               ตำแหน่งที่เห็นครั้งสุดท้าย
             </h3>
             {alert.location_description && (
-              <p className="text-sm text-foreground mb-3">{alert.location_description}</p>
+              <p className="text-sm text-text-main mb-3">{alert.location_description}</p>
             )}
             <ReadOnlyMap lat={alert.fuzzy_lat || alert.lat} lng={alert.fuzzy_lng || alert.lng} />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-text-muted mt-2">
               ตำแหน่งโดยประมาณ (เพื่อความเป็นส่วนตัว)
             </p>
           </Card>
 
           {/* Action buttons (placeholders for PRP-05) */}
           <div className="space-y-2">
-            <Button disabled className="w-full h-12 rounded-xl bg-green-500 text-white opacity-50">
+            <Button disabled className="w-full h-12 rounded-xl bg-success text-white opacity-50">
               <CheckCircle className="w-5 h-5 mr-2" />
               ฉันเห็นน้อง! — เร็วๆ นี้
             </Button>
@@ -421,11 +421,11 @@ export default function AlertDetailPage() {
 
           {/* Share buttons */}
           <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-foreground text-sm mb-3">แชร์ประกาศ</h3>
+            <h3 className="font-bold text-text-main text-sm mb-3">แชร์ประกาศ</h3>
             <div className="flex gap-2">
               <Button
                 onClick={handleShare}
-                className="flex-1 h-10 bg-green-500 hover:bg-green-600 text-white text-xs rounded-xl"
+                className="flex-1 h-10 bg-success hover:bg-success text-white text-xs rounded-xl"
               >
                 <Share2 className="w-4 h-4 mr-1" />
                 LINE
@@ -440,7 +440,7 @@ export default function AlertDetailPage() {
                     "width=600,height=400"
                   );
                 }}
-                className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-xl"
+                className="flex-1 h-10 bg-info hover:bg-info text-white text-xs rounded-xl"
               >
                 Facebook
               </Button>
@@ -454,7 +454,7 @@ export default function AlertDetailPage() {
                     "width=600,height=400"
                   );
                 }}
-                className="flex-1 h-10 bg-black hover:bg-gray-800 text-white text-xs rounded-xl"
+                className="flex-1 h-10 bg-black hover:bg-text-main text-white text-xs rounded-xl"
               >
                 X
               </Button>
@@ -463,7 +463,7 @@ export default function AlertDetailPage() {
               </Button>
             </div>
             {linkCopied && (
-              <p className="text-xs text-green-600 text-center mt-2">คัดลอกลิงก์แล้ว!</p>
+              <p className="text-xs text-success text-center mt-2">คัดลอกลิงก์แล้ว!</p>
             )}
           </Card>
 

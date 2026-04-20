@@ -105,17 +105,17 @@ export function ImageCropper({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-      <Card className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden">
+      <Card className="relative w-full max-w-md bg-surface rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-bold text-foreground">Adjust Photo</h3>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <h3 className="font-bold text-text-main">Adjust Photo</h3>
+          <button onClick={onCancel} className="text-text-muted hover:text-text-main">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Cropper Area */}
-        <div className="relative h-72 bg-gray-900">
+        <div className="relative h-72 bg-text-main">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -134,7 +134,7 @@ export function ImageCropper({
         <div className="p-4 space-y-4">
           {/* Zoom Slider */}
           <div className="flex items-center gap-3">
-            <ZoomOut className="w-4 h-4 text-muted-foreground" />
+            <ZoomOut className="w-4 h-4 text-text-muted" />
             <input
               type="range"
               min={1}
@@ -142,16 +142,16 @@ export function ImageCropper({
               step={0.1}
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+              className="flex-1 h-2 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            <ZoomIn className="w-4 h-4 text-muted-foreground" />
+            <ZoomIn className="w-4 h-4 text-text-muted" />
           </div>
 
           {/* Rotation Button */}
           <div className="flex justify-center">
             <button
               onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:text-text-main transition-colors"
             >
               <RotateCw className="w-4 h-4" />
               Rotate

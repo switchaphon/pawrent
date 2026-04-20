@@ -358,7 +358,7 @@ export default function PostPage() {
                 <span
                   className={cn(
                     "w-2 h-2 rounded-full",
-                    isActive ? "bg-white" : tab.tone
+                    isActive ? "bg-surface" : tab.tone
                   )}
                   aria-hidden
                 />

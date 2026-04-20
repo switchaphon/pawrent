@@ -100,7 +100,7 @@ export function PhotoLightbox({
         <div className="flex items-center gap-2">
           <button
             onClick={handleDownload}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="p-2 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors"
             title="Download"
           >
             <Download className="w-5 h-5 text-white" />
@@ -108,7 +108,7 @@ export function PhotoLightbox({
           {canDelete && onDelete && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-full bg-white/10 hover:bg-red-500/50 transition-colors"
+              className="p-2 rounded-full bg-surface/10 hover:bg-danger/50 transition-colors"
               title="Delete"
             >
               <Trash2 className="w-5 h-5 text-white" />
@@ -116,7 +116,7 @@ export function PhotoLightbox({
           )}
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="p-2 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors"
           >
             <X className="w-5 h-5 text-white" />
           </button>
@@ -129,7 +129,7 @@ export function PhotoLightbox({
         {photos.length > 1 && (
           <button
             onClick={goToPrev}
-            className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            className="absolute left-4 p-3 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors z-10"
           >
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
@@ -147,7 +147,7 @@ export function PhotoLightbox({
         {photos.length > 1 && (
           <button
             onClick={goToNext}
-            className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            className="absolute right-4 p-3 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors z-10"
           >
             <ChevronRight className="w-6 h-6 text-white" />
           </button>
@@ -183,9 +183,9 @@ export function PhotoLightbox({
       {showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4 z-20">
           <div className="bg-card rounded-2xl p-6 max-w-sm w-full text-center">
-            <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-foreground mb-2">Delete Photo?</h3>
-            <p className="text-muted-foreground text-sm mb-6">This action cannot be undone.</p>
+            <Trash2 className="w-12 h-12 text-danger mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-text-main mb-2">Delete Photo?</h3>
+            <p className="text-text-muted text-sm mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -196,7 +196,7 @@ export function PhotoLightbox({
               </Button>
               <Button
                 onClick={handleDelete}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                className="flex-1 bg-danger hover:bg-danger text-white"
               >
                 Delete
               </Button>

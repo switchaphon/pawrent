@@ -101,14 +101,14 @@ export function AddParasiteLogForm({
   };
 
   return (
-    <Card className="rounded-2xl p-4 shadow-lg bg-white">
+    <Card className="rounded-2xl p-4 shadow-lg bg-surface">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-foreground flex items-center gap-2">
+        <h3 className="font-bold text-text-main flex items-center gap-2">
           <PillIcon className="w-5 h-5 text-primary" />
           Add Parasite Prevention
         </h3>
-        <button onClick={onCancel} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
-          <X className="w-5 h-5 text-muted-foreground" />
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-surface-alt transition-colors">
+          <X className="w-5 h-5 text-text-muted" />
         </button>
       </div>
 
@@ -125,8 +125,8 @@ export function AddParasiteLogForm({
           {selectedProductInfo && (
             <div className="flex items-start gap-2 p-2 bg-primary/5 rounded-lg text-sm">
               <Info className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-              <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{selectedProductInfo.brand}</span> by{" "}
+              <div className="text-text-muted">
+                <span className="font-medium text-text-main">{selectedProductInfo.brand}</span> by{" "}
                 {selectedProductInfo.manufacturer}
                 <span className="mx-1">•</span>
                 <span className="text-primary">{selectedProductInfo.description}</span>
@@ -159,13 +159,13 @@ export function AddParasiteLogForm({
               type="button"
               onClick={handleDecrement}
               disabled={reminderMonths <= 1}
-              className="w-10 h-10 rounded-full border border-input flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border border-input flex items-center justify-center hover:bg-surface-alt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Minus className="w-4 h-4" />
             </button>
             <div className="flex-1 text-center">
-              <span className="text-2xl font-bold text-foreground">{reminderMonths}</span>
-              <span className="text-sm text-muted-foreground ml-2">
+              <span className="text-2xl font-bold text-text-main">{reminderMonths}</span>
+              <span className="text-sm text-text-muted ml-2">
                 month{reminderMonths !== 1 ? "s" : ""}
               </span>
             </div>
@@ -173,13 +173,13 @@ export function AddParasiteLogForm({
               type="button"
               onClick={handleIncrement}
               disabled={reminderMonths >= 12}
-              className="w-10 h-10 rounded-full border border-input flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-10 h-10 rounded-full border border-input flex items-center justify-center hover:bg-surface-alt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
           {selectedProductInfo && (
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-text-muted text-center">
               Recommended: {selectedProductInfo.durationMonths} month
               {selectedProductInfo.durationMonths !== 1 ? "s" : ""} for {selectedProductInfo.name}
             </p>
@@ -188,9 +188,9 @@ export function AddParasiteLogForm({
 
         {/* Next Due Date Preview */}
         {administeredDate && (
-          <div className="p-3 bg-gray-50 rounded-xl text-center">
-            <p className="text-xs text-muted-foreground mb-1">Next dose due on</p>
-            <p className="font-semibold text-foreground">
+          <div className="p-3 bg-surface-alt rounded-xl text-center">
+            <p className="text-xs text-text-muted mb-1">Next dose due on</p>
+            <p className="font-semibold text-text-main">
               {new Date(calculateNextDueDate()).toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",

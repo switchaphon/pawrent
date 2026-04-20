@@ -119,9 +119,9 @@ function FeedContent() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <h1 className="text-xl font-bold text-primary">Pawrent</h1>
-        <p className="text-sm text-muted-foreground">Community Feed</p>
+        <p className="text-sm text-text-muted">Community Feed</p>
       </header>
 
       {/* Feed */}
@@ -139,8 +139,8 @@ function FeedContent() {
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <span className="text-4xl">📸</span>
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">No posts yet</h2>
-            <p className="text-muted-foreground mb-6">
+            <h2 className="text-xl font-bold text-text-main mb-2">No posts yet</h2>
+            <p className="text-text-muted mb-6">
               Be the first to share your pet&apos;s moment!
             </p>
           </div>
@@ -157,15 +157,15 @@ function FeedContent() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-foreground">{post.pets?.name || "Pet Parent"}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-semibold text-text-main">{post.pets?.name || "Pet Parent"}</p>
+                  <p className="text-xs text-text-muted">
                     {post.pets?.breed || ""} • {formatTime(post.created_at)}
                   </p>
                 </div>
               </div>
 
               {/* Post Image */}
-              <div className="aspect-square bg-muted relative">
+              <div className="aspect-square bg-surface-alt relative">
                 <Image src={post.image_url} alt="" fill className="object-cover" />
               </div>
 
@@ -173,7 +173,7 @@ function FeedContent() {
               <div className="p-4">
                 <button
                   onClick={() => handleLike(post.id)}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-destructive transition-colors"
+                  className="flex items-center gap-2 text-text-muted hover:text-destructive transition-colors"
                 >
                   <Heart
                     className={`w-6 h-6 ${likedPosts.has(post.id) ? "fill-destructive text-destructive" : ""}`}
@@ -181,7 +181,7 @@ function FeedContent() {
                   <span className="font-semibold">{post.likes_count}</span>
                 </button>
                 {post.caption && (
-                  <p className="mt-2 text-foreground">
+                  <p className="mt-2 text-text-main">
                     <span className="font-semibold">{post.pets?.name || "Someone"}</span>{" "}
                     {post.caption}
                   </p>
@@ -221,7 +221,7 @@ export default function HomePage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Signing in with LINE...</p>
+          <p className="text-text-muted">Signing in with LINE...</p>
         </div>
       </div>
     );

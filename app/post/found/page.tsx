@@ -25,7 +25,7 @@ import {
 
 const MapPicker = dynamic(() => import("@/components/map-picker").then((mod) => mod.MapPicker), {
   ssr: false,
-  loading: () => <div className="h-48 bg-muted rounded-xl animate-pulse" />,
+  loading: () => <div className="h-48 bg-surface-alt rounded-xl animate-pulse" />,
 });
 
 const TOTAL_STEPS = 4;
@@ -69,10 +69,10 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
           className={cn(
             "w-2.5 h-2.5 rounded-full transition-colors",
             i === current
-              ? "bg-green-500 scale-110"
+              ? "bg-success scale-110"
               : i < current
-                ? "bg-green-500/40"
-                : "bg-gray-200"
+                ? "bg-success/40"
+                : "bg-border"
           )}
         />
       ))}
@@ -265,22 +265,22 @@ export default function FoundReportPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <header className="sticky top-0 z-30 bg-green-600 text-white px-4 py-3">
+        <header className="sticky top-0 z-30 bg-success text-white px-4 py-3">
           <h1 className="text-xl font-bold">ส่งรายงานเรียบร้อย!</h1>
         </header>
         <main className="px-4 py-12 max-w-md mx-auto text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="w-20 h-20 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-success" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">รายงานถูกส่งแล้ว!</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className="text-2xl font-bold text-text-main mb-2">รายงานถูกส่งแล้ว!</h2>
+          <p className="text-text-muted mb-6">
             AI จะช่วยค้นหาและแจ้งเตือนเจ้าของให้อัตโนมัติ
           </p>
 
           <div className="space-y-3 mb-6">
             <Button
               onClick={handleShare}
-              className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold"
+              className="w-full h-12 bg-success hover:bg-success text-white font-bold"
             >
               <Share2 className="w-5 h-5 mr-2" />
               แชร์ผ่าน LINE
@@ -302,7 +302,7 @@ export default function FoundReportPage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-green-600 text-white px-4 py-3">
+      <header className="sticky top-0 z-30 bg-success text-white px-4 py-3">
         <div className="flex items-center gap-2">
           <button onClick={handleBack} className="p-1 -ml-1">
             <ArrowLeft className="w-5 h-5" />
@@ -322,12 +322,12 @@ export default function FoundReportPage() {
         {/* Step 1: Photo & Location */}
         {step === 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">ถ่ายรูปและระบุตำแหน่ง</h2>
+            <h2 className="text-lg font-bold text-text-main">ถ่ายรูปและระบุตำแหน่ง</h2>
 
             {/* Photo upload */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold flex items-center gap-2 mb-2">
-                <Camera className="w-4 h-4 text-green-600" />
+              <Label className="text-text-main font-semibold flex items-center gap-2 mb-2">
+                <Camera className="w-4 h-4 text-success" />
                 รูปภาพ ({photoUrls.length}/5) *
               </Label>
 
@@ -347,7 +347,7 @@ export default function FoundReportPage() {
                       />
                       <button
                         onClick={() => removePhoto(i)}
-                        className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                        className="absolute top-0.5 right-0.5 w-5 h-5 bg-danger text-white rounded-full text-xs flex items-center justify-center"
                       >
                         x
                       </button>
@@ -357,9 +357,9 @@ export default function FoundReportPage() {
               )}
 
               {photoUrls.length < 5 && (
-                <label className="block w-full py-3 border-2 border-dashed border-green-300 rounded-xl text-center cursor-pointer hover:bg-green-50 transition-colors">
-                  <Camera className="w-6 h-6 text-green-500 mx-auto mb-1" />
-                  <span className="text-sm text-green-700 font-medium">ถ่ายรูป / เลือกรูป</span>
+                <label className="block w-full py-3 border-2 border-dashed border-green-300 rounded-xl text-center cursor-pointer hover:bg-success-bg transition-colors">
+                  <Camera className="w-6 h-6 text-success mx-auto mb-1" />
+                  <span className="text-sm text-success font-medium">ถ่ายรูป / เลือกรูป</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -374,12 +374,12 @@ export default function FoundReportPage() {
 
             {/* Map */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-green-600" />
+              <Label className="text-text-main font-semibold flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-success" />
                 ตำแหน่งที่พบ *
               </Label>
               <MapPicker onLocationSelect={(lat, lng) => setLocation({ lat, lng })} />
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-text-muted mt-2">
                 {location
                   ? `📍 ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
                   : "กำลังหาตำแหน่ง..."}
@@ -391,11 +391,11 @@ export default function FoundReportPage() {
         {/* Step 2: Animal Description */}
         {step === 1 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">ลักษณะสัตว์เลี้ยงที่พบ</h2>
+            <h2 className="text-lg font-bold text-text-main">ลักษณะสัตว์เลี้ยงที่พบ</h2>
 
             {/* Species */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">ประเภท</Label>
+              <Label className="text-text-main font-semibold mb-2 block">ประเภท</Label>
               <div className="flex gap-2">
                 {SPECIES_OPTIONS.map((opt) => (
                   <button
@@ -404,8 +404,8 @@ export default function FoundReportPage() {
                     className={cn(
                       "flex-1 py-3 rounded-xl border text-center transition-all",
                       speciesGuess === opt.value
-                        ? "border-green-500 bg-green-50 shadow-sm"
-                        : "border-border bg-white hover:border-green-300"
+                        ? "border-green-500 bg-success-bg shadow-soft"
+                        : "border-border bg-surface hover:border-green-300"
                     )}
                   >
                     <span className="text-xl block">{opt.emoji}</span>
@@ -417,7 +417,7 @@ export default function FoundReportPage() {
 
             {/* Breed */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">
+              <Label className="text-text-main font-semibold mb-2 block">
                 สายพันธุ์ (ถ้าทราบ)
               </Label>
               <Input
@@ -431,7 +431,7 @@ export default function FoundReportPage() {
 
             {/* Color */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">สีขน</Label>
+              <Label className="text-text-main font-semibold mb-2 block">สีขน</Label>
               <Input
                 value={colorDescription}
                 onChange={(e) => setColorDescription(e.target.value)}
@@ -443,7 +443,7 @@ export default function FoundReportPage() {
 
             {/* Size */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">ขนาด</Label>
+              <Label className="text-text-main font-semibold mb-2 block">ขนาด</Label>
               <div className="flex gap-1.5 flex-wrap">
                 {SIZE_OPTIONS.map((opt) => (
                   <button
@@ -452,8 +452,8 @@ export default function FoundReportPage() {
                     className={cn(
                       "px-3 py-2 rounded-lg border text-xs font-medium transition-all",
                       sizeEstimate === opt.value
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-border bg-white text-foreground hover:border-green-300"
+                        ? "border-green-500 bg-success-bg text-success"
+                        : "border-border bg-surface text-text-main hover:border-green-300"
                     )}
                   >
                     {opt.label}
@@ -464,7 +464,7 @@ export default function FoundReportPage() {
 
             {/* Condition */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">สภาพ</Label>
+              <Label className="text-text-main font-semibold mb-2 block">สภาพ</Label>
               <div className="grid grid-cols-2 gap-2">
                 {CONDITION_OPTIONS.map((opt) => (
                   <button
@@ -473,8 +473,8 @@ export default function FoundReportPage() {
                     className={cn(
                       "py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center gap-1.5",
                       condition === opt.value
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-border bg-white text-foreground hover:border-green-300"
+                        ? "border-green-500 bg-success-bg text-success"
+                        : "border-border bg-surface text-text-main hover:border-green-300"
                     )}
                   >
                     <span>{opt.emoji}</span>
@@ -495,10 +495,10 @@ export default function FoundReportPage() {
                   className="mt-1 w-5 h-5 rounded accent-green-500"
                 />
                 <div className="flex-1">
-                  <Label htmlFor="hasCollar" className="text-foreground font-semibold">
+                  <Label htmlFor="hasCollar" className="text-text-main font-semibold">
                     มีปลอกคอ
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-text-muted mt-0.5">
                     บอกรายละเอียดปลอกคอเพื่อช่วยระบุตัวตน
                   </p>
                 </div>
@@ -516,14 +516,14 @@ export default function FoundReportPage() {
 
             {/* Description */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">
+              <Label className="text-text-main font-semibold mb-2 block">
                 รายละเอียดเพิ่มเติม
               </Label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="เช่น พบเดินอยู่หน้าเซเว่น ดูหิว ขนยุ่ง"
-                className="w-full p-3 border border-border rounded-xl bg-background text-foreground min-h-[80px] resize-none"
+                className="w-full p-3 border border-border rounded-xl bg-background text-text-main min-h-[80px] resize-none"
                 maxLength={2000}
               />
             </Card>
@@ -533,11 +533,11 @@ export default function FoundReportPage() {
         {/* Step 3: Custody & Verification */}
         {step === 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">สถานะการดูแล</h2>
+            <h2 className="text-lg font-bold text-text-main">สถานะการดูแล</h2>
 
             {/* Custody Status */}
             <Card className="p-4 rounded-xl">
-              <Label className="text-foreground font-semibold mb-2 block">
+              <Label className="text-text-main font-semibold mb-2 block">
                 ตอนนี้น้องอยู่ที่ไหน?
               </Label>
               <div className="space-y-2">
@@ -548,8 +548,8 @@ export default function FoundReportPage() {
                     className={cn(
                       "w-full py-3 px-4 rounded-xl border text-left transition-all flex items-center gap-3",
                       custodyStatus === opt.value
-                        ? "border-green-500 bg-green-50 shadow-sm"
-                        : "border-border bg-white hover:border-green-300"
+                        ? "border-green-500 bg-success-bg shadow-soft"
+                        : "border-border bg-surface hover:border-green-300"
                     )}
                   >
                     <span className="text-lg">{opt.emoji}</span>
@@ -562,7 +562,7 @@ export default function FoundReportPage() {
             {/* Shelter info (conditional) */}
             {custodyStatus === "at_shelter" && (
               <Card className="p-4 rounded-xl">
-                <Label className="text-foreground font-semibold mb-2 block">
+                <Label className="text-text-main font-semibold mb-2 block">
                   ข้อมูลสถานสงเคราะห์
                 </Label>
                 <div className="space-y-3">
@@ -585,12 +585,12 @@ export default function FoundReportPage() {
             )}
 
             {/* Secret verification detail */}
-            <Card className="p-4 rounded-xl border-green-200 bg-green-50/50">
-              <Label className="text-foreground font-semibold flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-green-600" />
+            <Card className="p-4 rounded-xl border-success/30 bg-success-bg/50">
+              <Label className="text-text-main font-semibold flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-success" />
                 ลักษณะลับ (ป้องกันการแอบอ้าง)
               </Label>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="text-xs text-text-muted mb-3">
                 บอกลักษณะที่เจ้าของตัวจริงเท่านั้นจะรู้ เช่น ข้อความบนปลอกคอ, เบอร์แท็ก,
                 ลายเฉพาะที่ซ่อนอยู่ — ข้อมูลนี้จะไม่แสดงสาธารณะ
               </p>
@@ -598,7 +598,7 @@ export default function FoundReportPage() {
                 value={secretDetail}
                 onChange={(e) => setSecretDetail(e.target.value)}
                 placeholder="เช่น ปลอกคอมีข้อความว่า 'Lucky' / มีรอยแผลเป็นที่ท้อง"
-                className="w-full p-3 border border-green-200 rounded-xl bg-white text-foreground min-h-[80px] resize-none"
+                className="w-full p-3 border border-success/30 rounded-xl bg-surface text-text-main min-h-[80px] resize-none"
                 maxLength={500}
               />
             </Card>
@@ -608,7 +608,7 @@ export default function FoundReportPage() {
         {/* Step 4: Review */}
         {step === 3 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">ตรวจสอบและส่งรายงาน</h2>
+            <h2 className="text-lg font-bold text-text-main">ตรวจสอบและส่งรายงาน</h2>
 
             <Card className="p-4 rounded-xl space-y-3">
               {/* Photo preview */}
@@ -636,66 +636,66 @@ export default function FoundReportPage() {
               <div className="space-y-2 text-sm">
                 {speciesGuess && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">ประเภท</span>
-                    <span className="text-foreground font-medium">
+                    <span className="text-text-muted">ประเภท</span>
+                    <span className="text-text-main font-medium">
                       {SPECIES_OPTIONS.find((s) => s.value === speciesGuess)?.label ?? speciesGuess}
                     </span>
                   </div>
                 )}
                 {breedGuess && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">สายพันธุ์</span>
-                    <span className="text-foreground font-medium">{breedGuess}</span>
+                    <span className="text-text-muted">สายพันธุ์</span>
+                    <span className="text-text-main font-medium">{breedGuess}</span>
                   </div>
                 )}
                 {colorDescription && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">สีขน</span>
-                    <span className="text-foreground font-medium">{colorDescription}</span>
+                    <span className="text-text-muted">สีขน</span>
+                    <span className="text-text-main font-medium">{colorDescription}</span>
                   </div>
                 )}
                 {sizeEstimate && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">ขนาด</span>
-                    <span className="text-foreground font-medium">
+                    <span className="text-text-muted">ขนาด</span>
+                    <span className="text-text-main font-medium">
                       {SIZE_OPTIONS.find((s) => s.value === sizeEstimate)?.label ?? sizeEstimate}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">สภาพ</span>
-                  <span className="text-foreground font-medium">
+                  <span className="text-text-muted">สภาพ</span>
+                  <span className="text-text-main font-medium">
                     {CONDITION_OPTIONS.find((c) => c.value === condition)?.label ?? condition}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">สถานะ</span>
-                  <span className="text-foreground font-medium">
+                  <span className="text-text-muted">สถานะ</span>
+                  <span className="text-text-main font-medium">
                     {CUSTODY_OPTIONS.find((c) => c.value === custodyStatus)?.label ?? custodyStatus}
                   </span>
                 </div>
                 {location && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">ตำแหน่ง</span>
-                    <span className="text-foreground font-medium">
+                    <span className="text-text-muted">ตำแหน่ง</span>
+                    <span className="text-text-main font-medium">
                       {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">รูปภาพ</span>
-                  <span className="text-foreground font-medium">{photoUrls.length} รูป</span>
+                  <span className="text-text-muted">รูปภาพ</span>
+                  <span className="text-text-main font-medium">{photoUrls.length} รูป</span>
                 </div>
                 {hasCollar && collarDescription && (
                   <div>
-                    <span className="text-muted-foreground">ปลอกคอ:</span>
-                    <p className="text-foreground mt-0.5 text-xs">{collarDescription}</p>
+                    <span className="text-text-muted">ปลอกคอ:</span>
+                    <p className="text-text-main mt-0.5 text-xs">{collarDescription}</p>
                   </div>
                 )}
                 {description && (
                   <div>
-                    <span className="text-muted-foreground">รายละเอียด:</span>
-                    <p className="text-foreground mt-0.5 text-xs whitespace-pre-line">
+                    <span className="text-text-muted">รายละเอียด:</span>
+                    <p className="text-text-main mt-0.5 text-xs whitespace-pre-line">
                       {description}
                     </p>
                   </div>
@@ -707,7 +707,7 @@ export default function FoundReportPage() {
       </main>
 
       {/* Bottom navigation */}
-      <div className="fixed bottom-0 inset-x-0 bg-white border-t border-border p-4 safe-area-bottom z-30">
+      <div className="fixed bottom-0 inset-x-0 bg-surface border-t border-border p-4 safe-area-bottom z-30">
         <div className="max-w-md mx-auto flex gap-3">
           <Button variant="outline" onClick={handleBack} className="flex-1 h-12 rounded-xl">
             <ArrowLeft className="w-4 h-4 mr-1" />
@@ -718,7 +718,7 @@ export default function FoundReportPage() {
             <Button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white"
+              className="flex-1 h-12 rounded-xl bg-success hover:bg-success text-white"
             >
               ถัดไป
               <ArrowRight className="w-4 h-4 ml-1" />
@@ -727,7 +727,7 @@ export default function FoundReportPage() {
             <Button
               onClick={handleSubmit}
               disabled={submitting || !canProceed()}
-              className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold"
+              className="flex-1 h-12 rounded-xl bg-success hover:bg-success text-white font-bold"
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "ส่งรายงาน"}
             </Button>

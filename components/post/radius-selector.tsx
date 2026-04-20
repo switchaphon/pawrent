@@ -26,7 +26,7 @@ export function RadiusSelector({ value, onChange }: RadiusSelectorProps) {
             "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
             value === option.value
               ? "bg-primary text-white"
-              : "bg-white text-muted-foreground border border-border hover:border-primary"
+              : "bg-surface text-text-muted border border-border hover:border-primary"
           )}
         >
           {option.label}

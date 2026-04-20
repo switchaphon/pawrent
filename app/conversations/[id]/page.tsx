@@ -123,36 +123,36 @@ export default function ChatPage() {
   const otherPartyLabel = isOwner ? "ผู้พบสัตว์เลี้ยง" : "เจ้าของสัตว์เลี้ยง";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-surface-alt flex flex-col">
       {/* Safety tips modal */}
       {showSafetyTips && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4">
-            <div className="flex items-center gap-2 text-green-600">
+          <div className="bg-surface rounded-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-center gap-2 text-success">
               <Shield className="w-6 h-6" />
               <h3 className="text-lg font-bold">ปลอดภัยไว้ก่อน</h3>
             </div>
-            <ul className="space-y-2 text-sm text-foreground">
+            <ul className="space-y-2 text-sm text-text-main">
               <li className="flex items-start gap-2">
-                <span className="text-red-500 font-bold mt-0.5">x</span>
+                <span className="text-danger font-bold mt-0.5">x</span>
                 <span>อย่าโอนเงินก่อนพบตัวสัตว์เลี้ยง</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-red-500 font-bold mt-0.5">x</span>
+                <span className="text-danger font-bold mt-0.5">x</span>
                 <span>อย่าให้ที่อยู่บ้าน — นัดพบที่สาธารณะ</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-green-500 font-bold mt-0.5">o</span>
+                <span className="text-success font-bold mt-0.5">o</span>
                 <span>ใช้ระบบยืนยันตัวตนเพื่อพิสูจน์ความเป็นเจ้าของ</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold mt-0.5">!</span>
+                <span className="text-warning font-bold mt-0.5">!</span>
                 <span>แจ้งพฤติกรรมน่าสงสัยด้วยปุ่ม รายงาน</span>
               </li>
             </ul>
             <Button
               onClick={dismissSafetyTips}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-success hover:bg-success text-white"
             >
               เข้าใจแล้ว
             </Button>
@@ -161,14 +161,14 @@ export default function ChatPage() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-30 bg-surface border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <button onClick={() => router.back()} className="p-1 -ml-1">
-            <ArrowLeft className="w-5 h-5 text-foreground" />
+            <ArrowLeft className="w-5 h-5 text-text-main" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-foreground truncate">{otherPartyLabel}</h1>
-            <p className="text-xs text-muted-foreground">
+            <h1 className="text-base font-bold text-text-main truncate">{otherPartyLabel}</h1>
+            <p className="text-xs text-text-muted">
               {conversation?.status === "open" ? "กำลังสนทนา" : "ปิดการสนทนา"}
             </p>
           </div>
@@ -179,7 +179,7 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-text-muted">
               เริ่มต้นสนทนาเพื่อประสานงานเรื่องสัตว์เลี้ยง
             </p>
           </div>
@@ -195,7 +195,7 @@ export default function ChatPage() {
             <div key={msg.id}>
               {showDate && (
                 <div className="text-center my-3">
-                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="text-xs text-text-muted bg-surface-alt px-3 py-1 rounded-full">
                     {formatDateThai(msg.created_at)}
                   </span>
                 </div>
@@ -206,14 +206,14 @@ export default function ChatPage() {
                     "max-w-[75%] rounded-2xl px-4 py-2.5",
                     isMe
                       ? "bg-primary text-white rounded-br-md"
-                      : "bg-white border border-border text-foreground rounded-bl-md"
+                      : "bg-surface border border-border text-text-main rounded-bl-md"
                   )}
                 >
                   <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                   <p
                     className={cn(
                       "text-xs mt-1",
-                      isMe ? "text-white/70 text-right" : "text-muted-foreground"
+                      isMe ? "text-white/70 text-right" : "text-text-muted"
                     )}
                   >
                     {formatTime(msg.created_at)}
@@ -228,14 +228,14 @@ export default function ChatPage() {
 
       {/* Input bar */}
       {conversation?.status === "open" && (
-        <div className="sticky bottom-0 bg-white border-t border-border p-3 safe-area-bottom">
+        <div className="sticky bottom-0 bg-surface border-t border-border p-3 safe-area-bottom">
           <div className="max-w-md mx-auto flex gap-2">
             <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="พิมพ์ข้อความ..."
-              className="flex-1 px-4 py-2.5 border border-border rounded-2xl bg-background text-foreground resize-none max-h-24 text-sm"
+              className="flex-1 px-4 py-2.5 border border-border rounded-2xl bg-background text-text-main resize-none max-h-24 text-sm"
               rows={1}
               maxLength={2000}
             />

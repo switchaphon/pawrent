@@ -34,7 +34,7 @@ const getEventIcon = (type: HealthEvent["type"]) => {
 const getEventColor = (type: HealthEvent["type"]) => {
   switch (type) {
     case "lab":
-      return "bg-blue-100 text-blue-600";
+      return "bg-info-bg text-info";
     case "diagnosis":
       return "bg-orange-100 text-orange-600";
     case "checkup":
@@ -47,19 +47,19 @@ const getStatusBadge = (status?: HealthEvent["status"]) => {
   switch (status) {
     case "healthy":
       return (
-        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1">
+        <Badge variant="outline" className="bg-success-bg text-success border-green-200 gap-1">
           <Check className="w-3 h-3" /> Healthy
         </Badge>
       );
     case "monitor":
       return (
-        <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1">
+        <Badge variant="outline" className="bg-warning-bg text-warning border-yellow-200 gap-1">
           <AlertTriangle className="w-3 h-3" /> Monitor
         </Badge>
       );
     case "alert":
       return (
-        <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 gap-1">
+        <Badge variant="outline" className="bg-danger-bg text-danger border-red-200 gap-1">
           <AlertTriangle className="w-3 h-3" /> Alert
         </Badge>
       );
@@ -70,7 +70,7 @@ export function HealthTimeline({ events }: HealthTimelineProps) {
   if (events.length === 0) {
     return (
       <Card className="p-6 text-center">
-        <p className="text-muted-foreground">No health events recorded yet.</p>
+        <p className="text-text-muted">No health events recorded yet.</p>
       </Card>
     );
   }
@@ -98,8 +98,8 @@ export function HealthTimeline({ events }: HealthTimelineProps) {
                     {getEventIcon(event.type)}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-foreground">{event.title}</h4>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <h4 className="font-semibold text-text-main">{event.title}</h4>
+                    <p className="text-xs text-text-muted flex items-center gap-1">
                       <Calendar className="w-3 h-3" /> {event.date}
                     </p>
                   </div>
@@ -108,7 +108,7 @@ export function HealthTimeline({ events }: HealthTimelineProps) {
               </div>
 
               {event.description && (
-                <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
+                <p className="text-sm text-text-muted mb-2">{event.description}</p>
               )}
 
               {event.imageUrl && (

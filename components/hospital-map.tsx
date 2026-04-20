@@ -32,7 +32,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 // Custom Hospital Icon (Cross)
 const hospitalIcon = L.divIcon({
   className: "bg-transparent",
-  html: `<div class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center border-2 border-white shadow-lg">
+  html: `<div class="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center border-2 border-white shadow-lg">
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cross"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"/></svg>
   </div>`,
   iconSize: [32, 32],
@@ -88,7 +88,7 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
                 Certified
               </span>
             )}
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold border border-blue-200">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-info-bg text-info text-[10px] font-bold border border-blue-200">
               <Stethoscope className="w-3 h-3" />
               {hospital.specialists.length} Specialists
             </span>
@@ -98,7 +98,7 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
           <div className="flex items-start justify-between gap-2 mb-0.5">
             <h3 className="font-bold text-sm">{hospital.name}</h3>
             <span
-              className={`text-[10px] flex items-center gap-0.5 whitespace-nowrap ${hospital.open_hours === "24 Hours" ? "text-green-600 font-medium" : "text-gray-500"}`}
+              className={`text-[10px] flex items-center gap-0.5 whitespace-nowrap ${hospital.open_hours === "24 Hours" ? "text-success font-medium" : "text-text-muted"}`}
             >
               <Clock className="w-2.5 h-2.5" />
               {hospital.open_hours}
@@ -106,19 +106,19 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
           </div>
 
           <div className="space-y-0 mb-1">
-            <p className="text-[11px] text-gray-500 flex items-start gap-1 leading-tight">
-              <MapPin className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+            <p className="text-[11px] text-text-muted flex items-start gap-1 leading-tight">
+              <MapPin className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-text-muted" />
               <span>{hospital.address}</span>
             </p>
 
             <div className="flex items-center justify-between gap-1 py-0">
-              <p className="text-[11px] text-gray-700 flex items-center gap-1 font-medium leading-none">
-                <Phone className="w-2.5 h-2.5 flex-shrink-0 text-muted-foreground" />
+              <p className="text-[11px] text-text-subtle flex items-center gap-1 font-medium leading-none">
+                <Phone className="w-2.5 h-2.5 flex-shrink-0 text-text-muted" />
                 {hospital.phone}
               </p>
               <Button
                 size="sm"
-                className="bg-primary hover:bg-primary/90 h-6 text-[10px] px-3 rounded-full shadow-sm"
+                className="bg-primary hover:bg-primary/90 h-6 text-[10px] px-3 rounded-full shadow-soft"
                 asChild
               >
                 <a
@@ -139,13 +139,13 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
               {hospital.specialists.slice(0, 3).map((spec: string, i: number) => (
                 <span
                   key={i}
-                  className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full"
+                  className="text-[9px] px-1.5 py-0.5 bg-surface-alt text-text-muted rounded-full"
                 >
                   {spec}
                 </span>
               ))}
               {hospital.specialists.length > 3 && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                <span className="text-[10px] px-1.5 py-0.5 bg-surface-alt text-text-muted rounded-full">
                   +{hospital.specialists.length - 3}
                 </span>
               )}
@@ -156,7 +156,7 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
             <Button
               size="sm"
               variant="outline"
-              className="w-full h-8 text-xs font-medium bg-white"
+              className="w-full h-8 text-xs font-medium bg-surface"
               asChild
             >
               <a
@@ -216,14 +216,14 @@ export default function HospitalMap() {
 
       {/* Overlay Title - Compact Rectangular */}
       <div className="absolute top-4 left-4 right-4 z-[400] flex justify-center">
-        <div className="bg-white/95 backdrop-blur-md shadow-lg rounded-lg px-6 py-2">
-          <h1 className="font-bold text-sm text-foreground text-center">Nearby Hospital</h1>
+        <div className="bg-surface/95 backdrop-blur-md shadow-lg rounded-lg px-6 py-2">
+          <h1 className="font-bold text-sm text-text-main text-center">Nearby Hospital</h1>
         </div>
       </div>
 
       {/* Loading overlay */}
       {loading && (
-        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-white/60">
+        <div className="absolute inset-0 z-[500] flex items-center justify-center bg-surface/60">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       )}
@@ -231,7 +231,7 @@ export default function HospitalMap() {
       {/* Error overlay */}
       {error && (
         <div className="absolute bottom-20 left-4 right-4 z-[500] flex justify-center">
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2">
+          <div className="bg-danger-bg border border-red-200 text-danger text-sm rounded-lg px-4 py-2">
             Failed to load hospitals. Please try again later.
           </div>
         </div>

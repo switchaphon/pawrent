@@ -25,7 +25,7 @@ export function LocationBanner() {
         </button>
         <button
           onClick={() => setDismissed(true)}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-text-muted hover:text-text-main"
         >
           <X className="w-4 h-4" />
         </button>

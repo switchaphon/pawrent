@@ -71,13 +71,13 @@ export function VoicePlayer({ voiceUrl, petName }: VoicePlayerProps) {
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-      <p className="text-sm font-semibold text-foreground">🔊 เสียงเจ้าของเรียกน้อง {petName}</p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm font-semibold text-text-main">🔊 เสียงเจ้าของเรียกน้อง {petName}</p>
+      <p className="text-xs text-text-muted">
         เปิดเสียงให้น้องฟัง น้องอาจจำเสียงเจ้าของได้และเข้ามาหาคุณ
       </p>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
         <div
           className="h-full bg-primary rounded-full transition-all"
           style={{ width: `${progress}%` }}
@@ -87,7 +87,7 @@ export function VoicePlayer({ voiceUrl, petName }: VoicePlayerProps) {
 
       {/* Time display */}
       {duration > 0 && (
-        <p className="text-xs text-muted-foreground text-center" data-testid="voice-time-display">
+        <p className="text-xs text-text-muted text-center" data-testid="voice-time-display">
           {formatTime(currentTime)} / {formatTime(duration)}
         </p>
       )}

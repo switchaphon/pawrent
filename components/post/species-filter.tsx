@@ -24,7 +24,7 @@ export function SpeciesFilter({ value, onChange }: SpeciesFilterProps) {
             "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
             value === option.value
               ? "bg-secondary text-secondary-foreground"
-              : "bg-white text-muted-foreground border border-border hover:border-secondary"
+              : "bg-surface text-text-muted border border-border hover:border-secondary"
           )}
         >
           {option.label}

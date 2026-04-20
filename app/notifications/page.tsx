@@ -73,11 +73,11 @@ function NotificationsContent() {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 py-3">
+      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Notifications</h1>
-            <p className="text-sm text-muted-foreground">Pet reports nearby</p>
+            <h1 className="text-xl font-bold text-text-main">Notifications</h1>
+            <p className="text-sm text-text-muted">Pet reports nearby</p>
           </div>
           {nearbyAlerts.length > 0 && (
             <Badge className="bg-destructive text-white">{nearbyAlerts.length} nearby</Badge>
@@ -90,15 +90,15 @@ function NotificationsContent() {
         {/* Good News Section - Recently Found Pets */}
         {foundPets.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-green-600 mb-3 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-success mb-3 flex items-center gap-2">
               <PartyPopper className="w-4 h-4" />
               Good News!
             </h2>
             <div className="space-y-3">
               {foundPets.map((alert) => (
-                <Card key={alert.id} className="p-3 rounded-xl border-green-200 bg-green-50">
+                <Card key={alert.id} className="p-3 rounded-xl border-success/30 bg-success-bg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-success-bg flex items-center justify-center overflow-hidden">
                       {alert.pets?.photo_url ? (
                         <img
                           src={alert.pets.photo_url}
@@ -110,10 +110,10 @@ function NotificationsContent() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-green-800">
+                      <h3 className="font-semibold text-success">
                         {alert.pets?.name || "A pet"} was found!
                       </h3>
-                      <p className="text-xs text-green-600">
+                      <p className="text-xs text-success">
                         {alert.pets?.breed} • Found{" "}
                         {new Date(alert.resolved_at || "").toLocaleDateString()}
                       </p>
@@ -128,11 +128,11 @@ function NotificationsContent() {
 
         {alertsWithDistance.length === 0 && foundPets.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🎉</span>
             </div>
-            <h2 className="text-lg font-bold text-foreground mb-2">No active alerts</h2>
-            <p className="text-muted-foreground">All pets in your area are safe!</p>
+            <h2 className="text-lg font-bold text-text-main mb-2">No active alerts</h2>
+            <p className="text-text-muted">All pets in your area are safe!</p>
           </div>
         ) : alertsWithDistance.length > 0 ? (
           <>
@@ -154,14 +154,14 @@ function NotificationsContent() {
                           <span className="text-xl">🐕</span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-foreground">
+                          <h3 className="font-semibold text-text-main">
                             {alert.pets?.name || "Unknown Pet"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-text-muted">
                             {alert.pets?.breed || "Unknown breed"}
                           </p>
                           {alert.description && (
-                            <p className="text-sm text-foreground mt-1">{alert.description}</p>
+                            <p className="text-sm text-text-main mt-1">{alert.description}</p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             <Badge
@@ -171,7 +171,7 @@ function NotificationsContent() {
                               <Navigation className="w-3 h-3 mr-1" />
                               {alert.distance?.toFixed(1)} km away
                             </Badge>
-                            <Badge variant="outline" className="text-muted-foreground">
+                            <Badge variant="outline" className="text-text-muted">
                               <MapPin className="w-3 h-3 mr-1" />
                               {alert.lat.toFixed(3)}, {alert.lng.toFixed(3)}
                             </Badge>
@@ -187,23 +187,23 @@ function NotificationsContent() {
             {/* Other Alerts */}
             {otherAlerts.length > 0 && (
               <section>
-                <h2 className="text-sm font-semibold text-muted-foreground mb-3">
+                <h2 className="text-sm font-semibold text-text-muted mb-3">
                   Other Active Alerts
                 </h2>
                 <div className="space-y-3">
                   {otherAlerts.map((alert) => (
                     <Card key={alert.id} className="p-4 rounded-xl">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center">
                           <span className="text-lg">🐕</span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-foreground">
+                          <h3 className="font-semibold text-text-main">
                             {alert.pets?.name || "Unknown Pet"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">{alert.pets?.breed}</p>
+                          <p className="text-sm text-text-muted">{alert.pets?.breed}</p>
                           {alert.distance !== null && (
-                            <Badge variant="outline" className="mt-2 text-muted-foreground">
+                            <Badge variant="outline" className="mt-2 text-text-muted">
                               <Navigation className="w-3 h-3 mr-1" />
                               {alert.distance.toFixed(1)} km away
                             </Badge>
