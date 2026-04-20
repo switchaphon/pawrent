@@ -3,14 +3,15 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/liff-provider";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
+import { SkeletonCard } from "@/components/skeleton-card";
 import { getActivePetReports, getRecentlyFoundReports, calculateDistance } from "@/lib/db";
 import type { PetReport, Pet } from "@/lib/types";
-import { AlertTriangle, MapPin, Loader2, Navigation, PartyPopper } from "lucide-react";
+import { AlertTriangle, MapPin, Navigation, PartyPopper } from "lucide-react";
 
 function NotificationsContent() {
-  const { user } = useAuth();
+  useAuth();
   const [alerts, setAlerts] = useState<(PetReport & { pets: Pet })[]>([]);
   const [foundPets, setFoundPets] = useState<(PetReport & { pets: Pet })[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -28,7 +29,6 @@ function NotificationsContent() {
   };
 
   useEffect(() => {
-    // Get user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -38,7 +38,6 @@ function NotificationsContent() {
           });
         },
         () => {
-          // Default to Bangkok if geolocation fails
           setUserLocation({ lat: 13.7563, lng: 100.5018 });
         }
       );
@@ -49,7 +48,6 @@ function NotificationsContent() {
     void fetchAlerts();
   }, []);
 
-  // Filter and sort alerts by distance
   const alertsWithDistance = userLocation
     ? alerts
         .map((alert) => ({
@@ -62,161 +60,174 @@ function NotificationsContent() {
   const nearbyAlerts = alertsWithDistance.filter((a) => a.distance !== null && a.distance < 5);
   const otherAlerts = alertsWithDistance.filter((a) => a.distance === null || a.distance >= 5);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen-safe">
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-border px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-text-main">Notifications</h1>
-            <p className="text-sm text-text-muted">Pet reports nearby</p>
+            <h1 className="text-xl font-bold text-text-main">แจ้งเตือน</h1>
+            <p className="text-xs text-text-muted">ประกาศในละแวกใกล้เคียง</p>
           </div>
           {nearbyAlerts.length > 0 && (
-            <Badge className="bg-destructive text-white">{nearbyAlerts.length} nearby</Badge>
+            <Badge variant="danger">ใกล้คุณ {nearbyAlerts.length}</Badge>
           )}
         </div>
       </header>
 
-      {/* Content */}
-      <main className="px-4 py-6 max-w-md mx-auto space-y-6">
-        {/* Good News Section - Recently Found Pets */}
-        {foundPets.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-success mb-3 flex items-center gap-2">
-              <PartyPopper className="w-4 h-4" />
-              Good News!
-            </h2>
-            <div className="space-y-3">
-              {foundPets.map((alert) => (
-                <Card key={alert.id} className="p-3 rounded-xl border-success/30 bg-success-bg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-success-bg flex items-center justify-center overflow-hidden">
-                      {alert.pets?.photo_url ? (
-                        <img
-                          src={alert.pets.photo_url}
-                          alt={alert.pets.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-lg">🐕</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-success">
-                        {alert.pets?.name || "A pet"} was found!
-                      </h3>
-                      <p className="text-xs text-success">
-                        {alert.pets?.breed} • Found{" "}
-                        {new Date(alert.resolved_at || "").toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="text-2xl">🎉</span>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {alertsWithDistance.length === 0 && foundPets.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🎉</span>
-            </div>
-            <h2 className="text-lg font-bold text-text-main mb-2">No active alerts</h2>
-            <p className="text-text-muted">All pets in your area are safe!</p>
-          </div>
-        ) : alertsWithDistance.length > 0 ? (
+      <main className="px-4 py-4 max-w-md mx-auto space-y-5">
+        {loading ? (
           <>
-            {/* Nearby Alerts (< 5km) */}
-            {nearbyAlerts.length > 0 && (
-              <section>
-                <h2 className="text-sm font-semibold text-destructive mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Nearby Alerts (within 5km)
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={3} />
+          </>
+        ) : (
+          <>
+            {foundPets.length > 0 && (
+              <section aria-label="ข่าวดี">
+                <h2 className="text-sm font-bold text-success mb-3 flex items-center gap-2 px-1">
+                  <PartyPopper className="w-4 h-4" aria-hidden />
+                  ข่าวดี!
                 </h2>
                 <div className="space-y-3">
-                  {nearbyAlerts.map((alert) => (
-                    <Card
+                  {foundPets.map((alert) => (
+                    <article
                       key={alert.id}
-                      className="p-4 rounded-xl border-destructive/30 bg-destructive/5"
+                      className="p-4 rounded-[24px] border border-success/30 bg-success-bg shadow-soft"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                          <span className="text-xl">🐕</span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-text-main">
-                            {alert.pets?.name || "Unknown Pet"}
-                          </h3>
-                          <p className="text-sm text-text-muted">
-                            {alert.pets?.breed || "Unknown breed"}
-                          </p>
-                          {alert.description && (
-                            <p className="text-sm text-text-main mt-1">{alert.description}</p>
-                          )}
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge
-                              variant="outline"
-                              className="text-destructive border-destructive/30"
-                            >
-                              <Navigation className="w-3 h-3 mr-1" />
-                              {alert.distance?.toFixed(1)} km away
-                            </Badge>
-                            <Badge variant="outline" className="text-text-muted">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {alert.lat.toFixed(3)}, {alert.lng.toFixed(3)}
-                            </Badge>
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-pops-gradient p-[2px] overflow-hidden">
+                          <div className="w-full h-full rounded-full bg-surface overflow-hidden">
+                            {alert.pets?.photo_url ? (
+                              <img
+                                src={alert.pets.photo_url}
+                                alt={alert.pets.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span
+                                className="flex items-center justify-center h-full text-lg"
+                                aria-hidden
+                              >
+                                🐕
+                              </span>
+                            )}
                           </div>
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-success truncate">
+                            {alert.pets?.name || "น้องคนหนึ่ง"} กลับบ้านแล้ว!
+                          </h3>
+                          <p className="text-xs text-success/90 truncate">
+                            {alert.pets?.breed} · พบเมื่อ{" "}
+                            {new Date(alert.resolved_at || "").toLocaleDateString("th-TH")}
+                          </p>
+                        </div>
+                        <span className="text-2xl" aria-hidden>
+                          🎉
+                        </span>
                       </div>
-                    </Card>
+                    </article>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Other Alerts */}
-            {otherAlerts.length > 0 && (
-              <section>
-                <h2 className="text-sm font-semibold text-text-muted mb-3">
-                  Other Active Alerts
-                </h2>
-                <div className="space-y-3">
-                  {otherAlerts.map((alert) => (
-                    <Card key={alert.id} className="p-4 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center">
-                          <span className="text-lg">🐕</span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-text-main">
-                            {alert.pets?.name || "Unknown Pet"}
-                          </h3>
-                          <p className="text-sm text-text-muted">{alert.pets?.breed}</p>
-                          {alert.distance !== null && (
-                            <Badge variant="outline" className="mt-2 text-text-muted">
-                              <Navigation className="w-3 h-3 mr-1" />
-                              {alert.distance.toFixed(1)} km away
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-            )}
+            {alertsWithDistance.length === 0 && foundPets.length === 0 ? (
+              <EmptyState
+                emoji="🎉"
+                title="ยังไม่มีประกาศที่ต้องจับตา"
+                description="สัตว์เลี้ยงในพื้นที่ของคุณปลอดภัยดี"
+              />
+            ) : alertsWithDistance.length > 0 ? (
+              <>
+                {nearbyAlerts.length > 0 && (
+                  <section aria-label="ประกาศในรัศมี 5 กม.">
+                    <h2 className="text-sm font-bold text-danger mb-3 flex items-center gap-2 px-1">
+                      <AlertTriangle className="w-4 h-4" aria-hidden />
+                      ใกล้คุณ (ภายใน 5 กม.)
+                    </h2>
+                    <div className="space-y-3">
+                      {nearbyAlerts.map((alert) => (
+                        <article
+                          key={alert.id}
+                          className="p-4 rounded-[24px] border border-danger/30 bg-danger-bg shadow-soft"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-full bg-danger/15 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xl" aria-hidden>
+                                🐕
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-text-main truncate">
+                                {alert.pets?.name || "น้องไม่ทราบชื่อ"}
+                              </h3>
+                              <p className="text-xs text-text-muted">
+                                {alert.pets?.breed || "ไม่ระบุสายพันธุ์"}
+                              </p>
+                              {alert.description && (
+                                <p className="text-sm text-text-main mt-1 leading-relaxed">
+                                  {alert.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                <Badge variant="danger">
+                                  <Navigation className="w-3 h-3" aria-hidden />
+                                  ห่าง {alert.distance?.toFixed(1)} กม.
+                                </Badge>
+                                <Badge variant="outline">
+                                  <MapPin className="w-3 h-3" aria-hidden />
+                                  {alert.lat.toFixed(3)}, {alert.lng.toFixed(3)}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {otherAlerts.length > 0 && (
+                  <section aria-label="ประกาศที่ยังใช้งานอยู่อื่น ๆ">
+                    <h2 className="text-sm font-bold text-text-muted mb-3 px-1">
+                      ประกาศอื่น ๆ
+                    </h2>
+                    <div className="space-y-3">
+                      {otherAlerts.map((alert) => (
+                        <article
+                          key={alert.id}
+                          className="p-4 rounded-[24px] border border-border bg-surface shadow-soft"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-11 h-11 rounded-full bg-surface-alt flex items-center justify-center flex-shrink-0">
+                              <span className="text-lg" aria-hidden>
+                                🐕
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-text-main truncate">
+                                {alert.pets?.name || "น้องไม่ทราบชื่อ"}
+                              </h3>
+                              <p className="text-xs text-text-muted">{alert.pets?.breed}</p>
+                              {alert.distance !== null && (
+                                <Badge variant="outline" className="mt-2">
+                                  <Navigation className="w-3 h-3" aria-hidden />
+                                  ห่าง {alert.distance.toFixed(1)} กม.
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            ) : null}
           </>
-        ) : null}
+        )}
       </main>
     </div>
   );

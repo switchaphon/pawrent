@@ -116,7 +116,7 @@ function ProfileContent() {
             {feedbackSuccess ? (
               <div className="py-8 text-center">
                 <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-text-main mb-2">Thank You!</h2>
+                <h2 className="text-xl font-bold text-text-main mb-2">ขอบคุณ!</h2>
                 <p className="text-text-muted">
                   Your feedback has been submitted successfully.
                 </p>
@@ -125,7 +125,7 @@ function ProfileContent() {
               <>
                 <div className="flex items-center gap-3 mb-4">
                   <MessageSquare className="w-8 h-8 text-primary" />
-                  <h2 className="text-xl font-bold text-text-main">Send Feedback</h2>
+                  <h2 className="text-xl font-bold text-text-main">ส่งความคิดเห็น</h2>
                 </div>
 
                 <p className="text-sm text-text-muted mb-4">
@@ -136,7 +136,7 @@ function ProfileContent() {
                 <textarea
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
-                  placeholder="Describe your feedback, issue, or suggestion..."
+                  placeholder="บอกเราสิ่งที่อยากปรับปรุง ปัญหาที่พบ หรือข้อเสนอแนะ…"
                   className="w-full h-32 p-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
                 />
 
@@ -351,7 +351,7 @@ function ProfileContent() {
               <X className="w-5 h-5" />
             </button>
 
-            <h2 className="text-xl font-bold text-text-main mb-6">Edit Profile</h2>
+            <h2 className="text-xl font-bold text-text-main mb-6">แก้ไขโปรไฟล์</h2>
 
             {/* Image Cropper Modal */}
             {showAvatarCropper && avatarImageToCrop && (
@@ -583,7 +583,7 @@ function ProfileContent() {
                 className="w-full flex items-center gap-3 px-4 py-2.5 bg-card hover:bg-surface-alt/50 transition-colors rounded-lg border border-border"
               >
                 <Bell className="w-4 h-4 text-text-muted flex-shrink-0" />
-                <span className="text-sm text-text-main">Notifications</span>
+                <span className="text-sm text-text-main">การแจ้งเตือน</span>
               </button>
               <button
                 onClick={() => setShowPrivacy(true)}
