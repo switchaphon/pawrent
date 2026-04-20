@@ -3,6 +3,56 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] - 2026-04-20
+
+### Added
+
+- **Found Pet Reporting** (PRP-05) — full found-side counterpart to the lost-pet flow
+  - `app/post/found/page.tsx` and `app/post/page.tsx` Found tab + `FoundReportCard`
+  - API: `POST/GET /api/found-reports`, `POST/GET /api/sightings`, `POST/GET /api/conversations`, `POST/GET /api/conversations/[id]/messages`
+  - Direct-message bridge between owner and finder via the `conversations`/`messages` tables
+  - Migration `20260414000006_found_reports_tables.sql`
+  - Types `lib/types/found.ts`, `lib/types/conversations.ts`; validation `lib/validations/found.ts`
+
+- **LINE Push Notifications with Geospatial Targeting** (PRP-06)
+  - Push templates: `lost-pet-alert`, `match-found`, `sighting-update`
+  - Server-side fanout against `lib/types/push.ts`, validation `lib/validations/push.ts`
+  - Migration `20260414100001_push_notifications.sql`
+
+- **Pet Health Passport** (PRP-12)
+  - Routes: `app/pets/[id]/passport/page.tsx`, OG image `app/api/og/passport/[petId]/route.tsx`
+  - Cron jobs: `/api/cron/health-reminders` (daily 08:00 UTC), `/api/cron/celebrations` (daily 07:00 UTC) — registered in `vercel.json`
+  - Pet weight tracking API `app/api/pet-weight/route.ts` + `WeightChart` and `MilestoneTimeline` components
+  - LINE templates: `lib/line-templates/health-reminder.ts`, `lib/line-templates/celebration.ts`
+  - Migration `20260414100000_pet_health_passport.sql`
+  - Types `lib/types/health.ts`; validation `lib/validations/health.ts`
+  - E2E spec `e2e/pet-passport.spec.ts`
+
+### Changed
+
+- Barrel re-exports `lib/types/index.ts` and `lib/validations/index.ts` now expose the
+  three new domains (`./found`, `./conversations`, `./push`, `./health`).
+- `vitest.config.ts` excludes `app/api/og/**` (Edge runtime / `ImageResponse` not testable in jsdom).
+
+### Fixed
+
+- `__tests__/community-hub.test.tsx` Found-tab assertion: PRP-05 replaced the
+  "เร็วๆ นี้" placeholder with the real Found UI; test now mocks
+  `/api/found-reports` with empty data and asserts the empty-state copy.
+- E2E specs `e2e/auth-flow.spec.ts`, `e2e/feedback-page.spec.ts`,
+  `e2e/public-pages.spec.ts` updated to pin the current LiffProvider redirect
+  flow (was authored against pre-redirect behavior; 11 specs were red on `main`
+  prior to this release).
+- `__tests__/api-found-reports.test.ts`, `__tests__/api-sightings.test.ts`
+  extended; new `__tests__/api-conversations.test.ts` and
+  `__tests__/api-conversation-messages.test.ts` added — all four PRP-05 routes
+  now meet per-file coverage thresholds (90% stmt/func/lines, 85% branches).
+
+### Notes
+
+- Local Supabase `db push` was not run in this release (no Docker / no project
+  link in the dev environment). Migrations will land via CI/staging deploy.
+
 ## [0.5.0] - 2026-04-13
 
 ### Added
