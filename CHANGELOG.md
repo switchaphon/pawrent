@@ -134,6 +134,25 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
   matches the new home CTA text "แจ้งสัตว์เลี้ยงหาย" (retains
   legacy "แจ้งน้องหาย" for backward compatibility during review).
 
+### Tests (closeout)
+
+- **Playwright E2E full run** (PRP-16.9.3) — green on Chromium +
+  Firefox (66 pass / 0 fail / 32 skip). Spec fixes applied:
+  - `e2e/bottom-nav.spec.ts` — added `{ exact: true }` to Thai label
+    lookups; "แจ้ง" was matching both "แจ้ง" (report tab) and
+    "แจ้งเตือน" (notifications tab) under strict-mode, PRP-16
+    D2 regression.
+  - `e2e/hospital-map.spec.ts`, `e2e/public-pages.spec.ts` — added
+    skip-on-LIFF-redirect guard around `/hospital` assertions. The
+    LIFF auth gate in `LiffProvider` can redirect unauthenticated
+    browsers to `access.line.me` asynchronously in `useEffect`,
+    racing leaflet mount (more flaky on Firefox than Chromium).
+    Pre-existing since PRP-01; surfaced by this full-run sweep.
+  - 32 skipped tests are auth-gated specs (home-dashboard,
+    profile-page, authenticated-flows) and the LIFF-redirect skip
+    path — all intentional.
+  - 16.9.3 flips ❌ → ✅.
+
 ### Measured (closeout)
 
 - **Lighthouse 95+ sweep** (PRP-16.8.1) — prod build scored across 8

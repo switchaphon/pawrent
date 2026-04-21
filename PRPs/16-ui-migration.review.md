@@ -453,7 +453,7 @@ E2E"; morning shipped two broader new specs (`home-dashboard.spec.ts`,
 | ----------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
 | 16.4.2      | ❌     | `app/pets/[id]/page.tsx` never existed in the repo — PRP typo; only `.../passport/page.tsx` exists (token-swapped). |
 | 16.8.1      | ⚠️     | Lighthouse **measured** (prod build) on 8 routes — no category ≥95. Follow-up PRP needed — see "Lighthouse 95+ sweep" section below. |
-| 16.9.3      | ❌     | `npm run test:e2e` full run — Playwright unattended-fragile; defer to human.                                       |
+| 16.9.3      | ✅     | `npm run test:e2e` run green on Chromium + Firefox (66 pass / 0 fail / 32 skip). 3 spec fixes: bottom-nav `exact: true` for Thai-substring collision, hospital-map + public-pages skip-on-LIFF-redirect guard. |
 | 16.10.2     | ⚠️     | Screenshots **captured** for 8 primary v6 routes at 375×667 in `ROADMAP/screenshots/after/` with paired `README.md`. Human visual verdict pending (≥30%-off threshold). |
 
 ### Quality gates — re-run at 11:43

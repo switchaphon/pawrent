@@ -5,13 +5,14 @@ test.describe("Bottom navigation (on public pages)", () => {
     await page.goto("/hospital");
     const nav = page.locator("nav");
     await expect(nav).toBeVisible({ timeout: 10000 });
-    // D2 thai labels (bottom-nav.tsx)
-    await expect(nav.getByText("หน้าหลัก")).toBeVisible();
-    await expect(nav.getByText("ฟีด")).toBeVisible();
-    await expect(nav.getByText("แจ้ง")).toBeVisible();
-    await expect(nav.getByText("แจ้งเตือน")).toBeVisible();
-    await expect(nav.getByText("สัตว์เลี้ยง")).toBeVisible();
-    await expect(nav.getByText("โปรไฟล์")).toBeVisible();
+    // D2 thai labels (bottom-nav.tsx) — exact match required because
+    // "แจ้ง" is a substring of "แจ้งเตือน".
+    await expect(nav.getByText("หน้าหลัก", { exact: true })).toBeVisible();
+    await expect(nav.getByText("ฟีด", { exact: true })).toBeVisible();
+    await expect(nav.getByText("แจ้ง", { exact: true })).toBeVisible();
+    await expect(nav.getByText("แจ้งเตือน", { exact: true })).toBeVisible();
+    await expect(nav.getByText("สัตว์เลี้ยง", { exact: true })).toBeVisible();
+    await expect(nav.getByText("โปรไฟล์", { exact: true })).toBeVisible();
   });
 
   test("clicking หน้าหลัก from hospital page navigates to /", async ({ page }) => {
