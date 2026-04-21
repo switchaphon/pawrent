@@ -53,14 +53,17 @@ test.describe("Authenticated user flows", () => {
 
   test("report shortcut is visible on home and routes to post/lost", async ({ page }) => {
     await page.goto("/");
-    // Home page quick-actions or bottom-nav แจ้ง button leads to /post/lost wizard
-    const reportShortcut = page.getByText("แจ้งน้องหาย").first();
+    // Home quick-actions primary CTA → /post/lost wizard
+    const reportShortcut = page.getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/).first();
     await expect(reportShortcut).toBeVisible({ timeout: 10000 });
   });
 
   test("report shortcut links to /post/lost page", async ({ page }) => {
     await page.goto("/");
-    await page.getByText("แจ้งน้องหาย").first().click();
+    await page
+      .getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/)
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/post\/lost/);
   });
 });

@@ -5,9 +5,37 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP    | Step    | Gate | Status              | Branch                        | Last Updated |
-| ------ | ------- | ---- | ------------------- | ----------------------------- | ------------ |
-| PRP-16 | execute | G4   | overnight-autonomous-run | feature/prp-16-ui-migration | 2026-04-21   |
+| PRP    | Step    | Gate | Status                     | Branch                                                                | Last Updated |
+| ------ | ------- | ---- | -------------------------- | --------------------------------------------------------------------- | ------------ |
+| PRP-16 | execute | G4   | stacked-prs-ready-for-pr   | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
+
+### Morning continuation (Option A — stacked PRs)
+
+The overnight run landed the foundation + token migration layer on
+`feature/prp-16-ui-migration`. Morning session completed four additional
+stacked branches to land the structural rebuilds that were deferred
+overnight. Each branch is a thin, review-sized PR that stacks on its
+predecessor:
+
+1. **PR 1 — `feature/prp-16-ui-migration` (overnight)**: D2 tokens +
+   UI primitives + bottom nav + state components + pets/post/home/
+   notifications/profile token swap.
+2. **PR 2 — `feature/prp-16-wizards`**: lost + found wizards rewritten
+   with compact `WizardHeader`, `BubbleCard` steps, pops-gradient
+   success mascot, polished `ShareRow`. Alert detail rewritten with
+   bubble cards, coral→amber reward banner, pill-tag pet metadata.
+   (commit 44a2d2b)
+3. **PR 3 — `feature/prp-16-home-dashboard`**: full 7-section V6+D2
+   home dashboard rebuild replacing the community feed. (commit fda1770)
+4. **PR 4 — `feature/prp-16-profile`**: full 11-section V6+D2 profile
+   rebuild (hero card, subscription, contact channels, notification
+   prefs, PDPA, settings, help, sign out, footer). (commit eaa2d19)
+5. **PR 5 — `feature/prp-16-e2e-docs`** (this branch): new E2E specs
+   (home-dashboard, profile-page), updated authenticated-flows to new
+   CTA text, CHANGELOG v0.7.0-alpha extended with morning deltas,
+   pipeline-status updated.
+
+User will open PRs via GitHub UI in order. Merge order: 1 → 2 → 3 → 4 → 5.
 
 ### PRP-16 Overnight Autonomous Run — 2026-04-21
 
@@ -34,7 +62,7 @@ in morning. See `.claude/plans/prps-16-ui-migration-md-then-clear-the-quizzical-
 - **16.2** UI primitive migration — button, card, input, badge, new
   pill-tag, toast
 - **16.3** Bottom nav 6-tab (Thai labels, coral active dot, backdrop-blur)
-  + navigation-shell padding preserved at `pb-16`
+  - navigation-shell padding preserved at `pb-16`
 - **16.4** Pet management screens — `app/pets/page.tsx` rewritten with
   circular pet selectors + pops-gradient ring, PetProfileCard rewritten,
   VaccineStatusBar D2 semantic tokens, PhotoGallery D2 tokens, PetCard D2
@@ -53,42 +81,39 @@ in morning. See `.claude/plans/prps-16-ui-migration-md-then-clear-the-quizzical-
 - **16.10.1 & 16.10.3** Legacy token cleanup via mass perl pass,
   CHANGELOG v0.7.0-alpha entry added
 
-#### ⏸ Deferred — needs visual-diff review
+#### ✅ Morning stacked-PR deltas (all deferred-overnight items now done)
 
-Flagged in commit messages; batched together because they require
-side-by-side comparison against `ROADMAP/New-design/variation-06*.html`
-mockups:
+1. **Full dashboard restructure at `app/page.tsx`** — ✅ PR 3
+   (fda1770). 7 sections per `variation-06-home.html`: greeting,
+   weather strip, pet quick-status row, urgent alerts, lost-pets-
+   nearby live from `/api/post`, health reminders, quick actions.
+2. **Full profile restructure at `app/profile/page.tsx`** — ✅ PR 4
+   (eaa2d19). 11 sections per `variation-06-profile.html`: hero,
+   subscription, pets, contacts, notifications, PDPA, settings,
+   help, sign out, footer.
+3. **Lost/found wizard step-card structure** — ✅ PR 2 (44a2d2b).
+   Compact sticky header, coral-gradient step badge, inline stepper,
+   bubble-card steps, emergency markers on photos, success mascot.
+   Alert detail rewritten to match (bubble cards + reward banner +
+   pill-tag metadata).
 
-1. **Full dashboard restructure at `app/page.tsx`** — PRP-16.6.1 calls
-   for a weather strip, pet quick-status row, urgent alerts card, lost
-   pets nearby preview, and health reminders card replacing the
-   community feed. Current state: kept community feed with added
-   dashboard-framing (greeting + quick-actions). Judgment call: better
-   to land a clean community feed than a half-baked dashboard.
-
-2. **Full profile restructure at `app/profile/page.tsx`** — PRP-16.6.3
-   calls for owner hero card with stats, package/subscription card,
-   contact channels card, notification settings card, PDPA card, help.
-   Current state: 624-line existing layout with D2 token swap applied
-   and top-level Thai translations; full restructure not attempted.
-
-3. **Lost/found wizard step-card structure** — PRP-16.5.1 calls for
-   compact header + descriptive stepper + each step as one bubble card
-   with gradient active selection + emergency gallery markers. Current
-   state: D2 tokens applied across the existing wizard structure
-   (rounded-24, shadow-soft, surface bg). Step restructure not done.
+#### ⏸ Still deferred (out of autonomous scope)
 
 4. **Lighthouse 95+ accessibility audit** (PRP-16.8) — unattended
-   Playwright + Lighthouse loops are fragile. Defer to morning session
-   with `npm run dev` running.
+   Playwright + Lighthouse loops are fragile. Needs live server +
+   manual run.
 
-5. **New E2E specs** (PRP-16.9.4–5) for 6-tab bottom nav + `/pets` empty
-   state rendering — better written with full context + design.
+5. **Before/after screenshots** (PRP-16.10.2) — no device access.
 
-6. **Before/after screenshots** (PRP-16.10.2) — no device access
-   overnight.
+6. **Manual iOS/Android LIFF smoke tests** — no device access.
 
-7. **DESIGN-TOKENS-D2 change-log bump** (PRP-16.10.4) — trivial doc edit.
+#### ✅ Morning additions
+
+- ✅ New E2E specs (PRP-16.9.4–5) — `e2e/home-dashboard.spec.ts` and
+  `e2e/profile-page.spec.ts` added in PR 5. `e2e/bottom-nav.spec.ts`
+  already covered 6-tab from overnight run.
+- ✅ `authenticated-flows.spec.ts` updated to new home CTA text
+  "แจ้งสัตว์เลี้ยงหาย" (regex retains legacy "แจ้งน้องหาย").
 
 #### ⚠️ Self-flagged items for morning visual diff
 

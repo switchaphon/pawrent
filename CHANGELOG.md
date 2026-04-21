@@ -60,7 +60,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 
 - `components/empty-state.tsx` — mascot emoji/icon + title + description
-  + optional CTA. `role="status"`.
+  - optional CTA. `role="status"`.
 - `components/skeleton-card.tsx` — `SkeletonCard`, `SkeletonLine`,
   `SkeletonAvatar`. Consumes `.skeleton` shimmer class (respects
   `prefers-reduced-motion`).
@@ -73,7 +73,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ### Tests
 
 - Migrated `__tests__/simple-components.test.tsx` to D2 Thai labels
-  + semantic color tokens (bg-success / bg-warning / bg-danger).
+  - semantic color tokens (bg-success / bg-warning / bg-danger).
 - Migrated `__tests__/pet-card.test.tsx` and
   `__tests__/pet-profile-card.test.tsx` to D2 semantic tokens + Thai
   `getByText` / `getByLabelText` selectors.
@@ -83,20 +83,65 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Updated `e2e/hospital-map.spec.ts` — removed "Hospital as active tab"
   assertion (tab dropped in PRP-16).
 
-### Deferred (documented for morning review)
+### Added (morning — stacked PRs 2-5)
 
-- Full dashboard restructure for `app/page.tsx` per PRP-16.6.1
-  (weather strip, pet quick-status row, urgent alerts, nearby preview,
-  health reminders). Current implementation keeps community feed.
-- Full profile restructure per `variation-06-profile.html` (hero card,
-  package/subscription, contact channels, PDPA, settings).
-- Lighthouse 95+ audit (PRP-16.8).
-- New E2E specs for bottom nav 6-tab + `/pets` empty state (PRP-16.9.4–5).
-- Before/after screenshots (PRP-16.10.2) — no device access in
-  overnight run.
-- Wizard step restructure per `variation-06.html` (token swap applied;
-  bubble-card layout + gradient step selector + emergency-gallery
-  markers need visual-diff pass).
+- **Lost/Found wizards rebuilt to V6+D2** (`app/post/lost/page.tsx`,
+  `app/post/found/page.tsx`) — compact sticky `WizardHeader` with
+  coral-gradient step number badge + inline stepper + progress bar,
+  `BubbleCard` sections per step, `PillTag` pet-picker active ring,
+  Step-3 emergency markers on photos (red badge + count), `ShareRow`
+  with LINE/FB/X/Copy/Download (lost) or LINE/FB/X/Copy (found),
+  success mascot with `bg-pops-gradient animate-pulse shadow-glow` (🐕
+  for lost, 🎉 for found). Compact Thai step titles.
+- **Alert detail page rebuilt** (`app/post/[id]/page.tsx`) — bubble
+  cards throughout, coral→amber gradient reward banner with
+  `shadow-glow` + backdrop-blur, pill-tag pet metadata chips,
+  polished 4-button share row with colored backgrounds per channel,
+  status chip in sticky header, per-photo emergency number badges
+  on lost alerts.
+- **Home dashboard full 7-section rebuild** (`app/page.tsx`) —
+  greeting pill with `bg-pops-gradient` ring + time-aware Thai
+  greeting, weather/date strip with Buddhist calendar, pet
+  quick-status row (2 circular cards, derived health status pill
+  from vaccine + parasite dates), urgent alerts card (overdue
+  meds, stale weight logs with coral-gradient "ทำตอนนี้" CTA),
+  live lost-pets-nearby from `/api/post?status=active` (up to 3,
+  empty state), health reminders card (upcoming vaccines within
+  90 days + parasite within 60 days, colour-coded ETA), quick
+  actions row with primary แจ้งสัตว์เลี้ยงหาย + outline secondaries.
+- **Profile page full 11-section rebuild** (`app/profile/page.tsx`) —
+  owner hero card (80px avatar with pops-gradient ring, verified
+  badge, email, join-date, 3 mini stat tiles), subscription card
+  with usage bars + disabled premium upgrade CTA (placeholder),
+  my-pets compact link row, contact channels card (LINE + email +
+  phone placeholder), notification settings with radius pill
+  selector (1/3/5/10 km) + reusable `ToggleRow` for health and
+  community prefs, PDPA card with `/api/me/data-export` link +
+  privacy modal + delete account placeholder, app settings
+  (language, theme, sound, version from package.json), help card
+  (feedback, guide, bug report), outline-danger sign out,
+  copyright footer.
+- `e2e/home-dashboard.spec.ts` — V6+D2 home structure coverage:
+  time-aware greeting, weather strip, pet-health heading, quick
+  actions, notification bell aria-label, primary CTA routing.
+- `e2e/profile-page.spec.ts` — 11-section structure coverage:
+  all sections present, edit modal open/close, sign-out label,
+  notification radius pill selection.
+
+### Changed (morning)
+
+- `e2e/authenticated-flows.spec.ts` — report shortcut regex now
+  matches the new home CTA text "แจ้งสัตว์เลี้ยงหาย" (retains
+  legacy "แจ้งน้องหาย" for backward compatibility during review).
+
+### Still deferred (out of autonomous scope)
+
+- Lighthouse 95+ audit (PRP-16.8) — needs live server + manual run.
+- Before/after screenshots (PRP-16.10.2) — no device access.
+- Manual iOS/Android LIFF smoke tests — no device access.
+- PRP-17 rich-menu restructure — blocked on Figma asset production
+  and LINE OA operator deployment; PRP spec committed in
+  `PRPs/17-rich-menu-restructure.md`.
 
 ## [0.6.0] - 2026-04-20
 
