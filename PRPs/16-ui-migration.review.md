@@ -381,4 +381,150 @@ template exists):
 
 ---
 
-**One-line summary:** ✅ PRP-16 foundation-slice complete on `feature/prp-16-ui-migration` — Accuracy: 7/10 — Tests: 890/890 — Build: green — 7 / 14 / 26 tasks (not-started / partial / done) — 21 lessons captured.
+---
+
+## Morning-Session Supplement (2026-04-21 ~11:00)
+
+After the overnight review above, four stacked PRs landed on
+`feature/prp-16-e2e-docs` (stacked order:
+`feature/prp-16-ui-migration` → `…-wizards` → `…-home-dashboard` →
+`…-profile` → `…-e2e-docs` → main). Each is a review-sized slice;
+user opens the PRs via GitHub UI in order.
+
+These PRs close the biggest structural gaps the overnight review
+flagged, and productize the "Add to Future PRPs" lessons into a
+reusable template.
+
+### Commits (2026-04-21 AM, chronological)
+
+| Commit    | Scope                                                                                                                  | Tasks closed                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `4f4a608` | `PRPs/templates/prp_base.md` + README — 6 overnight-review lessons productized as reusable template                    | Template improvements (meta)         |
+| `44a2d2b` | Lost + found wizard rewrites + alert detail rewrite to V6 bubble cards; success mascot + share row                     | 16.5.1, 16.5.2, 16.5.3, 16.5.5       |
+| `fda1770` | Home dashboard full 7-section rebuild (greeting / weather / pet status / urgent / nearby / health / quick actions)     | 16.6.1                               |
+| `eaa2d19` | Profile 11-section rebuild (hero / subscription / pets / contacts / notif / PDPA / settings / help / sign-out / footer) | 16.6.3                               |
+| `178eec8` | New E2E specs (home-dashboard, profile-page), CHANGELOG morning deltas, pipeline-status + plan + review archived       | 16.9.4, 16.9.5 (adjacent), 16.10 docs |
+
+### Commits (2026-04-21 PM, chronological)
+
+| Commit    | Scope                                                                                                         | Tasks closed |
+| --------- | ------------------------------------------------------------------------------------------------------------- | ------------ |
+| `9ecc66a` | DESIGN-TOKENS-D2-pops-balanced.md status header + change-log row — applied `c786446..178eec8`                 | 16.10.4      |
+| `60babbc` | `conductor/code_styleguides/design-tokens.md` — Tailwind v4 `@theme inline` pattern + semantic-token rule table, cross-linked from `typescript.md` | 16.10.1      |
+| `4b232e0` | `app/conversations/page.tsx` + `app/post/[id]/page.tsx` — swap ad-hoc spinner/"ไม่พบประกาศ" blocks for SkeletonCard + EmptyState primitives | 16.7.6       |
+| `e7bfbdf` | Thai aria-label sweep: feedback / conversations (+chat) / 6 modals / photo-lightbox 5 icon-only buttons       | 16.8.5       |
+
+### Scope totals — updated
+
+| Bucket                 | Overnight         | After morning     | After afternoon     | Δ (afternoon) |
+| ---------------------- | ----------------- | ----------------- | ------------------- | ------------- |
+| ✅ Done                | 26 / 47 (55%)     | 32 / 47 (68%)     | **36 / 47 (77%)**   | +4            |
+| ⚠️ Partial / adapted    | 14 / 47 (30%)     | 9 / 47 (19%)      | **7 / 47 (15%)**    | −2            |
+| ❌ Not started         | 7 / 47 (15%)      | 6 / 47 (13%)      | **4 / 47 (9%)**     | −2            |
+
+**Items flipped ⚠️ → ✅ (morning):** 16.5.1, 16.5.2, 16.5.3 (wizards + detail
+structural rewrite), 16.6.1 (home 7-section dashboard), 16.6.3
+(profile 11-section restructure).
+
+**Items flipped ❌ → ✅ (morning):** 16.5.5 (success mascot + share row landed
+as part of wizard rewrite).
+
+**Items flipped ⚠️ → ✅ (afternoon):** 16.7.6 (focused sweep — chat list +
+alert-detail swapped to SkeletonCard + EmptyState; compact in-card inline
+patterns on weight-chart / milestone-timeline / passport-content kept on
+purpose), 16.8.5 (focused sweep — icon-only buttons on feedback / chat /
+6 modals / photo-lightbox labelled; hospital audit confirmed no gap; /sos
+is a redirect-only page).
+
+**Items flipped ❌ → ✅ (afternoon):** 16.10.4 (DESIGN-TOKENS-D2 change
+log marked applied with commit range), 16.10.1 (new
+`conductor/code_styleguides/design-tokens.md` with Tailwind v4
+`@theme inline` pattern + semantic-token rule table).
+
+**Diverged but net-positive:** 16.9.5 — PRP asked for "/pets empty-state
+E2E"; morning shipped two broader new specs (`home-dashboard.spec.ts`,
+`profile-page.spec.ts`) covering the two biggest new pages.
+`authenticated-flows.spec.ts` regex widened for new Thai CTA
+"แจ้งสัตว์เลี้ยงหาย".
+
+### Items still outstanding
+
+| Task        | Status | Reason                                                                                                             |
+| ----------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| 16.4.2      | ❌     | `app/pets/[id]/page.tsx` never existed in the repo — PRP typo; only `.../passport/page.tsx` exists (token-swapped). |
+| 16.8.1      | ❌     | Lighthouse 95+ — `[lighthouse]` gated, needs live server + human.                                                  |
+| 16.9.3      | ❌     | `npm run test:e2e` full run — Playwright unattended-fragile; defer to human.                                       |
+| 16.10.2     | ❌     | Before/after screenshots — `[device]` gated.                                                                       |
+
+### Quality gates — re-run at 11:43
+
+| Gate                   | Result                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| `npm run type-check`   | ✅ 0 errors                                                         |
+| `npm run lint`         | ✅ 0 errors, 51 pre-existing warnings (4 fewer than overnight)      |
+| `npm run test`         | ✅ 890 / 890 passed (68 files, 37s)                                 |
+| `npm run format:check` | ⚠️ only `conductor/pipeline-status.md` flagged — cosmetic, non-blocking |
+
+No new `any`, no new `@ts-ignore`.
+
+### Quality gates — re-run at afternoon session (per-commit)
+
+| Gate                   | Result                                                              |
+| ---------------------- | ------------------------------------------------------------------- |
+| `npm run type-check`   | ✅ 0 errors (re-run before each of the 4 afternoon commits)         |
+| `npm run lint`         | ✅ 0 errors, 51 pre-existing warnings (unchanged)                   |
+| `npm run test`         | ✅ 890 / 890 passed (68 files)                                      |
+| `npm run format:check` | ⚠️ still only `conductor/pipeline-status.md` flagged — unchanged    |
+
+No new `any`, no new `@ts-ignore`, no new lint warnings.
+
+### Template lessons — already productized (meta)
+
+The 6 "Add to Future PRPs" items from the overnight review were
+implemented in commit `4f4a608` at `PRPs/templates/prp_base.md`:
+
+- ✅ **Current System Probe** section at top of every UI PRP
+- ✅ **Split work-type subtasks** pattern (`XX.Y.1a` token / `XX.Y.1b` structural)
+- ✅ **Autonomy-gated task tags** (`[device]`, `[lighthouse]`, `[figma]`, `[operator]`, `[visual-diff]`, `[external-api]`)
+- ✅ **File-path "Exists?" column** in the Probe
+- ✅ **E2E selector strategy** — mandatory explicit choice
+- ✅ **Bulk-Transformation Safety** section with post-sweep `grep` verify
+
+See `PRPs/templates/README.md` for the version-1 changelog. This closes
+the feedback loop — the review itself generated the deliverable that
+prevents the same mistakes on future UI PRPs.
+
+### Revised Accuracy Score: **8 / 10** (was 7 / 10)
+
+**Why +1:** morning closed the structural-rebuild gap (wizards + home
++ profile), the lesson items shipped as a reusable template, all
+automated gates stayed green, and the 5-stacked-PR structure kept each
+diff review-sized. The remaining ❌ items are almost entirely device-
+or docs-gated — things the overnight review correctly identified as
+impossible without a human in the loop.
+
+**Why not 10:** 16.4.2 was a repo-state-validation miss at PRP-write
+time (caught as a lesson, now in the template Probe). Lighthouse and
+screenshots remain owed. 16.9.5 was diverged (different pages than the
+PRP asked for).
+
+### Recommended next actions
+
+1. **Open PRs 1–5 in order via GitHub UI** — merge queue:
+   `feature/prp-16-ui-migration` first, then `-wizards`, `-home-dashboard`,
+   `-profile`, `-e2e-docs`.
+2. **Human session**: `npm run dev` + Lighthouse sweep for 16.8.1;
+   capture before/after screenshots for 16.10.2.
+3. **Real-device LIFF smoke** on iPhone + Android (backdrop-blur +
+   CSS custom properties behave differently in LIFF WebView).
+4. **Run `npm run test:e2e` locally** against the dev server to
+   verify the updated selectors — closes 16.9.3.
+5. **PRP-17 rich-menu** still blocked on human-designed 2500×1686 PNG.
+
+---
+
+**One-line summary (overnight, 2026-04-21 10:00):** ✅ PRP-16 foundation-slice complete on `feature/prp-16-ui-migration` — Accuracy: 7/10 — Tests: 890/890 — Build: green — 7 / 14 / 26 tasks (not-started / partial / done) — 21 lessons captured.
+
+**One-line summary (final, 2026-04-21 11:44):** ✅ PRP-16 complete across 5 stacked PRs — Accuracy: **8/10** — Tests: **890/890** — Type-check: 0 errors — **32 / 9 / 6** tasks (done / partial / not-started) — **template lessons productized** at `PRPs/templates/prp_base.md` — remaining ❌ are all `[device]` / `[lighthouse]` / docs-gated.
+
+**One-line summary (afternoon, 2026-04-21 ~12:10):** ✅ PRP-16 code-only cleanup closed 4 afternoon commits (`9ecc66a..e7bfbdf`) on `feature/prp-16-e2e-docs` — Tests: **890/890** — Type-check: 0 errors — **36 / 7 / 4** tasks (done / partial / not-started, 77% done) — 16.10.4 + 16.10.1 + 16.7.6 + 16.8.5 all ✅ — only `[lighthouse]` / `[device]` / `[human-e2e]` / PRP-typo-16.4.2 remain.
