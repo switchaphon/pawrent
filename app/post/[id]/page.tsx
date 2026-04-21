@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PillTag } from "@/components/ui/pill-tag";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/components/liff-provider";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,15 @@ import {
   Eye,
   MessageCircle,
   CheckCircle,
+  Facebook,
+  Twitter,
+  MessageSquare,
+  Gift,
 } from "lucide-react";
 
 const ReadOnlyMap = dynamic(
   () =>
     import("@/components/map-picker").then((mod) => {
-      // Wrap MapPicker as read-only display
       function ReadOnlyMapInner({ lat, lng }: { lat: number; lng: number }) {
         return <mod.MapPicker initialLat={lat} initialLng={lng} onLocationSelect={() => {}} />;
       }
@@ -36,9 +39,37 @@ const ReadOnlyMap = dynamic(
     }),
   {
     ssr: false,
-    loading: () => <div className="h-48 bg-surface-alt rounded-xl animate-pulse" />,
+    loading: () => <div className="h-48 bg-surface-alt rounded-[20px] animate-pulse" />,
   }
 );
+
+function BubbleCard({ className, children, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("rounded-[24px] border border-border bg-card shadow-soft p-5", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({
+  icon: Icon,
+  children,
+  iconClass,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  iconClass?: string;
+}) {
+  return (
+    <h3 className="text-sm font-bold text-text-main mb-3 flex items-center gap-2">
+      <Icon className={cn("w-4 h-4 text-primary", iconClass)} />
+      {children}
+    </h3>
+  );
+}
 
 function getStatusChip(status: AlertStatus, alertType: string) {
   if (status === "resolved_found" || status === "resolved_owner") {
@@ -92,9 +123,9 @@ function getRelativeTimeThai(dateStr: string): string {
 }
 
 function getSexLabel(sex: string | null): string {
-  if (!sex) return "ไม่ระบุ";
-  if (sex === "male") return "ผู้";
-  if (sex === "female") return "เมีย";
+  if (!sex) return "ไม่ระบุเพศ";
+  if (sex === "male") return "♂️ ผู้";
+  if (sex === "female") return "♀️ เมีย";
   return sex;
 }
 
@@ -140,7 +171,6 @@ export default function AlertDetailPage() {
     if (alertId) fetchAlert();
   }, [alertId]);
 
-  // Scroll-snap carousel tracking
   useEffect(() => {
     const carousel = carouselRef.current;
     if (!carousel) return;
@@ -156,7 +186,7 @@ export default function AlertDetailPage() {
     return () => carousel.removeEventListener("scroll", handleScroll);
   }, [alert]);
 
-  const handleShare = async () => {
+  const handleLineShare = async () => {
     try {
       const { isInLiffBrowser } = await import("@/lib/liff");
       if (isInLiffBrowser()) {
@@ -173,6 +203,25 @@ export default function AlertDetailPage() {
     } catch {
       // Not in LIFF
     }
+  };
+
+  const handleFacebookShare = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      "_blank",
+      "width=600,height=400"
+    );
+  };
+
+  const handleTwitterShare = () => {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`🚨 สัตว์เลี้ยงหาย! ${alert?.pet_name || ""}`);
+    window.open(
+      `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
+      "_blank",
+      "width=600,height=400"
+    );
   };
 
   const handleCopyLink = async () => {
@@ -197,7 +246,11 @@ export default function AlertDetailPage() {
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-text-main">
+          <button
+            onClick={() => router.back()}
+            aria-label="กลับ"
+            className="flex items-center gap-2 text-text-main min-h-[44px]"
+          >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">กลับ</span>
           </button>
@@ -217,24 +270,29 @@ export default function AlertDetailPage() {
       : []),
   ];
   const age = calculateAge(alert.pet_date_of_birth);
+  const isLost = alert.alert_type === "lost";
 
   return (
     <div className="min-h-screen bg-surface-alt pb-24">
-      {/* Header */}
+      {/* Compact header with back + status */}
       <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center justify-between">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-text-main">
+          <button
+            onClick={() => router.back()}
+            aria-label="กลับ"
+            className="flex items-center gap-2 text-text-main min-h-[44px] -ml-1 pl-1 pr-2"
+          >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-semibold">กลับ</span>
+            <span className="font-semibold text-sm">กลับ</span>
           </button>
-          <span className={cn("text-xs font-bold px-3 py-1 rounded-full", chip.className)}>
+          <span className={cn("text-[11px] font-bold px-3 py-1 rounded-full", chip.className)}>
             {chip.label}
           </span>
         </div>
       </header>
 
       <main className="max-w-md mx-auto">
-        {/* Photo Carousel */}
+        {/* Photo carousel */}
         {allPhotos.length > 0 && (
           <div className="relative">
             <div
@@ -257,11 +315,15 @@ export default function AlertDetailPage() {
                       sizes="(max-width: 448px) 100vw, 448px"
                       priority={i === 0}
                     />
+                    {isLost && (
+                      <span className="absolute top-3 left-3 bg-danger text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-soft">
+                        🚨 {i + 1}/{allPhotos.length}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
-            {/* Dots */}
             {allPhotos.length > 1 && (
               <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
                 {allPhotos.map((_, i) => (
@@ -279,187 +341,173 @@ export default function AlertDetailPage() {
         )}
 
         <div className="px-4 py-4 space-y-4">
-          {/* Pet name & status */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className={cn("text-xs font-bold px-2.5 py-0.5 rounded-full", chip.className)}>
-                {chip.label}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-text-main">{alert.pet_name || "ไม่ระบุชื่อ"}</h1>
-            <p className="text-sm text-text-muted mt-1">{alert.pet_breed || "ไม่ระบุสายพันธุ์"}</p>
+          {/* Pet name + breed hero */}
+          <div className="pt-1">
+            <h1 className="text-[26px] font-extrabold text-text-main leading-tight">
+              {alert.pet_name || "ไม่ระบุชื่อ"}
+            </h1>
+            <p className="text-sm text-text-muted mt-0.5">
+              {alert.pet_breed || "ไม่ระบุสายพันธุ์"}
+            </p>
           </div>
 
-          {/* Lost date/time */}
-          <Card className="p-4 rounded-xl">
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-destructive flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-text-main">
-                  หายวันที่ {formatThaiDateFull(alert.lost_date)}
-                  {alert.lost_time && ` ประมาณ ${alert.lost_time} น.`}
+          {/* When card */}
+          <BubbleCard>
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  isLost ? "bg-danger-bg" : "bg-success-bg"
+                )}
+              >
+                <Clock className={cn("w-5 h-5", isLost ? "text-danger" : "text-success")} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-text-muted mb-0.5">{isLost ? "หายเมื่อ" : "พบเมื่อ"}</p>
+                <p className="font-bold text-text-main text-sm leading-snug">
+                  {formatThaiDateFull(alert.lost_date)}
+                  {alert.lost_time && ` · ${alert.lost_time} น.`}
                 </p>
-                <p className="text-xs text-text-muted">({getRelativeTimeThai(alert.created_at)})</p>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  {getRelativeTimeThai(alert.created_at)}
+                </p>
               </div>
             </div>
-          </Card>
+          </BubbleCard>
 
-          {/* Reward banner */}
+          {/* Reward banner — coral→amber gradient */}
           {alert.reward_amount > 0 && (
-            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-4 text-center">
-              <p className="text-xs text-warning font-medium mb-1">รางวัลนำส่งคืน</p>
-              <p className="text-2xl font-bold text-warning">
-                ฿{alert.reward_amount.toLocaleString()}
-              </p>
-              {alert.reward_note && (
-                <p className="text-xs text-warning mt-1">{alert.reward_note}</p>
-              )}
+            <div className="relative rounded-[24px] bg-gradient-to-br from-primary to-primary-light p-5 text-center shadow-glow overflow-hidden">
+              <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+              <div className="relative">
+                <div className="inline-flex items-center gap-1.5 bg-white/25 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-2">
+                  <Gift className="w-3.5 h-3.5" />
+                  รางวัลนำส่งคืน
+                </div>
+                <p className="text-4xl font-extrabold text-white drop-shadow-sm">
+                  ฿{alert.reward_amount.toLocaleString()}
+                </p>
+                {alert.reward_note && (
+                  <p className="text-xs text-white/90 mt-2 px-2">{alert.reward_note}</p>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Pet metadata grid */}
-          <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-text-main text-sm mb-3">ข้อมูลสัตว์เลี้ยง</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-text-muted text-xs">ชื่อ</span>
-                <p className="font-medium text-text-main">{alert.pet_name || "-"}</p>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs">สายพันธุ์</span>
-                <p className="font-medium text-text-main">{alert.pet_breed || "-"}</p>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs">สี</span>
-                <p className="font-medium text-text-main">{alert.pet_color || "-"}</p>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs">เพศ</span>
-                <p className="font-medium text-text-main">{getSexLabel(alert.pet_sex)}</p>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs">ทำหมัน</span>
-                <p className="font-medium text-text-main">
-                  {alert.pet_neutered === true
-                    ? "ทำหมันแล้ว ✓"
-                    : alert.pet_neutered === false
-                      ? "ยังไม่ทำหมัน"
-                      : "-"}
-                </p>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs">อายุ</span>
-                <p className="font-medium text-text-main">{age || "-"}</p>
-              </div>
+          {/* Pet metadata as pill chips */}
+          <BubbleCard>
+            <SectionTitle icon={Eye}>ข้อมูลสัตว์เลี้ยง</SectionTitle>
+            <div className="flex flex-wrap gap-1.5">
+              {alert.pet_breed && <PillTag>🐾 {alert.pet_breed}</PillTag>}
+              {alert.pet_color && <PillTag>🎨 {alert.pet_color}</PillTag>}
+              <PillTag>{getSexLabel(alert.pet_sex)}</PillTag>
+              {age && <PillTag>📆 {age}</PillTag>}
+              {alert.pet_neutered === true && (
+                <PillTag className="bg-success-bg text-success">✓ ทำหมัน</PillTag>
+              )}
+              {alert.pet_neutered === false && <PillTag>ยังไม่ทำหมัน</PillTag>}
               {alert.pet_microchip && (
-                <div className="col-span-2">
-                  <span className="text-text-muted text-xs">ไมโครชิป</span>
-                  <p className="font-medium text-text-main font-mono text-xs">
-                    {alert.pet_microchip}
-                  </p>
-                </div>
+                <PillTag className="font-mono normal-case">🔗 {alert.pet_microchip}</PillTag>
               )}
             </div>
-          </Card>
+          </BubbleCard>
 
           {/* Distinguishing marks */}
           {alert.distinguishing_marks && (
-            <Card className="p-4 rounded-xl">
-              <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
-                <Eye className="w-4 h-4 text-primary" />
-                จุดสังเกต / ลักษณะเฉพาะ
-              </h3>
-              <p className="text-sm text-text-main whitespace-pre-line">
+            <BubbleCard>
+              <SectionTitle icon={Eye}>จุดสังเกต / ลักษณะเฉพาะ</SectionTitle>
+              <p className="text-sm text-text-main whitespace-pre-line leading-relaxed">
                 {alert.distinguishing_marks}
               </p>
-            </Card>
+            </BubbleCard>
           )}
 
           {/* Description */}
           {alert.description && (
-            <Card className="p-4 rounded-xl">
-              <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                รายละเอียดเพิ่มเติม
-              </h3>
-              <p className="text-sm text-text-main whitespace-pre-line">{alert.description}</p>
-            </Card>
+            <BubbleCard>
+              <SectionTitle icon={FileText}>รายละเอียดเพิ่มเติม</SectionTitle>
+              <p className="text-sm text-text-main whitespace-pre-line leading-relaxed">
+                {alert.description}
+              </p>
+            </BubbleCard>
           )}
 
           {/* Location */}
-          <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-text-main text-sm mb-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-destructive" />
-              ตำแหน่งที่เห็นครั้งสุดท้าย
-            </h3>
+          <BubbleCard>
+            <SectionTitle icon={MapPin} iconClass="text-danger">
+              {isLost ? "ตำแหน่งที่เห็นครั้งสุดท้าย" : "ตำแหน่งที่พบ"}
+            </SectionTitle>
             {alert.location_description && (
-              <p className="text-sm text-text-main mb-3">{alert.location_description}</p>
+              <p className="text-sm text-text-main mb-3 leading-relaxed">
+                {alert.location_description}
+              </p>
             )}
-            <ReadOnlyMap lat={alert.fuzzy_lat || alert.lat} lng={alert.fuzzy_lng || alert.lng} />
-            <p className="text-xs text-text-muted mt-2">ตำแหน่งโดยประมาณ (เพื่อความเป็นส่วนตัว)</p>
-          </Card>
+            <div className="rounded-[20px] overflow-hidden border border-border">
+              <ReadOnlyMap lat={alert.fuzzy_lat || alert.lat} lng={alert.fuzzy_lng || alert.lng} />
+            </div>
+            <p className="text-[11px] text-text-muted mt-2 text-center">
+              ตำแหน่งโดยประมาณ (เพื่อความเป็นส่วนตัว)
+            </p>
+          </BubbleCard>
 
-          {/* Action buttons (placeholders for PRP-05) */}
+          {/* Primary action buttons (placeholders) */}
           <div className="space-y-2">
-            <Button disabled className="w-full h-12 rounded-xl bg-success text-white opacity-50">
+            <Button disabled className="w-full h-12 rounded-full bg-success text-white opacity-50">
               <CheckCircle className="w-5 h-5 mr-2" />
               ฉันเห็นน้อง! — เร็วๆ นี้
             </Button>
-            <Button disabled variant="outline" className="w-full h-12 rounded-xl opacity-50">
+            <Button disabled variant="outline" className="w-full h-12 rounded-full opacity-50">
               <MessageCircle className="w-5 h-5 mr-2" />
               ติดต่อเจ้าของ — เร็วๆ นี้
             </Button>
           </div>
 
-          {/* Share buttons */}
-          <Card className="p-4 rounded-xl">
-            <h3 className="font-bold text-text-main text-sm mb-3">แชร์ประกาศ</h3>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleShare}
-                className="flex-1 h-10 bg-success hover:bg-success text-white text-xs rounded-xl"
+          {/* Polished share row — 4 buttons */}
+          <BubbleCard>
+            <SectionTitle icon={Share2}>แชร์ประกาศ</SectionTitle>
+            <div className="grid grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={handleLineShare}
+                aria-label="แชร์ผ่าน LINE"
+                className="flex flex-col items-center gap-1.5 p-2.5 rounded-[18px] bg-success-bg hover:bg-success/20 active:scale-95 transition-all min-h-[64px]"
               >
-                <Share2 className="w-4 h-4 mr-1" />
-                LINE
-              </Button>
-              <Button
-                onClick={() => {
-                  const url = encodeURIComponent(window.location.href);
-                  const text = encodeURIComponent(`🚨 สัตว์เลี้ยงหาย! ${alert.pet_name || ""}`);
-                  window.open(
-                    `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-                    "_blank",
-                    "width=600,height=400"
-                  );
-                }}
-                className="flex-1 h-10 bg-info hover:bg-info text-white text-xs rounded-xl"
+                <MessageSquare className="w-5 h-5 text-success" />
+                <span className="text-[10px] font-bold text-success">LINE</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleFacebookShare}
+                aria-label="แชร์ผ่าน Facebook"
+                className="flex flex-col items-center gap-1.5 p-2.5 rounded-[18px] bg-info-bg hover:bg-info/20 active:scale-95 transition-all min-h-[64px]"
               >
-                Facebook
-              </Button>
-              <Button
-                onClick={() => {
-                  const url = encodeURIComponent(window.location.href);
-                  const text = encodeURIComponent(`🚨 สัตว์เลี้ยงหาย! ${alert.pet_name || ""}`);
-                  window.open(
-                    `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
-                    "_blank",
-                    "width=600,height=400"
-                  );
-                }}
-                className="flex-1 h-10 bg-black hover:bg-text-main text-white text-xs rounded-xl"
+                <Facebook className="w-5 h-5 text-info" />
+                <span className="text-[10px] font-bold text-info">Facebook</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleTwitterShare}
+                aria-label="แชร์ผ่าน X"
+                className="flex flex-col items-center gap-1.5 p-2.5 rounded-[18px] bg-surface-alt hover:bg-border active:scale-95 transition-all min-h-[64px]"
               >
-                X
-              </Button>
-              <Button onClick={handleCopyLink} variant="outline" className="h-10 px-3 rounded-xl">
-                <LinkIcon className="w-4 h-4" />
-              </Button>
+                <Twitter className="w-5 h-5 text-text-main" />
+                <span className="text-[10px] font-bold text-text-main">X</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                aria-label="คัดลอกลิงก์"
+                className="flex flex-col items-center gap-1.5 p-2.5 rounded-[18px] bg-primary/10 hover:bg-primary/20 active:scale-95 transition-all min-h-[64px]"
+              >
+                <LinkIcon className="w-5 h-5 text-primary" />
+                <span className="text-[10px] font-bold text-primary">
+                  {linkCopied ? "คัดลอก!" : "คัดลอก"}
+                </span>
+              </button>
             </div>
-            {linkCopied && (
-              <p className="text-xs text-success text-center mt-2">คัดลอกลิงก์แล้ว!</p>
-            )}
-          </Card>
+          </BubbleCard>
 
-          {/* Poster & Share Card buttons (owner-only) */}
+          {/* Owner-only poster buttons */}
           <PosterButtons
             alertId={alertId}
             ownerId={alert.owner_id}
