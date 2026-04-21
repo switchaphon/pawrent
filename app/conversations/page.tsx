@@ -6,7 +6,9 @@ import { useAuth } from "@/components/liff-provider";
 import { apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/lib/types";
-import { MessageCircle, Loader2, ArrowLeft } from "lucide-react";
+import { MessageCircle, ArrowLeft } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
+import { SkeletonCard } from "@/components/skeleton-card";
 
 function getRelativeTimeThai(dateStr: string): string {
   const now = new Date();
@@ -65,19 +67,17 @@ export default function ConversationsPage() {
 
       <main className="px-4 py-4 max-w-md mx-auto">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="space-y-2">
+            <SkeletonCard lines={2} />
+            <SkeletonCard lines={2} />
+            <SkeletonCard lines={2} />
           </div>
         ) : conversations.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-8 h-8 text-primary/50" />
-            </div>
-            <h3 className="text-lg font-bold text-text-main mb-1">ยังไม่มีข้อความ</h3>
-            <p className="text-sm text-text-muted">
-              เมื่อคุณติดต่อผู้พบหรือเจ้าของสัตว์เลี้ยง ข้อความจะแสดงที่นี่
-            </p>
-          </div>
+          <EmptyState
+            icon={<MessageCircle className="w-10 h-10" aria-hidden />}
+            title="ยังไม่มีข้อความ"
+            description="เมื่อคุณติดต่อผู้พบหรือเจ้าของสัตว์เลี้ยง ข้อความจะแสดงที่นี่"
+          />
         ) : (
           <div className="space-y-2">
             {conversations.map((conv) => {

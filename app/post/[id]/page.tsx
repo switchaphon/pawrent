@@ -13,7 +13,6 @@ import type { LostPetAlert, AlertStatus } from "@/components/post/types";
 import { PosterButtons } from "@/components/post/poster-buttons";
 import {
   ArrowLeft,
-  Loader2,
   Share2,
   Link as LinkIcon,
   MapPin,
@@ -27,6 +26,8 @@ import {
   MessageSquare,
   Gift,
 } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
+import { SkeletonCard } from "@/components/skeleton-card";
 
 const ReadOnlyMap = dynamic(
   () =>
@@ -236,15 +237,29 @@ export default function AlertDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      <div className="min-h-screen bg-surface-alt pb-24">
+        <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
+          <button
+            onClick={() => router.back()}
+            aria-label="กลับ"
+            className="flex items-center gap-2 text-text-main min-h-[44px]"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-semibold text-sm">กลับ</span>
+          </button>
+        </header>
+        <main className="px-4 py-4 max-w-md mx-auto space-y-4">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </main>
       </div>
     );
   }
 
   if (!alert) {
     return (
-      <div className="min-h-screen bg-background pb-24">
+      <div className="min-h-screen bg-surface-alt pb-24">
         <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
           <button
             onClick={() => router.back()}
@@ -255,9 +270,7 @@ export default function AlertDetailPage() {
             <span className="font-semibold">กลับ</span>
           </button>
         </header>
-        <div className="px-4 py-12 text-center">
-          <p className="text-text-muted">ไม่พบประกาศ</p>
-        </div>
+        <EmptyState emoji="🔎" title="ไม่พบประกาศ" description="ประกาศนี้อาจถูกลบหรือปิดไปแล้ว" />
       </div>
     );
   }
