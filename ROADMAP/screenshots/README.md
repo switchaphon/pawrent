@@ -24,7 +24,11 @@ production React routes on `feature/prp-16-e2e-docs`.
   The bypass file edit **was reverted after capture** — verified via
   `git hash-object components/liff-provider.tsx` matching the original
   SHA before any commit touched the repo. Only the PNGs below were
-  committed; no auth-weakening change exists in git history.
+  committed; no auth-weakening change exists in git history. The
+  2026-04-21 refresh of `post.png` (and the new `post-lost-wizard.png`)
+  used a cleaner approach: `NEXT_PUBLIC_LIFF_ID=` unset at dev start,
+  which makes `LiffProvider` fail-quiet (loading=false, no redirect)
+  without any code change.
 - Data: pages render their empty / skeleton / no-data states since no
   authenticated API calls succeed under bypass. This is intentional —
   the comparison target is layout / tokens / components, not populated
@@ -37,7 +41,8 @@ production React routes on `feature/prp-16-e2e-docs`.
 | `after/home.png`         | `../New-design/variation-06-home.html`          | `/`             | 7-section dashboard (greeting / weather / pet status / urgent / nearby / health / quick actions) |
 | `after/notifications.png`| `../New-design/variation-06-notifications.html` | `/notifications`| Good-news + nearby (<5km) + other active split, semantic distance badges |
 | `after/profile.png`      | `../New-design/variation-06-profile.html`       | `/profile`      | 11-section layout (hero / subscription / pets / contacts / notif / PDPA / settings / help / sign-out / footer) |
-| `after/post-lost.png`    | `../New-design/variation-06-states.html`        | `/post/lost`    | Lost-pet wizard — bubble cards, POPS gradient step indicator, Thai copy |
+| `after/post-lost.png`    | `../New-design/variation-06-states.html`        | `/post/lost`    | Lost-pet wizard step 1 shell (empty pet list) — production React, no seeded pets |
+| `after/post-lost-wizard.png` | `../New-design/variation-06.html` (mockup)  | `/post/lost`    | Full lost-pet wizard reference — rendered from design-of-record mockup; all 5 steps visible in one scroll |
 | `after/post-found.png`   | `../New-design/variation-06-states.html`        | `/post/found`   | Found-pet wizard — counterpart to lost with same v6 shell |
 | `after/pets.png`         | `../New-design/variation-06.html`               | `/pets`         | Generic v6 shell — circular pet selectors with POPS-gradient ring |
 | `after/post.png`         | `../New-design/variation-06.html`               | `/post`         | Community feed landing with lost / found tabs |

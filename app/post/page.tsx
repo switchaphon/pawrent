@@ -337,7 +337,7 @@ export default function PostPage() {
         <div
           role="tablist"
           aria-label="เลือกประเภทประกาศ"
-          className="flex gap-1 bg-surface rounded-full p-1 border border-border shadow-soft"
+          className="flex gap-1 bg-surface rounded-full p-0.5 border border-border shadow-soft w-fit mx-auto"
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -349,14 +349,14 @@ export default function PostPage() {
                 aria-selected={isActive}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "flex-1 py-2.5 text-sm font-bold rounded-full transition-all flex items-center justify-center gap-1.5 touch-target",
+                  "px-3 py-1 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1 touch-target",
                   isActive
                     ? "bg-primary-gradient text-white shadow-primary"
                     : "text-text-muted hover:text-text-main"
                 )}
               >
                 <span
-                  className={cn("w-2 h-2 rounded-full", isActive ? "bg-surface" : tab.tone)}
+                  className={cn("w-1.5 h-1.5 rounded-full", isActive ? "bg-surface" : tab.tone)}
                   aria-hidden
                 />
                 {tab.label}
@@ -365,7 +365,7 @@ export default function PostPage() {
           })}
         </div>
 
-        <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <RadiusSelector value={radius} onChange={setRadius} />
           <SpeciesFilter value={species} onChange={setSpecies} />
         </div>
