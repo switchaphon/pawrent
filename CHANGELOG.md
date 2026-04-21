@@ -147,9 +147,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
   `PRPs/16-ui-migration.review.md`. 16.8.1 flips ❌ → ⚠️ (measured,
   follow-up PRP needed).
 
+- **Before/after screenshots** (PRP-16.10.2) — captured 8 primary
+  routes at 375×667 (@2×) into `ROADMAP/screenshots/after/` with a
+  paired `README.md` cross-linking each PNG to its source mockup in
+  `ROADMAP/New-design/variation-06*.html`. Captured via a temporary
+  env-gated LIFF-auth bypass in `components/liff-provider.tsx` that
+  was reverted before commit (file SHA verified identical to
+  pre-capture). Human visual verdict (≥30%-off threshold) pending.
+  16.10.2 flips ❌ → ⚠️.
+
 ### Still deferred (out of autonomous scope)
 
-- Before/after screenshots (PRP-16.10.2) — no device access.
 - Manual iOS/Android LIFF smoke tests — no device access.
 - PRP-17 rich-menu restructure — blocked on Figma asset production
   and LINE OA operator deployment; PRP spec committed in
