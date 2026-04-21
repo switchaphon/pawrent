@@ -109,7 +109,11 @@ function FeedbackContent() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="text-text-muted hover:text-text-main">
+          <button
+            onClick={handleBack}
+            aria-label="ย้อนกลับ"
+            className="text-text-muted hover:text-text-main"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-text-main">Feedback</h1>
@@ -166,6 +170,7 @@ function FeedbackContent() {
                         setFeedbackImage(null);
                         setFeedbackImagePreview(null);
                       }}
+                      aria-label="ลบรูปแนบ"
                       className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
                     >
                       <X className="w-4 h-4" />

@@ -163,7 +163,7 @@ export default function ChatPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => router.back()} className="p-1 -ml-1">
+          <button onClick={() => router.back()} aria-label="ย้อนกลับ" className="p-1 -ml-1">
             <ArrowLeft className="w-5 h-5 text-text-main" />
           </button>
           <div className="flex-1 min-w-0">
@@ -240,6 +240,7 @@ export default function ChatPage() {
             <Button
               onClick={handleSend}
               disabled={!newMessage.trim() || sending}
+              aria-label={sending ? "กำลังส่ง" : "ส่งข้อความ"}
               className="h-10 w-10 rounded-full bg-primary p-0 flex-shrink-0"
             >
               {sending ? (

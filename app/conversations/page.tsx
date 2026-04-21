@@ -57,7 +57,7 @@ export default function ConversationsPage() {
     <div className="min-h-screen bg-surface-alt pb-24">
       <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <Link href="/post" className="p-1 -ml-1">
+          <Link href="/post" aria-label="ย้อนกลับ" className="p-1 -ml-1">
             <ArrowLeft className="w-5 h-5 text-text-main" />
           </Link>
           <MessageCircle className="w-5 h-5 text-primary" />

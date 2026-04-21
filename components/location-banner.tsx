@@ -23,7 +23,11 @@ export function LocationBanner() {
         >
           Retry
         </button>
-        <button onClick={() => setDismissed(true)} className="text-text-muted hover:text-text-main">
+        <button
+          onClick={() => setDismissed(true)}
+          aria-label="ปิดแถบ"
+          className="text-text-muted hover:text-text-main"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>

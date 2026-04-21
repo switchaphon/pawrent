@@ -85,7 +85,11 @@ export function CreatePostForm({ onSuccess, onCancel }: CreatePostFormProps) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-text-main">Create Post</h2>
         {onCancel && (
-          <button onClick={onCancel} className="text-text-muted hover:text-text-main">
+          <button
+            onClick={onCancel}
+            aria-label="ปิด"
+            className="text-text-muted hover:text-text-main"
+          >
             <X className="w-5 h-5" />
           </button>
         )}

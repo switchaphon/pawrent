@@ -116,6 +116,7 @@ export function AddVaccineForm({ petId, petSpecies, onSuccess, onCancel }: AddVa
         </h3>
         <button
           onClick={onCancel}
+          aria-label="ปิด"
           className="p-1 rounded-full hover:bg-surface-alt transition-colors"
         >
           <X className="w-5 h-5 text-text-muted" />

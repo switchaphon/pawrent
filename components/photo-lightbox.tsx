@@ -100,6 +100,7 @@ export function PhotoLightbox({
         <div className="flex items-center gap-2">
           <button
             onClick={handleDownload}
+            aria-label="ดาวน์โหลดรูป"
             className="p-2 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors"
             title="Download"
           >
@@ -108,6 +109,7 @@ export function PhotoLightbox({
           {canDelete && onDelete && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
+              aria-label="ลบรูป"
               className="p-2 rounded-full bg-surface/10 hover:bg-danger/50 transition-colors"
               title="Delete"
             >
@@ -116,6 +118,7 @@ export function PhotoLightbox({
           )}
           <button
             onClick={onClose}
+            aria-label="ปิด"
             className="p-2 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors"
           >
             <X className="w-5 h-5 text-white" />
@@ -129,6 +132,7 @@ export function PhotoLightbox({
         {photos.length > 1 && (
           <button
             onClick={goToPrev}
+            aria-label="รูปก่อนหน้า"
             className="absolute left-4 p-3 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors z-10"
           >
             <ChevronLeft className="w-6 h-6 text-white" />
@@ -147,6 +151,7 @@ export function PhotoLightbox({
         {photos.length > 1 && (
           <button
             onClick={goToNext}
+            aria-label="รูปถัดไป"
             className="absolute right-4 p-3 rounded-full bg-surface/10 hover:bg-surface/20 transition-colors z-10"
           >
             <ChevronRight className="w-6 h-6 text-white" />

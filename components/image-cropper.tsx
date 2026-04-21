@@ -109,7 +109,11 @@ export function ImageCropper({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-bold text-text-main">Adjust Photo</h3>
-          <button onClick={onCancel} className="text-text-muted hover:text-text-main">
+          <button
+            onClick={onCancel}
+            aria-label="ปิด"
+            className="text-text-muted hover:text-text-main"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
