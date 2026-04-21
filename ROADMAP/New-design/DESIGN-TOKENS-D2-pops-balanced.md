@@ -1,7 +1,7 @@
 # Pawrent Design Tokens — D2: POPS Balanced
 
-**Status:** Locked direction (2026-04-18). Reference only — not yet applied to codebase.
-**Apply in:** Future UI migration PRP (after MVP feature-complete).
+**Status:** Applied to codebase (2026-04-21). Locked 2026-04-18.
+**Applied in:** PRP-16 UI migration — commits `c786446..178eec8` on stacked branches `feature/prp-16-ui-migration` → `-wizards` → `-home-dashboard` → `-profile` → `-e2e-docs`.
 
 ## Direction
 
@@ -321,3 +321,4 @@ When ready to apply to codebase:
 | Date | Change | Reason |
 |------|--------|--------|
 | 2026-04-18 | Initial lock — D2 POPS Balanced selected | Concluded tone comparison; unisex palette approved |
+| 2026-04-21 | Applied to codebase — commits `c786446..178eec8` | PRP-16 UI migration: tokens wired via Tailwind v4 `@theme inline` in `app/globals.css`; Noto Sans Thai via `next/font/google`; primitives (button/card/input/badge/toast), 6-tab bottom nav, state components (EmptyState/SkeletonCard/ErrorState/ConfirmDialog), pet management, lost/found wizards + detail, home dashboard, notifications, profile all migrated. Foundation 100%, primitives 100%, state 100%. |
