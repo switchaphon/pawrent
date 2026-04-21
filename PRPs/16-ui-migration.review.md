@@ -452,7 +452,7 @@ E2E"; morning shipped two broader new specs (`home-dashboard.spec.ts`,
 | Task        | Status | Reason                                                                                                             |
 | ----------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
 | 16.4.2      | ❌     | `app/pets/[id]/page.tsx` never existed in the repo — PRP typo; only `.../passport/page.tsx` exists (token-swapped). |
-| 16.8.1      | ❌     | Lighthouse 95+ — `[lighthouse]` gated, needs live server + human.                                                  |
+| 16.8.1      | ⚠️     | Lighthouse **measured** (prod build) on 8 routes — no category ≥95. Follow-up PRP needed — see "Lighthouse 95+ sweep" section below. |
 | 16.9.3      | ❌     | `npm run test:e2e` full run — Playwright unattended-fragile; defer to human.                                       |
 | 16.10.2     | ❌     | Before/after screenshots — `[device]` gated.                                                                       |
 
@@ -523,8 +523,100 @@ PRP asked for).
 
 ---
 
+## Lighthouse 95+ sweep (2026-04-21 closeout)
+
+Closes task 16.8.1 as **measured**. Sweep ran against a production
+build (`npm run build --webpack && npm run start`) — dev-mode numbers
+also recorded for comparison and discarded from the primary table because
+they conflate bundling overhead with real perf. 8 routes sampled (the
+9th, a live `/post/<id>`, skipped — no GET listing endpoint and no seeded
+fixture reachable from localhost without auth).
+
+### Production scores (primary)
+
+| Route            | Perf | A11y | BP  | SEO |
+| ---------------- | ---- | ---- | --- | --- |
+| `/`              |  60  |  86  |  78 |  54 |
+| `/pets`          |  59  |  86  |  78 |  54 |
+| `/post`          |  60  |  86  |  74 |  54 |
+| `/notifications` |  58  |  86  |  74 |  54 |
+| `/profile`       |  61  |  86  |  78 |  54 |
+| `/conversations` |  59  |  86  |  78 |  54 |
+| `/feedback`      |  60  |  86  |  78 |  54 |
+| `/hospital`      |  60  |  86  |  78 |  54 |
+
+**Stats (prod):** perf min=58 max=61 median=60; a11y uniform 86;
+best-practices min=74 max=78 median=78; seo uniform 54.
+
+**Every route fails the 95+ target in every category** — but the uniform
+a11y / seo and near-uniform best-practices scores across all 8 routes
+point at **shared root-layout issues**, not per-page problems, so the
+fix surface is small.
+
+### Dev-mode scores (reference only — not the measurement)
+
+Kept for transparency. `npm run dev --webpack` scores perf ~28-31 because
+of HMR overhead, unminified bundles, React dev build. Non-perf categories
+come out identical to prod as expected (same HTML / headers / tokens):
+
+| Route            | Perf | A11y | BP  | SEO |
+| ---------------- | ---- | ---- | --- | --- |
+| `/`              |  28  |  86  |  78 |  54 |
+| `/hospital`      |  27  |  86  |  78 |  54 |
+| … (all 8, perf 27-31) | … | … | … | … |
+
+### Top failing audits (sampled from `/` prod report)
+
+| Category | Audit ID | Weight | Title |
+| -------- | -------- | ------ | ----- |
+| a11y     | `color-contrast` | 7 | Background + foreground colors below AA contrast |
+| a11y     | `html-lang-valid` | 7 | `<html>` `lang` attribute missing or invalid |
+| a11y     | `heading-order` | 3 | Headings not in sequentially-descending order |
+| seo      | `is-crawlable` | 4 | Page blocked from indexing (robots / `X-Robots-Tag`) |
+| seo      | `meta-description` | 1 | No `<meta name="description">` |
+| bp       | `deprecations` | 5 | Uses deprecated browser API |
+| bp       | `geolocation-on-start` | 1 | Requests geolocation on page load (likely `/hospital` map) |
+| perf     | `largest-contentful-paint` | 25 | LCP |
+| perf     | `first-contentful-paint` | 10 | FCP |
+| perf     | `speed-index` | 10 | Speed Index |
+
+(Raw JSON reports kept at `/tmp/lh-prp16-prod/*.json` — local filesystem,
+not committed.)
+
+### Follow-up PRP needed
+
+Open a new PRP "**Lighthouse 95+ compliance**" scoped to:
+
+1. **Root-layout fixes** (moves all 8 routes together):
+   - Set / verify `<html lang="th">` in `app/layout.tsx`.
+   - Add `<meta name="description">` via Next metadata API.
+   - Audit `robots` header / `robots.txt` — ensure production allows indexing
+     (likely previewed deploys had `noindex` that leaked into localhost).
+2. **Design-token contrast pass**: audit `DESIGN-TOKENS-D2-*.md` pairs
+   against WCAG AA; adjust low-contrast pairs (the uniform 86 comes from
+   one or two token combinations used across the whole app).
+3. **Heading outline**: sweep pages for `<h1>` → `<h2>` order.
+4. **Geolocation on load** (`/hospital`): defer `navigator.geolocation.*`
+   until user taps "use my location" or a permission prompt.
+5. **Deprecated API**: identify and replace (`deprecations` audit in the
+   raw report names the call site).
+6. **Perf / LCP**: font preload tuning, image hero optimization, reduce
+   render-blocking CSS. This is the largest surface — ideally split from
+   the a11y / seo work into its own PRP slice.
+
+### Why 16.8.1 is ⚠️ not ❌ after this sweep
+
+The task "Achieve Lighthouse 95+" was **not** achieved. But the PRP line
+was gated `[lighthouse]` — "needs live server + human" — and the blocker
+was a live-server measurement, which has now been done with actionable
+data. The remaining work is a new PRP, not a PRP-16 task.
+
+---
+
 **One-line summary (overnight, 2026-04-21 10:00):** ✅ PRP-16 foundation-slice complete on `feature/prp-16-ui-migration` — Accuracy: 7/10 — Tests: 890/890 — Build: green — 7 / 14 / 26 tasks (not-started / partial / done) — 21 lessons captured.
 
 **One-line summary (final, 2026-04-21 11:44):** ✅ PRP-16 complete across 5 stacked PRs — Accuracy: **8/10** — Tests: **890/890** — Type-check: 0 errors — **32 / 9 / 6** tasks (done / partial / not-started) — **template lessons productized** at `PRPs/templates/prp_base.md` — remaining ❌ are all `[device]` / `[lighthouse]` / docs-gated.
 
 **One-line summary (afternoon, 2026-04-21 ~12:10):** ✅ PRP-16 code-only cleanup closed 4 afternoon commits (`9ecc66a..e7bfbdf`) on `feature/prp-16-e2e-docs` — Tests: **890/890** — Type-check: 0 errors — **36 / 7 / 4** tasks (done / partial / not-started, 77% done) — 16.10.4 + 16.10.1 + 16.7.6 + 16.8.5 all ✅ — only `[lighthouse]` / `[device]` / `[human-e2e]` / PRP-typo-16.4.2 remain.
+
+**One-line summary (closeout, 2026-04-21 ~12:50):** Lighthouse 95+ sweep ran on 8 routes (prod build) — all fail (perf 58-61, a11y 86, bp 74-78, seo 54) due to 5 shared root-layout issues; 16.8.1 flips ❌ → ⚠️ (measured, follow-up PRP scoped); remaining ❌: 16.4.2 (PRP typo), 16.9.3 (E2E), 16.10.2 (screenshots).

@@ -134,9 +134,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
   matches the new home CTA text "แจ้งสัตว์เลี้ยงหาย" (retains
   legacy "แจ้งน้องหาย" for backward compatibility during review).
 
+### Measured (closeout)
+
+- **Lighthouse 95+ sweep** (PRP-16.8.1) — prod build scored across 8
+  routes (`/`, `/pets`, `/post`, `/notifications`, `/profile`,
+  `/conversations`, `/feedback`, `/hospital`). Perf 58-61, A11y
+  uniform 86, Best-Practices 74-78, SEO uniform 54 — all below the
+  95+ target. Uniform non-perf scores indicate 5 shared root-layout
+  issues (`html-lang-valid`, `color-contrast`, `heading-order`,
+  `is-crawlable`, `meta-description`) rather than per-page problems.
+  Detailed audit table + follow-up-PRP scope in
+  `PRPs/16-ui-migration.review.md`. 16.8.1 flips ❌ → ⚠️ (measured,
+  follow-up PRP needed).
+
 ### Still deferred (out of autonomous scope)
 
-- Lighthouse 95+ audit (PRP-16.8) — needs live server + manual run.
 - Before/after screenshots (PRP-16.10.2) — no device access.
 - Manual iOS/Android LIFF smoke tests — no device access.
 - PRP-17 rich-menu restructure — blocked on Figma asset production
