@@ -1,0 +1,344 @@
+<!--
+  Pawrent v2 · Sticker — Pets (/pets)
+  Grammar: V06 pill cards · Palette: burgundy primary, POPs accent
+  Heroes : ink SVG illustrations + character ref 2.jpg on passport
+-->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Pawrent v2 · สัตว์เลี้ยง</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          thai: ['"Noto Sans Thai"', 'system-ui', 'sans-serif'],
+          display: ['Fraunces', '"Noto Sans Thai"', 'serif'],
+        },
+        colors: {
+          burgundy: { DEFAULT: '#7A0000', 50: '#FAECEC', 100: '#F4D6D6' },
+          sage: { DEFAULT: '#7A8668', 50: '#F0F2EC', 700: '#5A6350' },
+          pink: { DEFAULT: '#EC2584', 50: '#FDE7F1', 100: '#FAC9DF' },
+          coral: { DEFAULT: '#F05E38', 50: '#FDE9E1', 100: '#FBCFBF' },
+          yellow: { DEFAULT: '#FDBC11', 50: '#FFF4CE', 100: '#FFE99A' },
+          ink: '#2A1A1A',
+          'ink-muted': '#6B5E5E',
+          surface: '#FFFFFF',
+          bone: '#FBF6EE',
+          border: '#EFE6D8',
+        },
+        borderRadius: { 'md-r': '16px', 'lg-r': '22px', 'xl-r': '28px', pill: '9999px' },
+        boxShadow: {
+          soft: '0 2px 10px rgba(42,26,26,0.06)',
+          lift: '0 8px 28px rgba(42,26,26,0.10)',
+          burg: '0 6px 18px rgba(122,0,0,0.28)',
+        },
+      },
+    },
+  }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: 'Noto Sans Thai', system-ui, sans-serif; }
+  body {
+    background: linear-gradient(180deg, #FFF6EE 0%, #FCECDF 100%);
+    color: #2A1A1A; min-height: 100vh; -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  .display { font-family: 'Fraunces', 'Noto Sans Thai', serif; font-variation-settings: 'opsz' 96; }
+  .pops-g { background: linear-gradient(135deg, #EC2584 0%, #F05E38 55%, #FDBC11 100%); }
+  .burgundy-g { background: linear-gradient(135deg, #7A0000 0%, #5C0000 100%); }
+  .warm-paper { background: linear-gradient(135deg, #FFF1E0, #FFE6D1); }
+  .ink-under {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8'><path d='M2 5 Q 30 1 60 4 T 118 3' fill='none' stroke='%237A0000' stroke-width='2.5' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat; background-position: 0 100%; background-size: 100% 6px;
+    padding-bottom: 4px;
+  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  button, a[role="button"], .tap { min-height: 44px; }
+</style>
+</head>
+<body class="font-thai">
+
+<div class="max-w-[390px] md:max-w-[430px] mx-auto min-h-screen relative pb-28 md:border-x md:border-border md:shadow-lift">
+
+  <div class="h-[44px] bg-[#F3EADC] flex items-center justify-center">
+    <span class="text-[10px] text-ink-muted tracking-widest">LINE · PAWRENT LIFF</span>
+  </div>
+
+  <!-- ── Top bar ─────────────────────────────────────────── -->
+  <div class="px-4 pt-3 pb-2 flex items-center justify-between">
+    <a href="home.html" class="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center shadow-soft tap" aria-label="ย้อน">
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
+    <div class="text-center">
+      <p class="display text-[16px] font-extrabold text-burgundy leading-none">บ้านนายท่าน</p>
+      <p class="text-[10px] text-ink-muted tracking-widest mt-0.5">PAWRENT · 3 PETS</p>
+    </div>
+    <button class="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center shadow-soft tap" aria-label="ตั้งค่า">
+      <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.7"/></svg>
+    </button>
+  </div>
+
+  <!-- ── Pet switcher ────────────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="flex gap-2 overflow-x-auto no-scrollbar py-1 -my-1">
+      <!-- Active -->
+      <button class="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 bg-burgundy text-white rounded-pill shadow-burg">
+        <span class="w-9 h-9 rounded-full bg-surface p-[2px] flex items-center justify-center">
+          <span class="w-full h-full rounded-full pops-g p-[2px]">
+            <span class="w-full h-full rounded-full bg-surface flex items-center justify-center">
+              <svg viewBox="0 0 32 32" class="w-6 h-6">
+                <path d="M10 14 c-2 -4 4 -7 6 -7 c2 0 8 3 6 7 c0 0 1 2 -1 4 c-1 1 -2 1.5 -5 1.5 s-4 -0.5 -5 -1.5 c-2 -2 -1 -4 -1 -4 z" fill="#FBF6EE" stroke="#2A1A1A" stroke-width="1.4"/>
+                <circle cx="13" cy="14" r="0.9" fill="#2A1A1A"/>
+                <circle cx="19" cy="14" r="0.9" fill="#2A1A1A"/>
+                <path d="M15 17 q1 1 2 0" stroke="#2A1A1A" stroke-width="1" fill="none"/>
+              </svg>
+            </span>
+          </span>
+        </span>
+        <span class="text-[12px] font-extrabold">โมจิ</span>
+      </button>
+      <!-- Inactive -->
+      <button class="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 bg-surface border border-border rounded-pill shadow-soft text-ink-muted">
+        <span class="w-9 h-9 rounded-full bg-bone flex items-center justify-center">
+          <svg viewBox="0 0 32 32" class="w-6 h-6">
+            <path d="M9 8 l3 4 8 0 3 -4 -1 8 q-2 5 -7 5 t-7 -5 z" fill="#2A1A1A"/>
+          </svg>
+        </span>
+        <span class="text-[12px] font-bold">เบนโตะ</span>
+      </button>
+      <button class="shrink-0 flex items-center gap-2 pl-1 pr-3 py-1 bg-surface border border-border rounded-pill shadow-soft text-ink-muted">
+        <span class="w-9 h-9 rounded-full bg-yellow-50 flex items-center justify-center">
+          <svg viewBox="0 0 32 32" class="w-6 h-6">
+            <ellipse cx="16" cy="18" rx="6" ry="5" fill="none" stroke="#2A1A1A" stroke-width="1.4"/>
+            <path d="M11 12 q0 -3 3 -3 M21 12 q0 -3 -3 -3" stroke="#2A1A1A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            <circle cx="14" cy="17" r="0.8" fill="#2A1A1A"/>
+            <circle cx="18" cy="17" r="0.8" fill="#2A1A1A"/>
+          </svg>
+        </span>
+        <span class="text-[12px] font-bold">โอเล่</span>
+      </button>
+      <button class="shrink-0 flex items-center justify-center w-11 h-11 rounded-full border-2 border-dashed border-burgundy/40 text-burgundy" aria-label="เพิ่ม">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Hero portrait card ─────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="relative rounded-xl-r overflow-hidden border border-border shadow-lift warm-paper">
+      <!-- Decorative ink sparkles -->
+      <svg viewBox="0 0 390 260" class="absolute inset-0 w-full h-full pointer-events-none">
+        <path d="M28 40 l2 5 5 1 -4 4 1 5 -4 -3 -4 3 1 -5 -4 -4 5 -1 z" fill="#FDBC11" stroke="#2A1A1A" stroke-width="1"/>
+        <path d="M350 60 l2 5 5 1 -4 4 1 5 -4 -3 -4 3 1 -5 -4 -4 5 -1 z" fill="#EC2584" stroke="#2A1A1A" stroke-width="1"/>
+        <path d="M344 210 q6 -4 12 2" stroke="#7A0000" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+
+      <div class="relative pt-4 pb-5 px-5 text-center">
+        <span class="inline-block bg-yellow text-ink text-[10px] font-extrabold tracking-widest px-2.5 py-1 rounded-md-r border-2 border-ink -rotate-2">TOP DOG · 2026</span>
+        <h1 class="display text-[42px] font-extrabold text-burgundy mt-3 leading-none tracking-tight">โมจิ</h1>
+        <p class="text-[12px] font-semibold text-ink-muted mt-1">ปอมสายฝ่า — หิวตลอด ง่วงตลอด</p>
+
+        <!-- Big ink avatar -->
+        <div class="mt-4 mx-auto w-40 h-40 rounded-full bg-surface border-2 border-ink p-3 shadow-lift">
+          <svg viewBox="0 0 100 100" class="w-full h-full">
+            <!-- Face -->
+            <path d="M30 46 c-5 -14 14 -22 20 -22 c6 0 25 8 20 22 c0 0 3 6 -3 12 c-3 3 -6 4 -17 4 s-14 -1 -17 -4 c-6 -6 -3 -12 -3 -12 z" fill="#FFF1E0" stroke="#2A1A1A" stroke-width="2.6" stroke-linejoin="round"/>
+            <!-- Ears -->
+            <path d="M22 28 q4 -10 12 -6 l2 6" fill="#FFE6D1" stroke="#2A1A1A" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M78 28 q-4 -10 -12 -6 l-2 6" fill="#FFE6D1" stroke="#2A1A1A" stroke-width="2.4" stroke-linejoin="round"/>
+            <!-- Eyes -->
+            <circle cx="40" cy="46" r="2.5" fill="#2A1A1A"/>
+            <circle cx="60" cy="46" r="2.5" fill="#2A1A1A"/>
+            <!-- Snoot -->
+            <path d="M50 55 q-4 2 0 5 q4 -3 0 -5 z" fill="#2A1A1A"/>
+            <!-- Smile -->
+            <path d="M46 62 q4 3 8 0" stroke="#2A1A1A" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <!-- Tongue -->
+            <path d="M49 64 q1 3 2 0" fill="#EC2584" stroke="#2A1A1A" stroke-width="1.2"/>
+            <!-- Blush -->
+            <circle cx="34" cy="54" r="3" fill="#EC2584" opacity="0.35"/>
+            <circle cx="66" cy="54" r="3" fill="#EC2584" opacity="0.35"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Specs grid ─────────────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <p class="text-[10px] font-extrabold text-ink-muted tracking-widest mb-2">VITAL · สมุดประจำตัว</p>
+    <div class="grid grid-cols-3 gap-2">
+      <div class="bg-surface rounded-lg-r border border-border shadow-soft p-2.5">
+        <p class="text-[9px] font-bold text-sage-700 tracking-widest">น้ำหนัก</p>
+        <p class="display text-[22px] font-extrabold text-burgundy leading-none mt-1">3.8<span class="text-[11px] text-ink-muted font-bold">kg</span></p>
+      </div>
+      <div class="bg-surface rounded-lg-r border border-border shadow-soft p-2.5">
+        <p class="text-[9px] font-bold text-sage-700 tracking-widest">อายุ</p>
+        <p class="display text-[22px] font-extrabold text-burgundy leading-none mt-1">2<span class="text-[11px] text-ink-muted font-bold">ปี 4ด.</span></p>
+      </div>
+      <div class="bg-surface rounded-lg-r border border-border shadow-soft p-2.5">
+        <p class="text-[9px] font-bold text-sage-700 tracking-widest">เลือด</p>
+        <p class="display text-[18px] font-extrabold text-burgundy leading-tight mt-1">DEA 1.1+</p>
+      </div>
+      <div class="col-span-2 bg-surface rounded-lg-r border border-border shadow-soft p-2.5">
+        <p class="text-[9px] font-bold text-sage-700 tracking-widest">ไมโครชิป</p>
+        <p class="text-[12px] font-extrabold text-burgundy mt-1 tabular-nums">764-0981-2340 <span class="text-[9px] text-ink-muted font-semibold">SmartTrace</span></p>
+      </div>
+      <div class="bg-surface rounded-lg-r border border-border shadow-soft p-2.5">
+        <p class="text-[9px] font-bold text-sage-700 tracking-widest">ตำหนิ</p>
+        <p class="text-[11px] font-bold text-burgundy mt-1">จุดขาว 1ซม.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Vaccine + parasite card ────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="bg-surface rounded-xl-r border border-border shadow-soft overflow-hidden">
+      <div class="px-4 pt-3 pb-2 flex items-center justify-between">
+        <p class="text-[12px] font-extrabold flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full bg-burgundy text-white flex items-center justify-center text-[11px]">💉</span>
+          วัคซีน &amp; ถ่ายพยาธิ
+        </p>
+        <span class="bg-sage-50 text-sage-700 rounded-pill px-2 py-0.5 text-[10px] font-extrabold">4/6 ครบ</span>
+      </div>
+
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">DHPP รวมหลัก</p>
+          <p class="text-[10px] text-ink-muted">ล่าสุด 14 มี.ค. 26 · ครบ 14 มี.ค. 27</p>
+        </div>
+        <span class="bg-sage-50 text-sage-700 rounded-pill px-2 py-0.5 text-[10px] font-extrabold">✓ ครบ</span>
+      </div>
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">พิษสุนัขบ้า · Rabies</p>
+          <p class="text-[10px] text-ink-muted">ล่าสุด 14 มี.ค. 26 · ครบ 14 มี.ค. 27</p>
+        </div>
+        <span class="bg-sage-50 text-sage-700 rounded-pill px-2 py-0.5 text-[10px] font-extrabold">✓ ครบ</span>
+      </div>
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60 bg-yellow-50/50">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">Bordetella (ไอหวัด)</p>
+          <p class="text-[10px] text-ink-muted">ใกล้ครบ · ก่อนฝากเลี้ยงควรกระตุ้น</p>
+        </div>
+        <span class="bg-yellow-100 text-[#8a6000] rounded-pill px-2 py-0.5 text-[10px] font-extrabold">⏰ 14 วัน</span>
+      </div>
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60 bg-burgundy/5">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold text-burgundy">Leptospirosis</p>
+          <p class="text-[10px] text-burgundy/80">เลย 28 วันแล้ว · พบคุณหมอด่วน</p>
+        </div>
+        <span class="bg-burgundy text-white rounded-pill px-2 py-0.5 text-[10px] font-extrabold">! เลย</span>
+      </div>
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">ถ่ายพยาธิภายใน · Drontal</p>
+          <p class="text-[10px] text-ink-muted">รอบถัดไปอีก 12 วัน · 8 พ.ค.</p>
+        </div>
+        <span class="bg-sage-50 text-sage-700 rounded-pill px-2 py-0.5 text-[10px] font-extrabold">ตามนัด</span>
+      </div>
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/60 bg-yellow-50/50">
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">หยอดเห็บหมัด · NexGard</p>
+          <p class="text-[10px] text-ink-muted">รอบถัดไปอีก 6 วัน · เหลือ 1 เม็ด</p>
+        </div>
+        <span class="bg-yellow-100 text-[#8a6000] rounded-pill px-2 py-0.5 text-[10px] font-extrabold">⏰ 6 วัน</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Weight chart card ─────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="bg-surface rounded-xl-r border border-border shadow-soft p-4">
+      <div class="flex items-end justify-between">
+        <div>
+          <p class="text-[10px] font-extrabold text-sage-700 tracking-widest">น้ำหนักล่าสุด · 24 เม.ย.</p>
+          <p class="display text-[32px] font-extrabold text-burgundy leading-none mt-1 tabular-nums">3.8<span class="text-[14px] text-ink-muted font-bold">kg</span></p>
+        </div>
+        <span class="bg-coral-50 text-coral rounded-pill px-2.5 py-1 text-[11px] font-extrabold">+0.2kg ↗</span>
+      </div>
+      <div class="mt-3 h-[110px] relative">
+        <div class="absolute inset-x-0 top-[30%] border-t border-dashed border-sage-700/30"></div>
+        <div class="absolute top-[26%] right-0 text-[9px] font-bold text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">สุขภาพดี 3.5–4.0</div>
+        <div class="flex items-end gap-[3px] h-full">
+          <div class="flex-1 bg-bone rounded-t-[2px]" style="height: 30%"></div>
+          <div class="flex-1 bg-sage/60 rounded-t-[2px]" style="height: 38%"></div>
+          <div class="flex-1 bg-sage/60 rounded-t-[2px]" style="height: 45%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 52%"></div>
+          <div class="flex-1 bg-bone rounded-t-[2px]" style="height: 48%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 55%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 62%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 70%"></div>
+          <div class="flex-1 bg-bone rounded-t-[2px]" style="height: 65%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 75%"></div>
+          <div class="flex-1 bg-sage rounded-t-[2px]" style="height: 82%"></div>
+          <div class="flex-1 bg-burgundy rounded-t-[2px] relative" style="height: 90%">
+            <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-extrabold text-burgundy">วันนี้</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between mt-1 text-[8px] text-ink-muted font-semibold">
+        <span>พ.ค.</span><span>ก.ค.</span><span>ก.ย.</span><span>พ.ย.</span><span>ม.ค.</span><span>มี.ค.</span><span>วันนี้</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Digital Passport CTA with character ref 2 ──────── -->
+  <div class="px-4 pb-4">
+    <div class="relative rounded-xl-r overflow-hidden border border-border shadow-lift burgundy-g text-white">
+      <img src="../../pawrents-ref-charactor/2.jpg" alt="" class="absolute -right-4 -bottom-6 w-40 h-40 object-contain opacity-90 mix-blend-screen invert pointer-events-none"/>
+      <div class="relative p-5">
+        <span class="inline-block bg-yellow text-ink text-[10px] font-extrabold tracking-widest px-2.5 py-1 rounded-md-r border-2 border-ink">★ POPs DIGITAL PASSPORT</span>
+        <h2 class="display text-[22px] font-extrabold leading-snug mt-3">ส่งออกสมุดสุขภาพ<br/>เป็น e-Passport</h2>
+        <p class="text-[11px] opacity-90 mt-1 max-w-[220px]">PDF 14 หน้า · ภาษาไทย+อังกฤษ · ใช้ข้ามคลินิกได้ทันที</p>
+        <button class="mt-4 h-10 px-4 rounded-pill bg-yellow text-burgundy font-extrabold text-[12px] shadow-burg inline-flex items-center gap-2">
+          ↓ ดาวน์โหลด PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom nav ─────────────────────────────────────── -->
+  <nav aria-label="เมนูหลัก" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[430px] bg-surface/95 backdrop-blur-md border-t border-border pt-1 pb-[max(8px,env(safe-area-inset-bottom))] z-50">
+    <ul class="grid grid-cols-6 px-1">
+      <li><a href="home.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h3"/><path d="M19 10v10a1 1 0 0 1-1 1h-3"/><path d="M9 21v-6a3 3 0 0 1 6 0v6"/></svg>
+        <span class="text-[9px]">หน้าหลัก</span>
+      </a></li>
+      <li><a href="post.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a2 2 0 0 1 2-2h14v18a2 2 0 0 1-2 2H4Zm0 0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/><path d="M10 6h6M10 10h6M10 14h6"/></svg>
+        <span class="text-[9px]">ฟีด</span>
+      </a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        <span class="text-[9px]">แจ้ง</span>
+      </a></li>
+      <li><a href="notifications.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold relative">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8a6 6 0 1 0-12 0c0 4.5-1.4 6-2.7 7.3Z"/></svg>
+        <span class="text-[9px]">แจ้งเตือน</span>
+        <span class="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-coral"></span>
+      </a></li>
+      <li><a href="pets.html" aria-current="page" class="flex flex-col items-center justify-center gap-0.5 py-2 text-burgundy font-extrabold relative">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="16.5" cy="15.5" r="2"/><circle cx="7.5" cy="15.5" r="2"/><path d="M8 15a4 4 0 0 1 8 0c0 2.2-1.8 4-4 4s-4-1.8-4-4Z"/></svg>
+        <span class="text-[9px]">สัตว์เลี้ยง</span>
+        <span class="absolute bottom-0.5 w-1 h-1 rounded-full bg-burgundy"></span>
+      </a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span class="text-[9px]">โปรไฟล์</span>
+      </a></li>
+    </ul>
+  </nav>
+
+</div>
+</body>
+</html>

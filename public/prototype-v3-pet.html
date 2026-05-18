@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pawrents v2 — Pet Profile Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Kanit', sans-serif;
+  background: #E8E2D8;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100dvh; padding: 20px 0 120px;
+}
+button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+
+.phone {
+  width: 390px; min-height: 844px; position: relative; overflow: hidden;
+  background: var(--bg);
+  border-radius: 44px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+/* ═══ THEME A — สมุดพก ═══ */
+.theme-notebook {
+  --bg: #FAF6F0;
+  --surface: #FFFFFF; --surface-alt: #F5F0E8;
+  --border: #E8E2D9; --shadow: 2px 2px 0 rgba(0,0,0,0.03);
+  --text: #3D2B1F; --text-heading: #7A0000; --text-muted: #7A8668; --text-sub: #A09585;
+  --primary: #F05E38;
+  --primary-gradient: linear-gradient(135deg, #F05E38, #EC2584);
+  --primary-soft: rgba(240,94,56,0.08);
+  --primary-shadow: 0 4px 12px rgba(240,94,56,0.27);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 16px;
+  --avatar-ring: linear-gradient(135deg, #F05E38, #EC2584);
+  --filter-active-bg: #7A0000; --filter-active-text: #fff;
+  --filter-bg: #F0EBE3; --filter-text: #7A8668;
+  --success: #4C6B3C; --success-bg: #EDF0EA;
+  --warning: #B8730A; --warning-bg: #FFF3D9;
+  --danger: #D32F2F; --danger-bg: #FFEBEE;
+  --divider: #E8E2D9; --status-text: #3D2B1F;
+  --header-bg: transparent; --header-text: #3D2B1F;
+  --tag-bg: rgba(253,188,17,0.1); --tag-text: #3D2B1F;
+  --fab-bg: linear-gradient(135deg, #F05E38, #EC2584);
+}
+/* ═══ THEME B — Candy Pop ═══ */
+.theme-candy {
+  --bg: #FFF5F0;
+  --surface: #FFFFFF; --surface-alt: #FFF0EA;
+  --border: #F0E8E2; --shadow: 0 2px 10px rgba(0,0,0,0.04);
+  --text: #7A0000; --text-heading: #7A0000; --text-muted: #B08070; --text-sub: #C4A090;
+  --primary: #EC2584;
+  --primary-gradient: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --primary-soft: rgba(236,37,132,0.06);
+  --primary-shadow: 0 6px 20px rgba(236,37,132,0.25);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 20px;
+  --avatar-ring: linear-gradient(160deg, #EC2584, #F05E38, #FDBC11);
+  --filter-active-bg: #EC2584; --filter-active-text: #fff;
+  --filter-bg: #FFF0EA; --filter-text: #C4A090;
+  --success: #4C6B3C; --success-bg: #EDF0EA;
+  --warning: #B8730A; --warning-bg: #FFF3D9;
+  --danger: #D32F2F; --danger-bg: #FFEBEE;
+  --divider: #F0E8E2; --status-text: #FFFFFF;
+  --header-bg: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --header-text: #FFFFFF;
+  --tag-bg: rgba(236,37,132,0.08); --tag-text: #EC2584;
+  --fab-bg: linear-gradient(135deg, #EC2584, #F05E38);
+}
+/* ═══ THEME A+B — Mix ═══ */
+.theme-mix {
+  --bg: #FAF6F0;
+  --surface: #FFFFFF; --surface-alt: #F5F0E8;
+  --border: #E8E2D9; --shadow: 2px 2px 0 rgba(0,0,0,0.03);
+  --text: #3D2B1F; --text-heading: #7A0000; --text-muted: #7A8668; --text-sub: #A09585;
+  --primary: #7A0000;
+  --primary-gradient: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --primary-soft: rgba(122,0,0,0.06);
+  --primary-shadow: 0 6px 20px rgba(122,0,0,0.2);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 18px;
+  --avatar-ring: linear-gradient(135deg, #F05E38, #EC2584);
+  --filter-active-bg: #7A0000; --filter-active-text: #fff;
+  --filter-bg: #F0EBE3; --filter-text: #7A8668;
+  --success: #4C6B3C; --success-bg: #EDF0EA;
+  --warning: #B8730A; --warning-bg: #FFF3D9;
+  --danger: #D32F2F; --danger-bg: #FFEBEE;
+  --divider: #E8E2D9; --status-text: #FFFFFF;
+  --header-bg: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --header-text: #FFFFFF;
+  --tag-bg: rgba(253,188,17,0.1); --tag-text: #3D2B1F;
+  --fab-bg: linear-gradient(135deg, #F05E38, #EC2584);
+}
+/* ═══ THEME D2 ═══ */
+.theme-d2 {
+  --bg: #FAF7F2;
+  --surface: #FFFFFF; --surface-alt: #EDEDE8;
+  --border: #E8E2D8; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --text: #2E2A2E; --text-heading: #2E2A2E; --text-muted: #6B6560; --text-sub: #9B9590;
+  --primary: #FF8263;
+  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+  --primary-soft: rgba(255,130,99,0.08);
+  --primary-shadow: 0 4px 14px rgba(255,130,99,0.3);
+  --accent-pink: #F06FA8; --accent-yellow: #FFCB6B; --accent-green: #6B8F5E;
+  --card-radius: 16px;
+  --avatar-ring: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  --filter-active-bg: #2E2A2E; --filter-active-text: #fff;
+  --filter-bg: #EDEDE8; --filter-text: #6B6560;
+  --success: #4C6B3C; --success-bg: #EDF0EA;
+  --warning: #B8730A; --warning-bg: #FFF3D9;
+  --danger: #D32F2F; --danger-bg: #FFEBEE;
+  --divider: #E8E2D8; --status-text: #2E2A2E;
+  --header-bg: transparent; --header-text: #2E2A2E;
+  --tag-bg: #EDEDE8; --tag-text: #3D3935;
+  --fab-bg: linear-gradient(135deg, #FF8263, #FFA563);
+}
+/* ═══ THEME D2 OG ═══ */
+.theme-d2og {
+  font-family: 'Noto Sans Thai', system-ui, sans-serif !important;
+  background: linear-gradient(180deg, #FAF7F2 0%, #F5F1EA 100%) !important;
+  --bg: #FAF7F2;
+  --surface: #FFFFFF; --surface-alt: #EDEDE8;
+  --border: #E8E2D8; --border-subtle: #F0EDE6;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --text: #2E2A2E; --text-heading: #2E2A2E; --text-muted: #6B6560; --text-sub: #3D3935;
+  --primary: #FF8263;
+  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+  --primary-soft: rgba(255,130,99,0.08);
+  --primary-shadow: 0 4px 14px rgba(255,130,99,0.3);
+  --accent-pink: #F06FA8; --accent-yellow: #FFCB6B; --accent-green: #6B8F5E;
+  --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  --card-radius: 24px;
+  --avatar-ring: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  --filter-active-bg: #FF8263; --filter-active-text: #fff;
+  --filter-bg: #EDEDE8; --filter-text: #6B6560;
+  --success: #4C6B3C; --success-bg: #EDF0EA;
+  --warning: #B8730A; --warning-bg: #FFF3D9;
+  --danger: #D32F2F; --danger-bg: #FFEBEE;
+  --divider: #E8E2D8; --status-text: #2E2A2E;
+  --header-bg: transparent; --header-text: #2E2A2E;
+  --tag-bg: #EDEDE8; --tag-text: #3D3935;
+  --fab-bg: linear-gradient(135deg, #FF8263, #FFA563);
+  --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+  --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
+}
+.theme-d2og * { font-family: 'Noto Sans Thai', system-ui, sans-serif; }
+
+/* ─── STATUS BAR ─── */
+.status-bar {
+  height: 54px; display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 28px 0; font-size: 12px; font-weight: 600;
+  color: var(--status-text); position: relative; z-index: 10;
+}
+.status-time { font-size: 16px; font-weight: 700; }
+.status-icons { display: flex; gap: 5px; align-items: center; font-size: 13px; }
+
+/* ─── PET HERO (new variants) ─── */
+.pet-hero {
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 0 20px 24px;
+  text-align: center;
+}
+.theme-candy .pet-hero,
+.theme-mix .pet-hero { border-radius: 0 0 32px 32px; padding-bottom: 28px; }
+.theme-notebook .pet-hero,
+.theme-d2 .pet-hero { padding-top: 8px; }
+
+.pet-avatar-large {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: var(--avatar-ring); padding: 3px;
+  margin: 0 auto 12px;
+  box-shadow: var(--primary-shadow);
+}
+.pet-avatar-large .av-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: #E8DDD5; display: flex; align-items: center; justify-content: center;
+  font-size: 44px;
+}
+.theme-candy .pet-avatar-large .av-inner,
+.theme-mix .pet-avatar-large .av-inner { background: rgba(255,255,255,0.3); }
+
+.pet-name-large { font-size: 26px; font-weight: 900; margin-bottom: 2px; }
+.pet-breed-large { font-size: 13px; opacity: 0.7; }
+.pet-tags {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin-top: 10px;
+}
+.pet-tag {
+  padding: 4px 12px; border-radius: 9999px;
+  background: var(--tag-bg); color: var(--tag-text);
+  font-size: 11px; font-weight: 600;
+}
+.theme-candy .pet-tag { background: rgba(255,255,255,0.25); color: #fff; }
+.theme-mix .pet-tag { background: rgba(255,255,255,0.25); color: #fff; }
+
+/* ─── D2 OG PET HERO ─── */
+.d2og-pet-hero { display: none; }
+.theme-d2og .d2og-pet-hero { display: block; }
+.theme-d2og .pet-hero { display: none; }
+
+.d2og-owner-pill {
+  margin: 0 16px 12px;
+  background: var(--surface); border-radius: 9999px;
+  padding: 8px 14px 8px 8px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-owner);
+  width: fit-content;
+}
+.d2og-owner-av { width: 36px; height: 36px; border-radius: 50%; background: var(--pops-gradient); padding: 2px; flex-shrink: 0; }
+.d2og-owner-av-inner { width: 100%; height: 100%; border-radius: 50%; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.d2og-owner-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.d2og-owner-sub { font-size: 11px; color: var(--text-muted); }
+
+.d2og-pet-selector {
+  display: flex; gap: 14px; padding: 8px 20px 14px;
+}
+.d2og-ps-item { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+.d2og-ps-ring { width: 58px; height: 58px; border-radius: 50%; padding: 2.5px; background: var(--border); }
+.d2og-ps-item.active .d2og-ps-ring { background: var(--pops-gradient); box-shadow: var(--shadow-glow); }
+.d2og-ps-inner { width: 100%; height: 100%; border-radius: 50%; background: #E0D8D0; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.d2og-ps-item.active .d2og-ps-inner { background: #FAF0EA; }
+.d2og-ps-label { font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 9999px; }
+.d2og-ps-item.active .d2og-ps-label { background: var(--primary); color: #fff; }
+.d2og-ps-item:not(.active) .d2og-ps-label { background: var(--surface-alt); color: var(--text-muted); }
+.d2og-ps-item:not(.active) { opacity: 0.5; }
+
+.d2og-pet-card {
+  margin: 0 16px 12px;
+  background: var(--surface); border-radius: var(--card-radius);
+  padding: 14px; border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.d2og-pet-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.d2og-pet-av { width: 48px; height: 48px; border-radius: 50%; background: var(--pops-gradient); padding: 2px; flex-shrink: 0; }
+.d2og-pet-av-inner { width: 100%; height: 100%; border-radius: 50%; background: #FAF0EA; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.d2og-pet-name { font-size: 16px; font-weight: 800; color: var(--text); }
+.d2og-pet-breed { font-size: 12px; color: var(--text-muted); }
+.d2og-pet-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.d2og-pet-tag { padding: 3px 10px; border-radius: 9999px; background: var(--tag-bg); color: var(--tag-text); font-size: 10px; font-weight: 600; }
+
+/* ─── STATS GRID ─── */
+.scroll-area { overflow-y: auto; min-height: 680px; padding-bottom: 100px; }
+
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  padding: 16px 16px 0;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--card-radius); padding: 14px;
+  box-shadow: var(--shadow);
+}
+.theme-d2og .stat-card { border-radius: var(--card-radius); }
+.stat-icon { font-size: 20px; margin-bottom: 6px; }
+.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.stat-value { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
+.stat-sub { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+.stat-badge {
+  display: inline-flex; padding: 2px 8px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; margin-top: 4px;
+}
+.stat-badge.ok { background: var(--success-bg); color: var(--success); }
+.stat-badge.warn { background: var(--warning-bg); color: var(--warning); }
+.stat-badge.urgent { background: var(--danger-bg); color: var(--danger); }
+
+/* ─── ID CARD BUTTON ─── */
+.id-card-btn {
+  margin: 14px 16px 0;
+  background: var(--primary-gradient); color: #fff;
+  border-radius: var(--card-radius); padding: 16px 20px;
+  font-size: 15px; font-weight: 700; text-align: left;
+  box-shadow: var(--primary-shadow);
+  display: flex; align-items: center; gap: 10px;
+  width: calc(100% - 32px);
+}
+.theme-d2og .id-card-btn { border-radius: 9999px; }
+.id-card-btn .btn-icon { font-size: 22px; }
+.id-card-btn .btn-sub { font-size: 11px; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+
+/* ─── SECTION ─── */
+.section-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 16px 10px;
+}
+.section-title { font-size: 14px; font-weight: 700; color: var(--text-heading); }
+.section-link { font-size: 12px; font-weight: 600; color: var(--primary); }
+
+/* ─── HEALTH LIST ─── */
+.health-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+
+.health-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--card-radius); padding: 12px 14px;
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 12px;
+}
+.theme-d2og .health-item { border-radius: var(--card-radius); }
+.hi-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  flex-shrink: 0;
+}
+.theme-d2og .hi-icon { border-radius: 9999px; }
+.hi-icon.vaccine { background: var(--success-bg); }
+.hi-icon.parasite { background: rgba(255,130,99,0.08); }
+.hi-icon.weight { background: var(--warning-bg); }
+.hi-icon.shower { background: rgba(100,149,237,0.08); }
+.hi-icon.vet { background: rgba(236,37,132,0.06); }
+.hi-body { flex: 1; min-width: 0; }
+.hi-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.hi-detail { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.hi-badge {
+  padding: 3px 10px; border-radius: 9999px;
+  font-size: 10px; font-weight: 600; flex-shrink: 0;
+}
+.hi-badge.ok { background: var(--success-bg); color: var(--success); }
+.hi-badge.warn { background: var(--warning-bg); color: var(--warning); }
+.hi-badge.due { background: var(--danger-bg); color: var(--danger); }
+
+/* ─── RECENT DIARY ─── */
+.diary-scroll {
+  display: flex; gap: 10px; padding: 0 16px 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.diary-scroll::-webkit-scrollbar { display: none; }
+.diary-chip {
+  flex-shrink: 0; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--card-radius); padding: 10px; width: 130px;
+  box-shadow: var(--shadow);
+}
+.dc-thumb {
+  width: 100%; height: 80px; border-radius: calc(var(--card-radius) - 4px);
+  background: var(--surface-alt); display: flex; align-items: center; justify-content: center;
+  font-size: 28px; margin-bottom: 6px;
+}
+.dc-date { font-size: 10px; color: var(--text-sub); }
+.dc-cap { font-size: 11px; font-weight: 600; color: var(--text); margin-top: 2px; line-height: 1.3; }
+.dc-mood { font-size: 10px; color: var(--primary); margin-top: 3px; font-weight: 500; }
+
+/* ─── ACTION BUTTONS ─── */
+.action-row {
+  display: flex; gap: 10px; padding: 0 16px 24px;
+}
+.action-btn {
+  flex: 1; padding: 12px; border-radius: var(--card-radius);
+  font-size: 12px; font-weight: 600; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.theme-d2og .action-btn { border-radius: 9999px; flex-direction: row; gap: 6px; }
+.action-btn.secondary {
+  background: var(--surface); border: 1.5px solid var(--border);
+  color: var(--text-muted);
+}
+.action-btn .ab-icon { font-size: 18px; }
+
+/* ─── VARIANT BAR ─── */
+.variant-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 0; background: #2E2A2E;
+  border-radius: 20px 20px 0 0; overflow: hidden;
+  z-index: 999; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}
+.variant-btn {
+  padding: 12px 14px; font-size: 12px; font-weight: 600;
+  color: #aaa; background: transparent; transition: all 0.2s; white-space: nowrap;
+}
+.variant-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<div class="phone theme-notebook" id="phone">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <span class="status-icons">
+      <span>&#9679;&#9679;&#9679;&#9679;</span>
+      <span>&#8226;</span>
+      <span>WiFi</span>
+      <span>&#128267;</span>
+    </span>
+  </div>
+
+  <!-- PET HERO: New variants (A/B/A+B/D2) -->
+  <div class="pet-hero">
+    <div class="pet-avatar-large">
+      <div class="av-inner">🐕</div>
+    </div>
+    <div class="pet-name-large">บาลู</div>
+    <div class="pet-breed-large">เฟรนช์ บูลด๊อก · ตัวผู้ · 2 ปี 3 เดือน</div>
+    <div class="pet-tags">
+      <span class="pet-tag">12.5 กก.</span>
+      <span class="pet-tag">สีน้ำตาล</span>
+      <span class="pet-tag">ไมโครชิป: ✓</span>
+      <span class="pet-tag">ทำหมัน: ✓</span>
+    </div>
+  </div>
+
+  <!-- PET HERO: D2 OG (owner pill + pet selector + pet card) -->
+  <div class="d2og-pet-hero">
+    <div class="d2og-owner-pill">
+      <div class="d2og-owner-av"><div class="d2og-owner-av-inner">👤</div></div>
+      <div>
+        <div class="d2og-owner-name">คุณวิชาพล</div>
+        <div class="d2og-owner-sub">เจ้าของ 3 ตัว</div>
+      </div>
+    </div>
+    <div class="d2og-pet-selector">
+      <div class="d2og-ps-item active">
+        <div class="d2og-ps-ring"><div class="d2og-ps-inner">🐕</div></div>
+        <span class="d2og-ps-label">บาลู</span>
+      </div>
+      <div class="d2og-ps-item">
+        <div class="d2og-ps-ring"><div class="d2og-ps-inner">🐱</div></div>
+        <span class="d2og-ps-label">มิโล</span>
+      </div>
+      <div class="d2og-ps-item">
+        <div class="d2og-ps-ring"><div class="d2og-ps-inner">🐕</div></div>
+        <span class="d2og-ps-label">ขนมปัง</span>
+      </div>
+    </div>
+    <div class="d2og-pet-card">
+      <div class="d2og-pet-row">
+        <div class="d2og-pet-av"><div class="d2og-pet-av-inner">🐕</div></div>
+        <div>
+          <div class="d2og-pet-name">บาลู</div>
+          <div class="d2og-pet-breed">เฟรนช์ บูลด๊อก · ตัวผู้ · 2 ปี 3 เดือน</div>
+        </div>
+      </div>
+      <div class="d2og-pet-tags">
+        <span class="d2og-pet-tag">12.5 กก.</span>
+        <span class="d2og-pet-tag">สีน้ำตาล</span>
+        <span class="d2og-pet-tag">ไมโครชิป: ✓</span>
+        <span class="d2og-pet-tag">ทำหมัน: ✓</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-area">
+
+    <!-- STATS GRID -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">⚖️</div>
+        <div class="stat-label">น้ำหนัก</div>
+        <div class="stat-value">12.5 กก.</div>
+        <div class="stat-sub">+0.2 จากเดือนก่อน</div>
+        <span class="stat-badge ok">✓ ปกติ</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💉</div>
+        <div class="stat-label">วัคซีนถัดไป</div>
+        <div class="stat-value">อีก 12 วัน</div>
+        <div class="stat-sub">DHPPi+L · 26 พ.ค.</div>
+        <span class="stat-badge warn">⏰ ใกล้ถึง</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💊</div>
+        <div class="stat-label">ถ่ายพยาธิ</div>
+        <div class="stat-value">อีก 5 วัน</div>
+        <div class="stat-sub">ครบกำหนด 19 พ.ค.</div>
+        <span class="stat-badge warn">⏰ เตรียมตัว</span>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏥</div>
+        <div class="stat-label">นัดหมอ</div>
+        <div class="stat-value">28 พ.ค.</div>
+        <div class="stat-sub">คลินิกรักหมา · ตรวจสุขภาพ</div>
+        <span class="stat-badge ok">📅 จอง</span>
+      </div>
+    </div>
+
+    <!-- ID CARD BUTTON -->
+    <div class="id-card-btn">
+      <span class="btn-icon">🪪</span>
+      <div>
+        ดูบัตรประจำตัว บาลู
+        <div class="btn-sub">แตะเพื่อดู · กดค้างเพื่อแชร์</div>
+      </div>
+    </div>
+
+    <!-- HEALTH OVERVIEW -->
+    <div class="section-header">
+      <span class="section-title">สุขภาพล่าสุด</span>
+      <span class="section-link">ดูทั้งหมด →</span>
+    </div>
+
+    <div class="health-list">
+      <div class="health-item">
+        <div class="hi-icon vaccine">💉</div>
+        <div class="hi-body">
+          <div class="hi-title">วัคซีน DHPPi+L</div>
+          <div class="hi-detail">13 พ.ค. 2569 · คลินิกรักหมา</div>
+        </div>
+        <span class="hi-badge ok">✓ ครบ</span>
+      </div>
+      <div class="health-item">
+        <div class="hi-icon weight">⚖️</div>
+        <div class="hi-body">
+          <div class="hi-title">ชั่งน้ำหนัก · 12.5 กก.</div>
+          <div class="hi-detail">12 พ.ค. 2569 · +0.2 กก.</div>
+        </div>
+        <span class="hi-badge ok">📈 ปกติ</span>
+      </div>
+      <div class="health-item">
+        <div class="hi-icon shower">🚿</div>
+        <div class="hi-body">
+          <div class="hi-title">อาบน้ำตัดขน</div>
+          <div class="hi-detail">7 พ.ค. 2569 · Pet Grooming Studio</div>
+        </div>
+        <span class="hi-badge ok">✨</span>
+      </div>
+      <div class="health-item">
+        <div class="hi-icon parasite">💊</div>
+        <div class="hi-body">
+          <div class="hi-title">ถ่ายพยาธิ · Drontal Plus</div>
+          <div class="hi-detail">ครั้งถัดไป: 19 พ.ค. 2569</div>
+        </div>
+        <span class="hi-badge warn">⏰ อีก 5 วัน</span>
+      </div>
+      <div class="health-item">
+        <div class="hi-icon vet">🏥</div>
+        <div class="hi-body">
+          <div class="hi-title">นัดตรวจสุขภาพประจำปี</div>
+          <div class="hi-detail">28 พ.ค. 2569 · คลินิกรักหมา</div>
+        </div>
+        <span class="hi-badge warn">📅 28 พ.ค.</span>
+      </div>
+    </div>
+
+    <!-- RECENT DIARY -->
+    <div class="section-header">
+      <span class="section-title">ไดอารี่ล่าสุด</span>
+      <span class="section-link">ดูทั้งหมด →</span>
+    </div>
+
+    <div class="diary-scroll">
+      <div class="diary-chip">
+        <div class="dc-thumb">🌳🐕</div>
+        <div class="dc-date">14 พ.ค. 2569</div>
+        <div class="dc-cap">เดินเล่นสวนลุม</div>
+        <div class="dc-mood">😆 แฮปปี้มาก</div>
+      </div>
+      <div class="diary-chip">
+        <div class="dc-thumb">💉🐕</div>
+        <div class="dc-date">13 พ.ค. 2569</div>
+        <div class="dc-cap">ฉีดวัคซีนวันนี้</div>
+        <div class="dc-mood">😭 กลัว</div>
+      </div>
+      <div class="diary-chip">
+        <div class="dc-thumb">🚿✨</div>
+        <div class="dc-date">7 พ.ค. 2569</div>
+        <div class="dc-cap">อาบน้ำตัดขน</div>
+        <div class="dc-mood">😊 สดใส</div>
+      </div>
+      <div class="diary-chip">
+        <div class="dc-thumb">🛋️😴</div>
+        <div class="dc-date">2 พ.ค. 2569</div>
+        <div class="dc-cap">นอนทั้งวัน</div>
+        <div class="dc-mood">😴 ง่วง</div>
+      </div>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="action-row">
+      <button class="action-btn secondary">
+        <span class="ab-icon">✏️</span>
+        แก้ไขข้อมูล
+      </button>
+      <button class="action-btn secondary">
+        <span class="ab-icon">📋</span>
+        พาสปอร์ต
+      </button>
+      <button class="action-btn secondary">
+        <span class="ab-icon">📤</span>
+        แชร์
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- VARIANT SWITCHER -->
+<div class="variant-bar">
+  <button class="variant-btn active" onclick="switchTheme('theme-notebook', this)">A สมุดพก</button>
+  <button class="variant-btn" onclick="switchTheme('theme-candy', this)">B Candy</button>
+  <button class="variant-btn" onclick="switchTheme('theme-mix', this)">A+B Mix</button>
+  <button class="variant-btn" onclick="switchTheme('theme-d2', this)">D2</button>
+  <button class="variant-btn" onclick="switchTheme('theme-d2og', this)">D2 OG</button>
+</div>
+
+<script>
+function switchTheme(theme, btn) {
+  document.getElementById('phone').className = 'phone ' + theme;
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pawrents v2 — Diary Hub Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Kanit', sans-serif;
+  background: #E8E2D8;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100dvh; padding: 20px 0 120px;
+}
+button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+
+.phone {
+  width: 390px; min-height: 844px; position: relative; overflow: hidden;
+  background: var(--bg);
+  border-radius: 44px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+/* ═══ THEME A — สมุดพก (Notebook) ═══ */
+.theme-notebook {
+  --bg: #FAF6F0;
+  --surface: #FFFFFF; --surface-alt: #F5F0E8;
+  --border: #E8E2D9; --shadow: 2px 2px 0 rgba(0,0,0,0.03);
+  --text: #3D2B1F; --text-heading: #7A0000; --text-muted: #7A8668; --text-sub: #A09585;
+  --primary: #F05E38;
+  --primary-gradient: linear-gradient(135deg, #F05E38, #EC2584);
+  --primary-soft: rgba(240,94,56,0.1);
+  --primary-shadow: 0 4px 12px rgba(240,94,56,0.27);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 16px;
+  --fab-bg: linear-gradient(135deg, #F05E38, #EC2584);
+  --filter-active-bg: #7A0000; --filter-active-text: #fff;
+  --filter-bg: #F0EBE3; --filter-text: #7A8668;
+  --mood-bg: rgba(253,188,17,0.12); --mood-text: #3D2B1F;
+  --event-vaccine-bg: rgba(122,134,104,0.08); --event-vaccine-accent: #7A8668;
+  --event-weight-bg: rgba(253,188,17,0.08); --event-weight-accent: #C99A10;
+  --event-parasite-bg: rgba(240,94,56,0.06); --event-parasite-accent: #F05E38;
+  --event-enrichable-border: rgba(236,37,132,0.2);
+  --divider: #E8E2D9; --month-text: #7A0000;
+  --header-bg: transparent; --header-text: #3D2B1F; --status-text: #3D2B1F;
+}
+
+/* ═══ THEME B — Candy Pop ═══ */
+.theme-candy {
+  --bg: #FFF5F0;
+  --surface: #FFFFFF; --surface-alt: #FFF0EA;
+  --border: #F0E8E2; --shadow: 0 2px 10px rgba(0,0,0,0.04);
+  --text: #7A0000; --text-heading: #7A0000; --text-muted: #B08070; --text-sub: #C4A090;
+  --primary: #EC2584;
+  --primary-gradient: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --primary-soft: rgba(236,37,132,0.08);
+  --primary-shadow: 0 6px 20px rgba(236,37,132,0.25);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 20px;
+  --fab-bg: linear-gradient(135deg, #EC2584, #F05E38);
+  --filter-active-bg: #EC2584; --filter-active-text: #fff;
+  --filter-bg: #FFF0EA; --filter-text: #C4A090;
+  --mood-bg: rgba(236,37,132,0.08); --mood-text: #EC2584;
+  --event-vaccine-bg: rgba(122,134,104,0.08); --event-vaccine-accent: #7A8668;
+  --event-weight-bg: rgba(253,188,17,0.1); --event-weight-accent: #C99A10;
+  --event-parasite-bg: rgba(240,94,56,0.06); --event-parasite-accent: #F05E38;
+  --event-enrichable-border: rgba(236,37,132,0.25);
+  --divider: #F0E8E2; --month-text: #EC2584;
+  --header-bg: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --header-text: #FFFFFF; --status-text: #FFFFFF;
+}
+
+/* ═══ THEME A+B — Mix ═══ */
+.theme-mix {
+  --bg: #FAF6F0;
+  --surface: #FFFFFF; --surface-alt: #F5F0E8;
+  --border: #E8E2D9; --shadow: 2px 2px 0 rgba(0,0,0,0.03);
+  --text: #3D2B1F; --text-heading: #7A0000; --text-muted: #7A8668; --text-sub: #A09585;
+  --primary: #7A0000;
+  --primary-gradient: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --primary-soft: rgba(122,0,0,0.06);
+  --primary-shadow: 0 6px 20px rgba(122,0,0,0.2);
+  --accent-pink: #EC2584; --accent-yellow: #FDBC11; --accent-green: #7A8668;
+  --card-radius: 18px;
+  --fab-bg: linear-gradient(135deg, #F05E38, #EC2584);
+  --filter-active-bg: #7A0000; --filter-active-text: #fff;
+  --filter-bg: #F0EBE3; --filter-text: #7A8668;
+  --mood-bg: rgba(253,188,17,0.12); --mood-text: #3D2B1F;
+  --event-vaccine-bg: rgba(122,134,104,0.08); --event-vaccine-accent: #7A8668;
+  --event-weight-bg: rgba(253,188,17,0.08); --event-weight-accent: #C99A10;
+  --event-parasite-bg: rgba(240,94,56,0.06); --event-parasite-accent: #F05E38;
+  --event-enrichable-border: rgba(236,37,132,0.2);
+  --divider: #E8E2D9; --month-text: #7A0000;
+  --header-bg: linear-gradient(160deg, #EC2584, #F05E38 50%, #FDBC11);
+  --header-text: #FFFFFF; --status-text: #FFFFFF;
+}
+
+/* ═══ THEME D2 (modified for v2) ═══ */
+.theme-d2 {
+  --bg: #FAF7F2;
+  --surface: #FFFFFF; --surface-alt: #EDEDE8;
+  --border: #E8E2D8; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --text: #2E2A2E; --text-heading: #2E2A2E; --text-muted: #6B6560; --text-sub: #9B9590;
+  --primary: #FF8263;
+  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+  --primary-soft: rgba(255,130,99,0.08);
+  --primary-shadow: 0 4px 14px rgba(255,130,99,0.3);
+  --accent-pink: #F06FA8; --accent-yellow: #FFCB6B; --accent-green: #6B8F5E;
+  --card-radius: 16px;
+  --fab-bg: linear-gradient(135deg, #FF8263, #FFA563);
+  --filter-active-bg: #2E2A2E; --filter-active-text: #fff;
+  --filter-bg: #EDEDE8; --filter-text: #6B6560;
+  --mood-bg: rgba(255,203,107,0.15); --mood-text: #6B6560;
+  --event-vaccine-bg: rgba(107,143,94,0.08); --event-vaccine-accent: #6B8F5E;
+  --event-weight-bg: rgba(255,203,107,0.1); --event-weight-accent: #C99A10;
+  --event-parasite-bg: rgba(255,130,99,0.06); --event-parasite-accent: #FF8263;
+  --event-enrichable-border: rgba(240,111,168,0.2);
+  --divider: #E8E2D8; --month-text: #2E2A2E;
+  --header-bg: transparent; --header-text: #2E2A2E; --status-text: #2E2A2E;
+}
+
+/* ═══ THEME D2 OG — Original D2 POPS Balanced (exact) ═══ */
+.theme-d2og {
+  font-family: 'Noto Sans Thai', system-ui, sans-serif !important;
+  --bg: linear-gradient(180deg, #FAF7F2 0%, #F5F1EA 100%);
+  background: linear-gradient(180deg, #FAF7F2 0%, #F5F1EA 100%) !important;
+  --surface: #FFFFFF; --surface-alt: #EDEDE8;
+  --border: #E8E2D8; --border-subtle: #F0EDE6;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --text: #2E2A2E; --text-heading: #2E2A2E; --text-muted: #6B6560; --text-sub: #3D3935;
+  --primary: #FF8263;
+  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+  --primary-soft: rgba(255,130,99,0.08);
+  --primary-shadow: 0 4px 14px rgba(255,130,99,0.3);
+  --accent-pink: #F06FA8; --accent-yellow: #FFCB6B; --accent-green: #6B8F5E;
+  --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  --card-radius: 16px;
+  --fab-bg: linear-gradient(135deg, #FF8263, #FFA563);
+  --filter-active-bg: #FF8263; --filter-active-text: #fff;
+  --filter-bg: #EDEDE8; --filter-text: #6B6560;
+  --mood-bg: rgba(255,203,107,0.15); --mood-text: #3D3935;
+  --event-vaccine-bg: rgba(76,107,60,0.08); --event-vaccine-accent: #4C6B3C;
+  --event-weight-bg: rgba(184,115,10,0.08); --event-weight-accent: #B8730A;
+  --event-parasite-bg: rgba(255,130,99,0.06); --event-parasite-accent: #FF8263;
+  --event-enrichable-border: rgba(240,111,168,0.2);
+  --divider: #E8E2D8; --month-text: #2E2A2E;
+  --header-bg: transparent; --header-text: #2E2A2E; --status-text: #2E2A2E;
+  --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+  --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
+}
+.theme-d2og * { font-family: 'Noto Sans Thai', system-ui, sans-serif; }
+
+/* ─── STATUS BAR ─── */
+.status-bar {
+  height: 54px; display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 28px 0; font-size: 12px; font-weight: 600;
+  color: var(--status-text); position: relative; z-index: 10;
+}
+.status-time { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+.status-icons { display: flex; gap: 5px; align-items: center; font-size: 13px; }
+
+/* ─── HEADER (new variants) ─── */
+.diary-header {
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 0 20px 20px;
+  position: relative;
+}
+.theme-candy .diary-header,
+.theme-mix .diary-header {
+  border-radius: 0 0 28px 28px;
+  padding-bottom: 24px;
+}
+.header-greeting { font-size: 13px; font-weight: 400; opacity: 0.75; margin-bottom: 2px; }
+.header-title { font-size: 24px; font-weight: 800; line-height: 1.2; }
+.header-title em { font-style: normal; color: var(--accent-pink); }
+.theme-candy .header-title em,
+.theme-mix .header-title em { color: var(--accent-yellow); }
+
+/* ─── D2 OG: Owner Pill Header ─── */
+.d2og-header { display: none; }
+.theme-d2og .d2og-header { display: block; }
+.theme-d2og .diary-header { display: none; }
+
+.owner-pill-header {
+  margin: 0 16px 8px;
+  background: var(--surface);
+  border-radius: 9999px;
+  padding: 10px 16px 10px 10px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-owner);
+}
+.owner-avatar-ring {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--pops-gradient); padding: 2.5px; flex-shrink: 0;
+}
+.owner-avatar-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.owner-info { flex: 1; min-width: 0; }
+.owner-name { font-size: 13px; font-weight: 800; color: var(--text); }
+.owner-sub { font-size: 11px; color: var(--text-muted); }
+.d2og-page-title {
+  padding: 12px 20px 4px;
+  font-size: 18px; font-weight: 800; color: var(--text-heading);
+}
+.d2og-page-sub {
+  padding: 0 20px 8px;
+  font-size: 12px; color: var(--text-muted);
+}
+
+/* ─── D2 OG: Pet Selector Circles ─── */
+.d2og-pet-selector { display: none; }
+.theme-d2og .d2og-pet-selector { display: flex; }
+.theme-d2og .pet-filter { display: none; }
+
+.pet-circles {
+  display: flex; gap: 16px; padding: 10px 20px 14px;
+  justify-content: flex-start;
+}
+.pet-circle-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer;
+}
+.pet-circle-ring {
+  width: 54px; height: 54px; border-radius: 50%;
+  padding: 2.5px; background: var(--border);
+  transition: all 0.2s;
+}
+.pet-circle-item.active .pet-circle-ring {
+  background: var(--pops-gradient);
+  box-shadow: var(--shadow-glow);
+}
+.pet-circle-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: #E8E2D8;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.pet-circle-item.active .pet-circle-inner { background: #FAF0EA; }
+.pet-circle-label {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 10px; border-radius: 9999px;
+}
+.pet-circle-item.active .pet-circle-label {
+  background: var(--primary); color: #fff;
+}
+.pet-circle-item:not(.active) .pet-circle-label {
+  background: var(--surface-alt); color: var(--text-muted);
+}
+.pet-circle-item:not(.active) { opacity: 0.55; }
+.pet-circle-add .pet-circle-ring {
+  background: transparent;
+  border: 2px dashed var(--primary);
+  padding: 0;
+}
+.pet-circle-add .pet-circle-inner {
+  background: transparent;
+  color: var(--primary); font-size: 20px;
+}
+.pet-circle-add .pet-circle-label { color: var(--primary); background: transparent; font-weight: 600; }
+.pet-circle-add { opacity: 1 !important; }
+.pet-all-pill {
+  align-self: center;
+  padding: 8px 16px; border-radius: 9999px;
+  font-size: 12px; font-weight: 700;
+  background: var(--filter-active-bg); color: var(--filter-active-text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-right: 4px;
+}
+
+/* ─── PET FILTER BAR (new variants) ─── */
+.pet-filter {
+  display: flex; gap: 8px; padding: 16px 20px 8px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.pet-filter::-webkit-scrollbar { display: none; }
+.filter-pill {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 999px;
+  background: var(--filter-bg); color: var(--filter-text);
+  font-size: 13px; font-weight: 500;
+  border: 1.5px solid transparent;
+  transition: all 0.2s;
+}
+.filter-pill.active {
+  background: var(--filter-active-bg); color: var(--filter-active-text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.filter-pill .fp-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; background: rgba(255,255,255,0.3);
+}
+.filter-pill.active .fp-avatar { background: rgba(255,255,255,0.25); }
+
+/* ─── MONTH DIVIDER ─── */
+.month-divider {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 20px 8px;
+}
+.month-divider .md-label {
+  font-size: 13px; font-weight: 700; color: var(--month-text);
+  white-space: nowrap;
+}
+.month-divider .md-line { flex: 1; height: 1px; background: var(--divider); }
+
+/* ─── TIMELINE CARDS ─── */
+.timeline { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.tl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.tl-pet-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.tl-pet-tag .pt-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; background: var(--filter-bg);
+}
+
+.tl-diary-photo {
+  width: 100%; height: 180px; border-radius: calc(var(--card-radius) - 4px);
+  background: var(--surface-alt);
+  margin-bottom: 10px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; color: var(--text-sub);
+}
+.tl-diary-caption { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; }
+.tl-diary-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px; font-size: 11px; color: var(--text-sub);
+}
+.tl-mood {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--mood-bg); color: var(--mood-text);
+  font-size: 11px; font-weight: 500;
+}
+.tl-date { font-size: 11px; color: var(--text-sub); }
+
+.tl-event { display: flex; gap: 12px; align-items: flex-start; }
+.tl-event-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.tl-event-icon.vaccine { background: var(--event-vaccine-bg); }
+.tl-event-icon.weight { background: var(--event-weight-bg); }
+.tl-event-icon.parasite { background: var(--event-parasite-bg); }
+.tl-event-icon.shower { background: rgba(100,149,237,0.08); }
+.tl-event-body { flex: 1; min-width: 0; }
+.tl-event-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.tl-event-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.tl-event-badge {
+  display: inline-flex; padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; margin-top: 6px;
+}
+.tl-event-badge.vaccine { background: var(--event-vaccine-bg); color: var(--event-vaccine-accent); }
+.tl-event-badge.weight { background: var(--event-weight-bg); color: var(--event-weight-accent); }
+.tl-event-badge.parasite { background: var(--event-parasite-bg); color: var(--event-parasite-accent); }
+
+/* D2 OG specific: pill-shaped event icons */
+.theme-d2og .tl-event-icon { border-radius: 9999px; }
+.theme-d2og .tl-event-badge { border-radius: 9999px; }
+.theme-d2og .tl-mood { border-radius: 9999px; }
+.theme-d2og .tl-card { border-radius: 24px; }
+.theme-d2og .tl-diary-photo { border-radius: 20px; }
+
+.tl-enrich {
+  margin-top: 10px; padding: 10px 12px;
+  border: 1.5px dashed var(--event-enrichable-border);
+  border-radius: 12px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--accent-pink);
+  font-weight: 500; cursor: pointer;
+  background: rgba(236,37,132,0.02);
+}
+.theme-d2og .tl-enrich { border-radius: 9999px; }
+
+.tl-enriched-photo {
+  width: 100%; height: 120px; border-radius: calc(var(--card-radius) - 4px);
+  background: var(--surface-alt);
+  margin-top: 10px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; color: var(--text-sub);
+}
+.theme-d2og .tl-enriched-photo { border-radius: 20px; }
+.tl-enriched-caption {
+  font-size: 13px; color: var(--text-muted); margin-top: 6px;
+  font-style: italic;
+}
+
+/* ─── FAB ─── */
+.fab {
+  position: fixed; bottom: 100px; right: calc(50% - 170px);
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--fab-bg);
+  color: #fff; font-size: 28px; font-weight: 300;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--primary-shadow), 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 100; transition: transform 0.2s;
+}
+.fab:active { transform: scale(0.92); }
+
+/* ─── ACTION SHEET ─── */
+.action-sheet-overlay {
+  position: absolute; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.4);
+  display: none; align-items: flex-end;
+  border-radius: 44px; overflow: hidden;
+}
+.action-sheet-overlay.visible { display: flex; }
+.action-sheet {
+  width: 100%; background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px 40px;
+}
+.action-sheet-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border); margin: 0 auto 16px;
+}
+.action-sheet-title {
+  font-size: 16px; font-weight: 700; color: var(--text-heading);
+  text-align: center; margin-bottom: 16px;
+}
+.action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.action-item {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 8px; border-radius: var(--card-radius);
+  background: var(--surface-alt); border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.theme-d2og .action-item { border-radius: 24px; }
+.action-item:active { transform: scale(0.95); }
+.action-item .ai-icon { font-size: 28px; }
+.action-item .ai-label { font-size: 12px; font-weight: 600; color: var(--text); text-align: center; line-height: 1.3; }
+
+/* ─── VARIANT SWITCHER ─── */
+.variant-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 0; background: #2E2A2E;
+  border-radius: 20px 20px 0 0; overflow: hidden;
+  z-index: 999; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}
+.variant-btn {
+  padding: 12px 14px; font-size: 12px; font-weight: 600;
+  color: #aaa; background: transparent; transition: all 0.2s;
+  white-space: nowrap;
+}
+.variant-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
+
+.timeline-end {
+  text-align: center; padding: 24px 20px 40px;
+  color: var(--text-sub); font-size: 13px;
+}
+.timeline-end .te-mascot { font-size: 48px; margin-bottom: 8px; }
+
+.scroll-area { overflow-y: auto; min-height: 720px; padding-bottom: 100px; }
+</style>
+</head>
+<body>
+
+<div class="phone theme-notebook" id="phone">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <span class="status-icons">
+      <span>&#9679;&#9679;&#9679;&#9679;</span>
+      <span>&#8226;</span>
+      <span>WiFi</span>
+      <span>&#128267;</span>
+    </span>
+  </div>
+
+  <!-- HEADER: New variants (A/B/A+B/D2) -->
+  <div class="diary-header">
+    <div class="header-greeting">สมุดบันทึก</div>
+    <div class="header-title">ไดอารี่ ของ<em>นายท่าน</em> 📒</div>
+  </div>
+
+  <!-- HEADER: D2 OG (owner pill + title) -->
+  <div class="d2og-header">
+    <div class="owner-pill-header">
+      <div class="owner-avatar-ring">
+        <div class="owner-avatar-inner">👤</div>
+      </div>
+      <div class="owner-info">
+        <div class="owner-name">สวัสดี คุณวิชาพล 👋</div>
+        <div class="owner-sub">เจ้าของ 3 ตัว</div>
+      </div>
+    </div>
+    <div class="d2og-page-title">สมุดบันทึก 📒</div>
+    <div class="d2og-page-sub">ไดอารี่ของนายท่านทั้งหมด</div>
+  </div>
+
+  <div class="scroll-area">
+
+    <!-- PET FILTER: New variants -->
+    <div class="pet-filter">
+      <button class="filter-pill active" onclick="setFilter(this)">ทั้งหมด</button>
+      <button class="filter-pill" onclick="setFilter(this)">
+        <span class="fp-avatar">🐕</span> บาลู
+      </button>
+      <button class="filter-pill" onclick="setFilter(this)">
+        <span class="fp-avatar">🐱</span> มิโล
+      </button>
+      <button class="filter-pill" onclick="setFilter(this)">
+        <span class="fp-avatar">🐕</span> ขนมปัง
+      </button>
+    </div>
+
+    <!-- PET SELECTOR: D2 OG (circles with gradient rings) -->
+    <div class="d2og-pet-selector">
+      <div class="pet-circles">
+        <div class="pet-all-pill">ทั้งหมด</div>
+        <div class="pet-circle-item active">
+          <div class="pet-circle-ring"><div class="pet-circle-inner">🐕</div></div>
+          <span class="pet-circle-label">บาลู</span>
+        </div>
+        <div class="pet-circle-item">
+          <div class="pet-circle-ring"><div class="pet-circle-inner">🐱</div></div>
+          <span class="pet-circle-label">มิโล</span>
+        </div>
+        <div class="pet-circle-item">
+          <div class="pet-circle-ring"><div class="pet-circle-inner">🐕</div></div>
+          <span class="pet-circle-label">ขนมปัง</span>
+        </div>
+        <div class="pet-circle-item pet-circle-add">
+          <div class="pet-circle-ring"><div class="pet-circle-inner">+</div></div>
+          <span class="pet-circle-label">เพิ่ม</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTH: MAY 2569 -->
+    <div class="month-divider">
+      <span class="md-label">พฤษภาคม 2569</span>
+      <span class="md-line"></span>
+    </div>
+
+    <div class="timeline">
+
+      <!-- CARD 1: Diary entry with photo -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐕</span> บาลู</div>
+        <div class="tl-diary-photo">🌳🐕</div>
+        <div class="tl-diary-caption">เดินเล่นสวนลุม วิ่งไล่นกพิราบสนุกมาก ไม่ยอมกลับบ้าน 😂</div>
+        <div class="tl-diary-meta">
+          <span class="tl-mood">😆 แฮปปี้มาก</span>
+          <span class="tl-date">14 พ.ค. 2569 · 16:30</span>
+        </div>
+      </div>
+
+      <!-- CARD 2: Vaccine (ENRICHED) -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐕</span> บาลู</div>
+        <div class="tl-event">
+          <div class="tl-event-icon vaccine">💉</div>
+          <div class="tl-event-body">
+            <div class="tl-event-title">ฉีดวัคซีน DHPPi+L</div>
+            <div class="tl-event-detail">คลินิกรักหมา · ดร.สมชาย</div>
+            <span class="tl-event-badge vaccine">✓ สำเร็จ</span>
+          </div>
+        </div>
+        <div class="tl-enriched-photo">💉🐕😭</div>
+        <div class="tl-enriched-caption">"ร้องเสียงดังมาก แต่ก็ผ่านไปได้นะลูก 🥺"</div>
+        <div class="tl-diary-meta">
+          <span class="tl-mood">😭 กลัว</span>
+          <span class="tl-date">13 พ.ค. 2569 · 10:00</span>
+        </div>
+      </div>
+
+      <!-- CARD 3: Weight (with enrich prompt) -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐱</span> มิโล</div>
+        <div class="tl-event">
+          <div class="tl-event-icon weight">⚖️</div>
+          <div class="tl-event-body">
+            <div class="tl-event-title">ชั่งน้ำหนัก · 4.2 กก.</div>
+            <div class="tl-event-detail">+0.1 กก. จากครั้งก่อน</div>
+            <span class="tl-event-badge weight">📈 ปกติ</span>
+          </div>
+        </div>
+        <div class="tl-enrich">📸 &nbsp;เพิ่มรูปหรือข้อความไหม?</div>
+        <div class="tl-diary-meta" style="margin-top:8px">
+          <span class="tl-date">12 พ.ค. 2569 · 09:15</span>
+        </div>
+      </div>
+
+      <!-- CARD 4: Parasite treatment -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐕</span> ขนมปัง</div>
+        <div class="tl-event">
+          <div class="tl-event-icon parasite">💊</div>
+          <div class="tl-event-body">
+            <div class="tl-event-title">กินยาถ่ายพยาธิ</div>
+            <div class="tl-event-detail">Drontal Plus · ครั้งถัดไป 12 ส.ค.</div>
+            <span class="tl-event-badge parasite">✓ ครบรอบ</span>
+          </div>
+        </div>
+        <div class="tl-enrich">📸 &nbsp;เพิ่มรูปหรือข้อความไหม?</div>
+        <div class="tl-diary-meta" style="margin-top:8px">
+          <span class="tl-date">10 พ.ค. 2569 · 19:00</span>
+        </div>
+      </div>
+
+      <!-- CARD 5: Diary (text only) -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐱</span> มิโล</div>
+        <div class="tl-diary-caption">วันนี้มิโลนอนกอดหมอนใหม่ ไม่ยอมลุกเลยตั้งแต่เช้า 😴 น่ารักมาก</div>
+        <div class="tl-diary-meta">
+          <span class="tl-mood">😴 ง่วงนอน</span>
+          <span class="tl-date">9 พ.ค. 2569 · 08:20</span>
+        </div>
+      </div>
+
+      <!-- CARD 6: Shower/grooming -->
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐕</span> บาลู</div>
+        <div class="tl-event">
+          <div class="tl-event-icon shower">🚿</div>
+          <div class="tl-event-body">
+            <div class="tl-event-title">อาบน้ำตัดขน</div>
+            <div class="tl-event-detail">Pet Grooming Studio · ตัดขนทั้งตัว + เล็บ</div>
+            <span class="tl-event-badge vaccine">✨ สะอาด</span>
+          </div>
+        </div>
+        <div class="tl-enrich">📸 &nbsp;เพิ่มรูปหรือข้อความไหม?</div>
+        <div class="tl-diary-meta" style="margin-top:8px">
+          <span class="tl-date">7 พ.ค. 2569 · 14:00</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- APRIL -->
+    <div class="month-divider">
+      <span class="md-label">เมษายน 2569</span>
+      <span class="md-line"></span>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐕</span> ขนมปัง</div>
+        <div class="tl-diary-photo">🎂🐕🎉</div>
+        <div class="tl-diary-caption">สุขสันต์วันเกิด 3 ขวบ ขนมปัง! 🎂 ได้เค้กหมาเป็นของขวัญ กินหมดภายใน 30 วินาที</div>
+        <div class="tl-diary-meta">
+          <span class="tl-mood">🥳 ตื่นเต้น</span>
+          <span class="tl-date">28 เม.ย. 2569 · 18:00</span>
+        </div>
+      </div>
+
+      <div class="tl-card">
+        <div class="tl-pet-tag"><span class="pt-dot">🐱</span> มิโล</div>
+        <div class="tl-event">
+          <div class="tl-event-icon weight">⚖️</div>
+          <div class="tl-event-body">
+            <div class="tl-event-title">ชั่งน้ำหนัก · 4.1 กก.</div>
+            <div class="tl-event-detail">คงที่จากครั้งก่อน</div>
+            <span class="tl-event-badge weight">✓ ปกติ</span>
+          </div>
+        </div>
+        <div class="tl-diary-meta" style="margin-top:8px">
+          <span class="tl-date">25 เม.ย. 2569 · 09:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-end">
+      <div class="te-mascot">🐾</div>
+      เริ่มบันทึกไดอารี่ตั้งแต่เมษายน 2569<br>
+      <span style="font-weight:600; color: var(--text-muted);">รวม 8 บันทึก · 3 นายท่าน</span>
+    </div>
+
+  </div>
+
+  <!-- FAB -->
+  <div class="fab" onclick="toggleSheet()">+</div>
+
+  <!-- ACTION SHEET -->
+  <div class="action-sheet-overlay" id="actionSheet" onclick="toggleSheet()">
+    <div class="action-sheet" onclick="event.stopPropagation()">
+      <div class="action-sheet-handle"></div>
+      <div class="action-sheet-title">บันทึกอะไรวันนี้? 📝</div>
+      <div class="action-grid">
+        <div class="action-item"><span class="ai-icon">📸</span><span class="ai-label">ไดอารี่</span></div>
+        <div class="action-item"><span class="ai-icon">💉</span><span class="ai-label">วัคซีน</span></div>
+        <div class="action-item"><span class="ai-icon">💊</span><span class="ai-label">ถ่ายพยาธิ</span></div>
+        <div class="action-item"><span class="ai-icon">⚖️</span><span class="ai-label">ชั่งน้ำหนัก</span></div>
+        <div class="action-item"><span class="ai-icon">🚿</span><span class="ai-label">อาบน้ำตัดขน</span></div>
+        <div class="action-item"><span class="ai-icon">🏥</span><span class="ai-label">พบหมอ</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- VARIANT SWITCHER -->
+<div class="variant-bar">
+  <button class="variant-btn active" onclick="switchTheme('theme-notebook', this)">A สมุดพก</button>
+  <button class="variant-btn" onclick="switchTheme('theme-candy', this)">B Candy</button>
+  <button class="variant-btn" onclick="switchTheme('theme-mix', this)">A+B Mix</button>
+  <button class="variant-btn" onclick="switchTheme('theme-d2', this)">D2</button>
+  <button class="variant-btn" onclick="switchTheme('theme-d2og', this)">D2 OG</button>
+</div>
+
+<script>
+function switchTheme(theme, btn) {
+  document.getElementById('phone').className = 'phone ' + theme;
+  document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setFilter(pill) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+}
+function toggleSheet() {
+  const sheet = document.getElementById('actionSheet');
+  sheet.classList.toggle('visible');
+  const fab = document.querySelector('.fab');
+  if (sheet.classList.contains('visible')) {
+    fab.textContent = '×';
+    fab.style.transform = 'rotate(45deg)';
+  } else {
+    fab.textContent = '+';
+    fab.style.transform = '';
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,686 @@
+<!--
+  ============================================================
+  Pawrent V6+D2 — /profile (Owner Profile & Settings)
+  ============================================================
+
+  Design Thesis:
+  V6 hybrid layout (bubble shapes on vertical card stack) with
+  D2 "POPS Balanced" tokens (softened coral primary, neutral
+  stone surfaces, POPS tri-color gradient reserved for avatar
+  callback only). Profile surfaces the SaaS business model via
+  a prominent Package/Subscription card.
+
+  Framework Citations:
+  - NNG Aesthetic-Usability: pill shapes feel safer (V1 bubble)
+  - Gestalt Law of Similarity: consistent roundness unifies
+  - Material Progressive Disclosure: one topic per card
+  - Apple HIG: grouped surfaces, 44x44 touch targets
+  - WCAG AA: contrast + target size compliance
+
+  Hybrid Source Map:
+  - Color/Tone: D2 POPS Balanced (coral #FF8263, no black)
+  - Layout: V6 vertical card stack
+  - Brand accent: POPS tri-color gradient on avatar ring only
+  - Semantic: success/warning/danger backgrounds per token doc
+
+  Token Summary (D2):
+  --primary:    #FF8263  (coral)
+  --primary-g:  linear-gradient(135deg, #FF8263, #FFA563)
+  --pops-g:     linear-gradient(135deg, #F06FA8, #FF9285, #FFCB6B)
+  --bg:         linear-gradient(180deg, #FAF7F2, #F5F1EA)
+  --surface:    #FFFFFF  | --surface-alt: #EDEDE8
+  --text:       #2E2A2E  | --text-muted: #6B6560
+  --success:    #4C6B3C  | --warning: #B8730A  | --danger: #D32F2F
+  --border:     #E8E2D8
+  Font: Noto Sans Thai (400, 600, 700, 800)
+  Radii: 12(sm) 16(md) 24(lg) 9999(pill)
+  Target: 44x44 min tappable, WCAG AA contrast
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pawrent V6+D2 — โปรไฟล์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { thai: ['"Noto Sans Thai"', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#FF8263', light: '#FFA563' },
+            'brand-pink': '#F06FA8',
+            'brand-yellow': '#FFCB6B',
+            success: { DEFAULT: '#4C6B3C', bg: '#EDF0EA' },
+            warning: { DEFAULT: '#B8730A', bg: '#FFF3D9' },
+            danger: { DEFAULT: '#D32F2F', bg: '#FFEBEE' },
+            info: { DEFAULT: '#1565C0', bg: '#E3F2FD' },
+            surface: { DEFAULT: '#FFFFFF', alt: '#EDEDE8' },
+            txt: '#2E2A2E',
+            muted: '#6B6560',
+            subtle: '#3D3935',
+          },
+          borderRadius: {
+            'sm-r': '12px',
+            'md-r': '16px',
+            'lg-r': '24px',
+            'pill': '9999px',
+          },
+          boxShadow: {
+            'soft': '0 2px 8px rgba(0,0,0,0.06)',
+            'owner': '0 2px 10px rgba(46,42,46,0.08)',
+            'glow': '0 4px 16px rgba(255,146,133,0.3)',
+            'primary-btn': '0 4px 14px rgba(255,130,99,0.3)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      /* Primary */
+      --primary: #FF8263;
+      --primary-light: #FFA563;
+      --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+
+      /* POPS brand accent (sparingly) */
+      --accent-brand: #F06FA8;
+      --accent-yellow: #FFCB6B;
+      --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+
+      /* Surface / Background */
+      --bg-start: #FAF7F2;
+      --bg-end: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface-alt: #EDEDE8;
+
+      /* Text */
+      --text: #2E2A2E;
+      --text-muted: #6B6560;
+      --text-subtle: #3D3935;
+
+      /* Semantic */
+      --success: #4C6B3C;
+      --success-bg: #EDF0EA;
+      --warning: #B8730A;
+      --warning-bg: #FFF3D9;
+      --danger: #D32F2F;
+      --danger-bg: #FFEBEE;
+      --info: #1565C0;
+      --info-bg: #E3F2FD;
+
+      /* Borders */
+      --border: #E8E2D8;
+      --border-subtle: #F0EDE6;
+
+      /* Radius */
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+
+      /* Shadows */
+      --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+      --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
+      --shadow-primary: 0 4px 14px rgba(255,130,99,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 0; }
+
+    .pops-gradient { background: var(--pops-gradient); }
+    .primary-gradient { background: var(--primary-gradient); }
+
+    /* Toggle switch (pure CSS, no JS) */
+    .toggle {
+      width: 44px;
+      height: 26px;
+      border-radius: 9999px;
+      background: var(--surface-alt);
+      position: relative;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 9999px;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: left 0.2s;
+    }
+    .toggle.on {
+      background: var(--primary-gradient);
+      border-color: transparent;
+    }
+    .toggle.on::after { left: 20px; }
+
+    /* Focus ring for a11y */
+    button:focus-visible,
+    a:focus-visible,
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="font-thai">
+
+  <!-- ============================================================
+       SCREEN: /profile — Owner Profile & Settings
+       ============================================================ -->
+
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto min-h-screen relative pb-28 md:border-x md:border-[color:var(--border)]">
+
+    <!-- (1) LINE Header placeholder (44px) -->
+    <div class="h-[44px] bg-[color:var(--surface-alt)] flex items-center justify-center">
+      <span class="text-[10px] text-muted tracking-wider">LINE Header (44px)</span>
+    </div>
+
+    <!-- Page title strip -->
+    <div class="px-4 pt-4 pb-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-lg font-extrabold text-txt leading-tight">โปรไฟล์ของฉัน</p>
+          <p class="text-[11px] text-muted">จัดการบัญชี · แพ็คเกจ · ความเป็นส่วนตัว</p>
+        </div>
+        <button class="w-11 h-11 rounded-full bg-white shadow-soft flex items-center justify-center text-base" aria-label="แจ้งเตือน">
+          🔔
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (2) Owner Hero Card
+         Big avatar w/ POPS gradient ring + identity + stats
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-owner p-4 border border-[color:var(--border)]">
+        <!-- Identity row -->
+        <div class="flex items-start gap-3 mb-3">
+          <!-- Avatar with POPS tri-color ring -->
+          <div class="relative shrink-0">
+            <div class="w-20 h-20 rounded-full p-[3px] pops-gradient shadow-glow">
+              <div class="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl">
+                👤
+              </div>
+            </div>
+            <!-- Verified dot -->
+            <div class="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-soft">
+              <span class="text-[10px]">✓</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0 pt-1">
+            <p class="text-base font-extrabold text-txt leading-tight">คุณนิว</p>
+            <p class="text-[11px] text-muted mt-0.5 truncate">@niw_pawrent</p>
+            <p class="text-[11px] text-muted truncate">niw@example.com</p>
+            <p class="text-[10px] text-muted mt-1">สมาชิกตั้งแต่ ม.ค. 2568</p>
+          </div>
+        </div>
+
+        <!-- Stats row: 3 mini cards -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="rounded-md-r bg-[color:var(--surface-alt)] p-2.5 text-center">
+            <p class="text-lg mb-0.5">🐾</p>
+            <p class="text-sm font-extrabold text-txt">2</p>
+            <p class="text-[10px] text-muted">สัตว์เลี้ยง</p>
+          </div>
+          <div class="rounded-md-r bg-[color:var(--surface-alt)] p-2.5 text-center">
+            <p class="text-lg mb-0.5">📄</p>
+            <p class="text-sm font-extrabold text-txt">5</p>
+            <p class="text-[10px] text-muted">โพสต์</p>
+          </div>
+          <div class="rounded-md-r bg-[color:var(--surface-alt)] p-2.5 text-center">
+            <p class="text-lg mb-0.5">❤️</p>
+            <p class="text-sm font-extrabold text-txt">12</p>
+            <p class="text-[10px] text-muted">ช่วยเหลือ</p>
+          </div>
+        </div>
+
+        <!-- Edit profile button (outline) -->
+        <button class="w-full h-11 rounded-pill border-2 border-[color:var(--border)] bg-white text-xs font-bold text-txt flex items-center justify-center gap-2">
+          <span>✏️</span>
+          <span>แก้ไขโปรไฟล์</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (3) Package / Subscription Card (SaaS surface)
+         Emphasized — surfaces the business model
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] overflow-hidden">
+        <!-- Top strip w/ coral gradient accent -->
+        <div class="primary-gradient h-1"></div>
+        <div class="p-4">
+          <!-- Badge + title -->
+          <div class="flex items-start justify-between mb-3">
+            <div class="min-w-0">
+              <span class="inline-block bg-[color:var(--surface-alt)] text-subtle rounded-pill px-2.5 py-0.5 text-[10px] font-bold mb-1.5">
+                แพ็คเกจปัจจุบัน
+              </span>
+              <p class="text-base font-extrabold text-txt leading-tight">POPS Family 🏠</p>
+              <p class="text-[11px] text-muted mt-0.5 leading-relaxed">
+                สูงสุด 5 ตัว · 50 โพสต์/เดือน · ฟีเจอร์พื้นฐาน
+              </p>
+            </div>
+            <span class="bg-[color:var(--success-bg)] text-success rounded-pill px-2.5 py-1 text-[10px] font-bold shrink-0">
+              ฟรี
+            </span>
+          </div>
+
+          <!-- Usage bars -->
+          <div class="space-y-2.5 mb-3">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] font-semibold text-txt">🐾 สัตว์เลี้ยง</span>
+                <span class="text-[11px] font-bold text-txt">2<span class="text-muted font-normal">/5</span></span>
+              </div>
+              <div class="h-2 rounded-full bg-[color:var(--surface-alt)] overflow-hidden">
+                <div class="h-full rounded-full primary-gradient" style="width: 40%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] font-semibold text-txt">📄 โพสต์เดือนนี้</span>
+                <span class="text-[11px] font-bold text-txt">3<span class="text-muted font-normal">/50</span></span>
+              </div>
+              <div class="h-2 rounded-full bg-[color:var(--surface-alt)] overflow-hidden">
+                <div class="h-full rounded-full primary-gradient" style="width: 6%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upgrade CTA -->
+          <button class="w-full min-h-[48px] h-12 rounded-pill primary-gradient text-white text-sm font-bold shadow-primary-btn flex items-center justify-center gap-2 mb-2">
+            <span>อัปเกรดเป็น POPS Premium</span>
+            <span>⭐</span>
+          </button>
+          <p class="text-[10px] text-muted text-center leading-relaxed">
+            ได้ AI ค้นหา + ไม่จำกัดโพสต์ + ตรวจสุขภาพรายเดือน
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (4) My Pets link row
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <button class="w-full bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-3.5 flex items-center gap-3 min-h-[56px]">
+        <div class="w-10 h-10 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-xl shrink-0">
+          🐾
+        </div>
+        <div class="flex-1 min-w-0 text-left">
+          <p class="text-sm font-bold text-txt">สัตว์เลี้ยงของฉัน</p>
+          <p class="text-[11px] text-muted">มะลิ · เทา</p>
+        </div>
+        <span class="bg-[color:var(--surface-alt)] text-subtle rounded-pill px-2.5 py-0.5 text-[10px] font-bold">
+          2 ตัว
+        </span>
+        <span class="text-muted text-base">›</span>
+      </button>
+    </div>
+
+    <!-- ========================================================
+         (5) Contact channels card
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-4">
+        <div class="mb-3">
+          <p class="text-sm font-bold text-txt mb-0.5">📱 ช่องทางติดต่อ</p>
+          <p class="text-[10px] text-muted">สำหรับโพสต์สัตว์หาย — จะแสดงตามที่คุณเลือก</p>
+        </div>
+
+        <div class="space-y-2">
+          <!-- LINE -->
+          <div class="flex items-center gap-3 py-2.5 border-b border-[color:var(--border-subtle)]">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background: #E6F7EC;">
+              💬
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] text-muted">LINE ID</p>
+              <p class="text-xs font-bold text-txt truncate">@niw_pawrent</p>
+            </div>
+            <button class="h-9 min-w-[44px] px-3 rounded-pill border border-[color:var(--border)] text-[11px] font-bold text-primary bg-white">
+              แก้ไข
+            </button>
+          </div>
+
+          <!-- Phone -->
+          <div class="flex items-center gap-3 py-2.5 border-b border-[color:var(--border-subtle)]">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background: #FFF3E0;">
+              📞
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] text-muted">เบอร์โทร</p>
+              <p class="text-xs font-bold text-txt truncate">088-888-8888</p>
+            </div>
+            <button class="h-9 min-w-[44px] px-3 rounded-pill border border-[color:var(--border)] text-[11px] font-bold text-primary bg-white">
+              แก้ไข
+            </button>
+          </div>
+
+          <!-- Email -->
+          <div class="flex items-center gap-3 py-2.5">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" style="background: #E3F2FD;">
+              📧
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] text-muted">Email</p>
+              <p class="text-xs font-bold text-txt truncate">niw@example.com</p>
+            </div>
+            <button class="h-9 min-w-[44px] px-3 rounded-pill border border-[color:var(--border)] text-[11px] font-bold text-primary bg-white">
+              แก้ไข
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3 p-2.5 rounded-md-r bg-[color:var(--surface-alt)]">
+          <p class="text-[10px] text-subtle leading-relaxed">
+            ℹ️ ข้อมูลจะแสดงในโพสต์ตามที่คุณเลือกในแต่ละครั้ง
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (6) Notification settings card
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-4">
+        <p class="text-sm font-bold text-txt mb-3">🔔 การแจ้งเตือน</p>
+
+        <div class="space-y-1">
+          <!-- Radius (pill selector) -->
+          <div class="py-2.5 border-b border-[color:var(--border-subtle)]">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <p class="text-xs font-bold text-txt">📍 สัตว์หายในรัศมี</p>
+                <p class="text-[10px] text-muted">แจ้งเมื่อมีสัตว์หายใกล้คุณ</p>
+              </div>
+            </div>
+            <div class="flex gap-1.5 flex-wrap">
+              <button class="h-8 min-w-[44px] px-3 rounded-pill bg-[color:var(--surface-alt)] text-[10px] text-muted font-semibold">1 km</button>
+              <button class="h-8 min-w-[44px] px-3 rounded-pill primary-gradient text-white text-[10px] font-bold shadow-glow">3 km</button>
+              <button class="h-8 min-w-[44px] px-3 rounded-pill bg-[color:var(--surface-alt)] text-[10px] text-muted font-semibold">5 km</button>
+              <button class="h-8 min-w-[44px] px-3 rounded-pill bg-[color:var(--surface-alt)] text-[10px] text-muted font-semibold">10 km</button>
+            </div>
+          </div>
+
+          <!-- Pet health -->
+          <div class="flex items-center justify-between py-3 border-b border-[color:var(--border-subtle)]">
+            <div class="flex-1 min-w-0 pr-3">
+              <p class="text-xs font-bold text-txt">💉 สุขภาพสัตว์</p>
+              <p class="text-[10px] text-muted">วัคซีน · ยาถ่ายพยาธิ · นัดหมอ</p>
+            </div>
+            <div class="toggle on" role="switch" aria-checked="true" aria-label="สุขภาพสัตว์" tabindex="0"></div>
+          </div>
+
+          <!-- Community -->
+          <div class="flex items-center justify-between py-3 border-b border-[color:var(--border-subtle)]">
+            <div class="flex-1 min-w-0 pr-3">
+              <p class="text-xs font-bold text-txt">👥 ชุมชน</p>
+              <p class="text-[10px] text-muted">ข่าวสาร · โพสต์จากเพื่อน</p>
+            </div>
+            <div class="toggle on" role="switch" aria-checked="true" aria-label="ชุมชน" tabindex="0"></div>
+          </div>
+
+          <!-- Quiet hours -->
+          <div class="flex items-center justify-between py-3">
+            <div class="flex-1 min-w-0 pr-3">
+              <p class="text-xs font-bold text-txt">🌙 เวลาเงียบ</p>
+              <p class="text-[10px] text-muted">ไม่ส่งแจ้งเตือนช่วงเวลานี้</p>
+            </div>
+            <button class="h-9 px-3 rounded-pill border border-[color:var(--border)] text-[11px] font-bold text-txt bg-white flex items-center gap-1">
+              <span>22:00 - 07:00</span>
+              <span class="text-muted text-xs">›</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (7) Privacy & Data card (PDPA)
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-4">
+        <div class="mb-3">
+          <p class="text-sm font-bold text-txt">🔒 ความเป็นส่วนตัว & ข้อมูล</p>
+          <p class="text-[10px] text-muted">ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</p>
+        </div>
+
+        <div class="space-y-0">
+          <!-- Export -->
+          <button class="w-full flex items-center gap-3 py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--info-bg)] flex items-center justify-center text-sm shrink-0">
+              ⬇️
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">ดาวน์โหลดข้อมูลของฉัน</p>
+              <p class="text-[10px] text-muted">ส่งออกข้อมูลทั้งหมดเป็นไฟล์ JSON</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+
+          <!-- Policy -->
+          <button class="w-full flex items-center gap-3 py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-sm shrink-0">
+              📜
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">นโยบายความเป็นส่วนตัว</p>
+              <p class="text-[10px] text-muted">อัปเดตล่าสุด มี.ค. 2569</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+
+          <!-- Terms -->
+          <button class="w-full flex items-center gap-3 py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-sm shrink-0">
+              📋
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">ข้อตกลงการใช้งาน</p>
+              <p class="text-[10px] text-muted">เงื่อนไขและข้อกำหนดการใช้บริการ</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+
+          <!-- Delete account (danger) -->
+          <button class="w-full flex items-center gap-3 py-3 min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--danger-bg)] flex items-center justify-center text-sm shrink-0">
+              🗑️
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-danger">ลบบัญชีและข้อมูลทั้งหมด</p>
+              <p class="text-[10px] text-muted">ไม่สามารถกู้คืนได้</p>
+            </div>
+            <span class="text-danger text-base">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (8) App settings card
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-4">
+        <p class="text-sm font-bold text-txt mb-3">⚙️ การตั้งค่าแอป</p>
+
+        <div class="space-y-0">
+          <!-- Language -->
+          <button class="w-full flex items-center justify-between py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <span class="text-base w-6 text-center">🌐</span>
+              <p class="text-xs font-bold text-txt">ภาษา</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[11px] text-muted">ไทย</span>
+              <span class="text-muted text-base">›</span>
+            </div>
+          </button>
+
+          <!-- Theme -->
+          <button class="w-full flex items-center justify-between py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <span class="text-base w-6 text-center">🎨</span>
+              <p class="text-xs font-bold text-txt">โหมดสี</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[11px] text-muted">ตามระบบ</span>
+              <span class="text-muted text-base">›</span>
+            </div>
+          </button>
+
+          <!-- Notification sound -->
+          <div class="flex items-center justify-between py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <span class="text-base w-6 text-center">🔊</span>
+              <p class="text-xs font-bold text-txt">เสียงแจ้งเตือน</p>
+            </div>
+            <div class="toggle on" role="switch" aria-checked="true" aria-label="เสียงแจ้งเตือน" tabindex="0"></div>
+          </div>
+
+          <!-- Version -->
+          <div class="flex items-center justify-between py-3 min-h-[44px]">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <span class="text-base w-6 text-center">ℹ️</span>
+              <p class="text-xs font-bold text-txt">เวอร์ชัน</p>
+            </div>
+            <span class="text-[11px] text-muted font-mono">0.6.0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (9) Help card
+         ======================================================== -->
+    <div class="px-4 pb-3">
+      <div class="bg-white rounded-lg-r shadow-soft border border-[color:var(--border)] p-4">
+        <p class="text-sm font-bold text-txt mb-3">🆘 ช่วยเหลือ</p>
+
+        <div class="space-y-0">
+          <button class="w-full flex items-center gap-3 py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-sm shrink-0">
+              💬
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">ส่งความคิดเห็น</p>
+              <p class="text-[10px] text-muted">บอกเราว่าคิดอย่างไรกับ Pawrent</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+
+          <button class="w-full flex items-center gap-3 py-3 border-b border-[color:var(--border-subtle)] min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-sm shrink-0">
+              📚
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">คู่มือการใช้งาน</p>
+              <p class="text-[10px] text-muted">คำถามที่พบบ่อย + บทความ</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+
+          <button class="w-full flex items-center gap-3 py-3 min-h-[44px]">
+            <div class="w-9 h-9 rounded-full bg-[color:var(--surface-alt)] flex items-center justify-center text-sm shrink-0">
+              🐛
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-bold text-txt">แจ้งปัญหา</p>
+              <p class="text-[10px] text-muted">รายงานข้อผิดพลาดหรือปัญหาการใช้งาน</p>
+            </div>
+            <span class="text-muted text-base">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         (10) Sign out button — outline danger, full-width
+         ======================================================== -->
+    <div class="px-4 pb-4">
+      <button class="w-full h-12 min-h-[48px] rounded-pill border-2 border-[color:var(--danger)] bg-white text-sm font-bold text-danger flex items-center justify-center gap-2">
+        <span>🚪</span>
+        <span>ออกจากระบบ</span>
+      </button>
+    </div>
+
+    <!-- ========================================================
+         (11) Footer text
+         ======================================================== -->
+    <div class="px-4 pb-6 text-center">
+      <p class="text-[11px] font-bold text-muted">Pawrent · Part of POPS Family 🐾</p>
+      <p class="text-[10px] text-muted mt-1">© 2026 POPS SaaS · Thailand</p>
+      <p class="text-[10px] text-muted mt-0.5">สร้างด้วย ❤️ เพื่อเจ้าของสัตว์เลี้ยงชาวไทย</p>
+    </div>
+
+    <!-- ========================================================
+         (12) Bottom Nav — 6 tabs, โปรไฟล์ active
+         ======================================================== -->
+    <nav
+      class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[768px] bg-white/95 backdrop-blur-md border-t border-[color:var(--border)] px-2 pb-2 pt-1 z-50"
+      aria-label="Main navigation"
+    >
+      <div class="flex items-center justify-around">
+        <a href="#" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center" aria-label="หน้าหลัก">
+          <span class="text-lg">🏠</span>
+          <span class="text-[9px] text-muted">หน้าหลัก</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center" aria-label="โพสต์">
+          <span class="text-lg">📄</span>
+          <span class="text-[9px] text-muted">โพสต์</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center" aria-label="ค้นหา">
+          <span class="text-lg">🔍</span>
+          <span class="text-[9px] text-muted">ค้นหา</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center" aria-label="แจ้งเตือน">
+          <span class="text-lg">🔔</span>
+          <span class="text-[9px] text-muted">แจ้งเตือน</span>
+        </a>
+        <a href="#" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center" aria-label="สัตว์เลี้ยง">
+          <span class="text-lg">🐾</span>
+          <span class="text-[9px] text-muted">สัตว์เลี้ยง</span>
+        </a>
+        <a
+          href="#"
+          class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] min-h-[44px] justify-center relative"
+          aria-label="โปรไฟล์"
+          aria-current="page"
+        >
+          <span class="text-lg">👤</span>
+          <span class="text-[9px] text-primary font-bold">โปรไฟล์</span>
+          <div class="absolute -bottom-0.5 w-1.5 h-1.5 rounded-full" style="background: var(--primary);"></div>
+        </a>
+      </div>
+    </nav>
+
+  </div>
+
+</body>
+</html>

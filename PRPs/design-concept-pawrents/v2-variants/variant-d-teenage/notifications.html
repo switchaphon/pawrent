@@ -1,0 +1,276 @@
+<!-- Pawrent v2 · Adventurous Bestie — Notifications · poster mail-room -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Pawrent · mail room</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One:wght@400&family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,800;0,9..144,900;1,9..144,700;1,9..144,800;1,9..144,900&family=Mali:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          thai: ['Mali', '"Noto Sans Thai"', 'system-ui', 'sans-serif'],
+          poster: ['"Bowlby One"', 'Mali', 'system-ui', 'sans-serif'],
+          italic: ['Fraunces', 'Mali', 'serif'],
+          hand: ['Caveat', 'Mali', 'cursive'],
+          body: ['"Noto Sans Thai"', 'system-ui', 'sans-serif'],
+        },
+        colors: {
+          pink: { DEFAULT: '#EC2584', 50: '#FDE7F1', 100: '#FAC9DF', 700: '#B01963' },
+          red: { DEFAULT: '#E02020', 50: '#FDE7E7', 100: '#F9C2C2', 700: '#A0151A' },
+          coral: { DEFAULT: '#F05E38', 50: '#FDE9E1', 100: '#FBCFBF' },
+          yellow: { DEFAULT: '#FDBC11', 50: '#FFF4CE', 100: '#FFE99A' },
+          sage: { DEFAULT: '#7A8668', 50: '#F0F2EC', 700: '#5A6350' },
+          burgundy: { DEFAULT: '#7A0000', 50: '#FAECEC' },
+          ink: '#2A1618',
+          'ink-muted': '#6B5556',
+          cream: '#FDF3E5',
+          paper: '#FFFAF0',
+          border: '#EEDCC4',
+        },
+        borderRadius: { 'md-r': '16px', 'lg-r': '22px', 'xl-r': '28px', pill: '9999px' },
+        boxShadow: { red: '4px 4px 0 #E02020', ink: '3px 3px 0 #2A1618', heavy: '6px 6px 0 #2A1618' },
+      },
+    },
+  }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: 'Noto Sans Thai', Mali, system-ui, sans-serif; }
+  body { background: radial-gradient(circle at 10% 0%, #FFF0D4 0%, transparent 40%), radial-gradient(circle at 90% 95%, #FFDDD0 0%, transparent 35%), #FDF3E5; color: #2A1618; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  .poster { font-family: 'Bowlby One', Mali, sans-serif; letter-spacing: -0.01em; }
+  .italic-h { font-family: Fraunces, serif; font-style: italic; font-weight: 900; letter-spacing: -0.02em; }
+  .hand { font-family: Caveat, cursive; font-weight: 700; }
+  .poster-pink { color: #EC2584; text-shadow: 3px 3px 0 #E02020, 4px 4px 0 rgba(42,22,24,0.2); }
+  .poster-red { color: #E02020; text-shadow: 3px 3px 0 #EC2584, 4px 4px 0 rgba(42,22,24,0.2); }
+  .poster-yellow { color: #FDBC11; text-shadow: 3px 3px 0 #E02020, 4px 4px 0 rgba(42,22,24,0.2); }
+  .pin { border: 2.5px solid #2A1618; box-shadow: 3px 3px 0 #2A1618; }
+  .pin-pink { background: #EC2584; color: #FFFFFF; }
+  .pin-red { background: #E02020; color: #FFFFFF; }
+  .pin-yellow { background: #FDBC11; color: #2A1618; }
+  .pin-coral { background: #F05E38; color: #FFFFFF; }
+  .pin-cream { background: #FFFAF0; color: #2A1618; }
+  .sparkle { position: absolute; pointer-events: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  button, a[role="button"], .tap { min-height: 44px; }
+</style>
+</head>
+<body class="font-body">
+
+<div class="max-w-[390px] md:max-w-[430px] mx-auto min-h-screen relative pb-28 md:border-x md:border-ink">
+
+  <div class="h-[44px] bg-red text-cream flex items-center justify-center">
+    <span class="poster text-[12px] tracking-[0.3em]">★ LINE · PAWRENT ★</span>
+  </div>
+
+  <!-- ── Poster masthead ──────────────────────────────── -->
+  <div class="relative px-5 pt-6 pb-4">
+    <svg class="sparkle top-4 right-4 w-10 h-10" viewBox="0 0 40 40"><path d="M20 4 L 22 18 L 36 20 L 22 22 L 20 36 L 18 22 L 4 20 L 18 18 Z" fill="#E02020"/></svg>
+    <svg class="sparkle top-20 right-14 w-4 h-4" viewBox="0 0 40 40"><circle cx="20" cy="20" r="10" fill="#FDBC11" stroke="#2A1618" stroke-width="1.5"/></svg>
+
+    <p class="italic-h text-[18px] text-red">WHAT'S NEW —</p>
+    <h1 class="poster text-[54px] leading-[0.9] mt-1 poster-pink">MAIL<br/>ROOM.</h1>
+    <p class="hand text-[22px] text-red mt-2 rotate-[-2deg] inline-block">8 letters today · 2 urgent</p>
+  </div>
+
+  <!-- ── Filter pins ───────────────────────────────── -->
+  <div class="px-5 pb-4">
+    <div class="flex gap-2 overflow-x-auto no-scrollbar">
+      <button class="shrink-0 pin pin-pink rounded-pill px-4 h-10 poster text-[11px] rotate-[-1deg] inline-flex items-center gap-1.5">
+        ALL <span class="bg-white/25 rounded-pill px-1.5 py-0.5 text-[9px]">8</span>
+      </button>
+      <button class="shrink-0 pin pin-cream rounded-pill px-4 h-10 poster text-[11px] text-ink-muted inline-flex items-center gap-1.5">
+        UNREAD <span class="pin pin-red rounded-pill px-1.5 text-[9px]">3</span>
+      </button>
+      <button class="shrink-0 pin pin-cream rounded-pill px-4 h-10 poster text-[11px] text-ink-muted">LOST</button>
+      <button class="shrink-0 pin pin-cream rounded-pill px-4 h-10 poster text-[11px] text-ink-muted">HEALTH</button>
+      <button class="shrink-0 pin pin-cream rounded-pill px-4 h-10 poster text-[11px] text-ink-muted">COMMUNITY</button>
+    </div>
+  </div>
+
+  <!-- ── Group: happy news ──────────────────────────── -->
+  <div class="px-5 pt-2 pb-2 flex items-center gap-3">
+    <p class="italic-h text-[16px] text-red">GOOD NEWS TODAY ·</p>
+    <span class="pin pin-yellow rounded-pill px-2 py-0.5 poster text-[10px]">2</span>
+  </div>
+
+  <!-- Happy ending big poster card -->
+  <div class="px-5 pb-3">
+    <div class="relative pin rounded-lg-r overflow-hidden" style="background: linear-gradient(135deg, #EC2584 0%, #E02020 55%, #F05E38 100%); color: #FFFAF0; border: 3px solid #2A1618; box-shadow: 5px 5px 0 #2A1618;">
+      <svg class="absolute top-3 right-3 w-12 h-12" viewBox="0 0 40 40"><path d="M20 4 L 22 18 L 36 20 L 22 22 L 20 36 L 18 22 L 4 20 L 18 18 Z" fill="#FDBC11" stroke="#2A1618" stroke-width="1.6"/></svg>
+      <svg class="absolute bottom-3 left-4 w-7 h-7" viewBox="0 0 40 40"><circle cx="20" cy="20" r="10" fill="#FDBC11" stroke="#2A1618" stroke-width="1.6"/></svg>
+
+      <div class="p-5 flex gap-4 items-start">
+        <div class="w-24 h-24 pin rounded-md-r overflow-hidden shrink-0 rotate-[-3deg] bg-paper">
+          <img src="../../pawrents-ref-charactor/3.jpg" class="w-full h-full object-contain" alt="dog cat couple"/>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="italic-h text-[12px] text-yellow tracking-widest">HAPPY ENDING · 11 MIN</p>
+          <p class="poster text-[24px] leading-[0.95] mt-1">ลูกชิ้น<br/>HOMEBOUND.</p>
+          <p class="hand text-[18px] text-yellow mt-1 rotate-[-1deg] inline-block">thonglor 11 · 4 hrs</p>
+        </div>
+      </div>
+      <div class="px-5 pb-5 flex items-center gap-3">
+        <button class="pin pin-yellow rounded-pill px-4 h-10 poster text-[11px]">READ →</button>
+        <span class="hand text-[20px]">♥ 248 · 💬 42</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second happy · pin card -->
+  <div class="px-5 pb-5">
+    <div class="pin pin-cream rounded-lg-r p-4 flex items-center gap-3 rotate-[0.5deg]">
+      <div class="w-12 h-12 pin pin-yellow rounded-full flex items-center justify-center text-[22px]">🏆</div>
+      <div class="flex-1 min-w-0">
+        <p class="poster text-[14px] text-ink">เจ้าชิบะ · RAMKHAMHAENG</p>
+        <p class="hand text-[17px] text-pink">114 shares · reunited in 18h</p>
+      </div>
+      <span class="hand text-[18px] text-ink-muted">1d</span>
+    </div>
+  </div>
+
+  <!-- ── Group: URGENT ─────────────────────────────── -->
+  <div class="px-5 pt-2 pb-2 flex items-center gap-3">
+    <p class="italic-h text-[16px] text-red">NEARBY · &lt; 5 KM</p>
+    <span class="pin pin-red rounded-pill px-2 py-0.5 poster text-[10px]">!! 3</span>
+  </div>
+
+  <!-- Match alert · red poster card -->
+  <div class="px-5 pb-3">
+    <div class="pin rounded-lg-r p-4 bg-red/10" style="border: 3px solid #E02020; box-shadow: 4px 4px 0 #E02020;">
+      <div class="flex items-start gap-3">
+        <div class="w-12 h-12 pin pin-red rounded-full flex items-center justify-center text-[22px] shrink-0">🚨</div>
+        <div class="flex-1 min-w-0">
+          <p class="italic-h text-[12px] text-red tracking-wide">MATCH FOUND · 2.4 KM</p>
+          <p class="poster text-[18px] text-ink leading-tight mt-1 poster-red">เจ้าดำหาย<br/>THAI CAT.</p>
+          <p class="hand text-[17px] text-ink mt-1">14 hours · reward ฿2,000 · red collar</p>
+        </div>
+      </div>
+      <div class="mt-3 flex items-center gap-2">
+        <button class="pin pin-red rounded-pill px-4 h-10 poster text-[11px]">HELP FIND →</button>
+        <button class="pin pin-cream rounded-pill px-4 h-10 poster text-[10px] text-ink-muted">LATER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your listing stats -->
+  <div class="px-5 pb-3">
+    <div class="pin pin-cream rounded-lg-r p-4 flex items-center gap-3 rotate-[-0.5deg]">
+      <div class="w-11 h-11 pin pin-pink rounded-full flex items-center justify-center text-[20px] shrink-0">📣</div>
+      <div class="flex-1 min-w-0">
+        <p class="poster text-[13px] text-ink">YOUR POST IS LIVE</p>
+        <p class="hand text-[18px] text-pink">184 reads · 3 tips · 7 shares</p>
+      </div>
+      <span class="hand text-[18px] text-ink-muted">2h</span>
+    </div>
+  </div>
+
+  <!-- Found nearby · polaroid card -->
+  <div class="px-5 pb-5">
+    <div class="pin pin-cream rounded-lg-r p-4 flex items-center gap-3 rotate-[0.5deg]">
+      <div class="w-14 h-14 pin rounded-md-r overflow-hidden shrink-0" style="background: linear-gradient(135deg, #FFF0D4, #FDBC11);">
+        <svg viewBox="0 0 40 40" class="w-full h-full p-1"><path d="M14 18 l4 -5 8 5 2 10 -7 4 -7 -4 z" fill="none" stroke="#2A1618" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="20" r="1.4" fill="#2A1618"/><circle cx="24" cy="20" r="1.4" fill="#2A1618"/></svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="poster text-[13px] text-ink">WHITE CAT · EKKAMAI 12</p>
+        <p class="hand text-[17px] text-sage-700">do u know this fluffball? 🤔</p>
+      </div>
+      <span class="hand text-[18px] text-ink-muted">1d</span>
+    </div>
+  </div>
+
+  <!-- ── Group: reminders ─────────────────────────── -->
+  <div class="px-5 pt-2 pb-2 flex items-center gap-3">
+    <p class="italic-h text-[16px] text-red">FROM HOME ·</p>
+    <span class="pin pin-yellow rounded-pill px-2 py-0.5 poster text-[10px]">3</span>
+  </div>
+
+  <!-- Vet tomorrow · sticky note style -->
+  <div class="px-5 pb-3">
+    <div class="pin pin-yellow rounded-md-r p-4 rotate-[-1deg] relative">
+      <span class="absolute -top-2 -right-2 pin pin-red rounded-pill px-2 py-0.5 text-[10px] poster rotate-[8deg]">!! VET</span>
+      <p class="poster text-[18px] text-ink">TOMORROW 10:30</p>
+      <p class="hand text-[22px] text-red mt-1">mochi's annual check-up !!</p>
+      <p class="text-[12px] font-semibold text-ink mt-1">ThonglorPet · Dr. Anong · <span class="hand text-[16px] text-pink">bring the book bestie</span></p>
+    </div>
+  </div>
+
+  <!-- Tick meds · sticky coral -->
+  <div class="px-5 pb-3">
+    <div class="pin pin-coral rounded-md-r p-4 rotate-[1deg]">
+      <p class="poster text-[16px]">NEXGARD · 6 DAYS</p>
+      <p class="hand text-[20px] mt-1">bento's tick drops — stock is low 🥲</p>
+      <p class="text-[11px] font-semibold opacity-90 mt-1">1 pill left at home</p>
+    </div>
+  </div>
+
+  <!-- Diary nudge -->
+  <div class="px-5 pb-5">
+    <div class="pin pin-cream rounded-md-r p-4 flex items-center gap-3">
+      <div class="w-11 h-11 pin pin-pink rounded-full flex items-center justify-center text-[20px]">📸</div>
+      <div class="flex-1 min-w-0">
+        <p class="poster text-[13px] text-ink">DIARY · 14 DAYS SILENT</p>
+        <p class="hand text-[17px] text-pink">post a photo please !!</p>
+      </div>
+      <span class="hand text-[18px] text-ink-muted">14d</span>
+    </div>
+  </div>
+
+  <!-- Streak digest · poster -->
+  <div class="px-5 pb-5">
+    <div class="pin rounded-lg-r p-5 relative overflow-hidden" style="background: linear-gradient(135deg, #FDBC11 0%, #F05E38 100%); color: #2A1618; border: 3px solid #2A1618; box-shadow: 5px 5px 0 #2A1618;">
+      <svg class="absolute -top-2 -right-4 w-24 h-24" viewBox="0 0 40 40"><path d="M20 4 L 22 18 L 36 20 L 22 22 L 20 36 L 18 22 L 4 20 L 18 18 Z" fill="#EC2584" stroke="#2A1618" stroke-width="1.4" opacity="0.45"/></svg>
+      <p class="italic-h text-[13px] text-red tracking-widest">WEEKLY RECAP ·</p>
+      <p class="poster text-[44px] leading-none mt-1">42 DAYS</p>
+      <p class="hand text-[22px] text-red mt-2 rotate-[-2deg] inline-block">streak iconic ✦</p>
+      <div class="mt-4 grid grid-cols-3 gap-3 pt-3 border-t-2 border-dashed border-ink/40">
+        <div>
+          <p class="poster text-[24px] leading-none">14/17</p>
+          <p class="italic-h text-[10px] text-ink-muted uppercase mt-1">tasks</p>
+        </div>
+        <div>
+          <p class="poster text-[24px] leading-none">184</p>
+          <p class="italic-h text-[10px] text-ink-muted uppercase mt-1">memories</p>
+        </div>
+        <div>
+          <p class="poster text-[24px] leading-none">+0.2</p>
+          <p class="italic-h text-[10px] text-ink-muted uppercase mt-1">mochi kg</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiet hours notice -->
+  <div class="px-5 pb-6">
+    <div class="pin pin-cream rounded-md-r p-4 flex items-center gap-3 border-2 border-dashed" style="border-style: dashed;">
+      <div class="w-11 h-11 pin pin-pink rounded-full flex items-center justify-center text-[20px]">🌙</div>
+      <div class="flex-1 min-w-0">
+        <p class="poster text-[13px] text-ink">QUIET HOURS · 22-07</p>
+        <p class="hand text-[17px] text-ink-muted">urgent only · within 1 km</p>
+      </div>
+      <button class="pin pin-yellow rounded-pill px-3 h-9 poster text-[11px]">EDIT</button>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav aria-label="เมนูหลัก" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[430px] bg-cream/95 backdrop-blur-md border-t-2 border-ink pt-1 pb-[max(8px,env(safe-area-inset-bottom))] z-50">
+    <ul class="grid grid-cols-6 px-1">
+      <li><a href="home.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h3"/><path d="M19 10v10a1 1 0 0 1-1 1h-3"/><path d="M9 21v-6a3 3 0 0 1 6 0v6"/></svg><span class="poster text-[9px]">HOME</span></a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a2 2 0 0 1 2-2h14v18a2 2 0 0 1-2 2H4Zm0 0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/><path d="M10 6h6M10 10h6M10 14h6"/></svg><span class="poster text-[9px]">FEED</span></a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span class="poster text-[9px]">ALERT</span></a></li>
+      <li><a href="notifications.html" aria-current="page" class="flex flex-col items-center justify-center gap-0.5 py-2 text-pink relative"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8a6 6 0 1 0-12 0c0 4.5-1.4 6-2.7 7.3Z"/></svg><span class="poster text-[9px]">MAIL</span><span class="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-pink"></span></a></li>
+      <li><a href="pets.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="16.5" cy="15.5" r="2"/><circle cx="7.5" cy="15.5" r="2"/><path d="M8 15a4 4 0 0 1 8 0c0 2.2-1.8 4-4 4s-4-1.8-4-4Z"/></svg><span class="poster text-[9px]">PETS</span></a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted"><svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="poster text-[9px]">ME</span></a></li>
+    </ul>
+  </nav>
+
+</div>
+</body>
+</html>

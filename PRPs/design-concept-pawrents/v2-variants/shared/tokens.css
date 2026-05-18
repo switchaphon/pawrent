@@ -1,0 +1,386 @@
+/* =============================================================
+   Pawrent v2 — Shared Tokens
+   Owned by PRPs/design-concept-pawrents/v2-variants/
+   Every variant links this file, then layers variant-specific
+   overrides inside a local <style> block.
+
+   Palette, typography, and phone-frame canvas live here.
+   Variant personality lives in variant-*/ * . html <style>.
+============================================================= */
+
+/* -- Font stack ---------------------------------------------- *
+ * Garet is a commercial face (Connary Fagen) — we declare it
+ * first. When unavailable, Outfit (Google Fonts, geometric sans
+ * with similar warmth) takes over. Thai uses Noto Sans Thai
+ * Looped so the Thai glyphs match Garet/Outfit's roundness. */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Thai+Looped:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&display=swap");
+
+:root {
+  /* === v2 Brand Palette (authoritative from brief) ========= */
+  --color-burgundy: #7a0000;
+  --color-sage: #7a8668;
+  --color-pops-pink: #ec2584;
+  --color-pops-coral: #f05e38;
+  --color-pops-yellow: #fdbc11;
+  --color-white: #ffffff;
+
+  /* === Derived surfaces & tints ============================ */
+  --color-bone: #fbf8f3;          /* warm off-white */
+  --color-parchment: #f3eee4;     /* softer cream */
+  --color-sage-50: #eef1e9;
+  --color-sage-100: #dde3d3;
+  --color-sage-200: #bec7af;
+  --color-sage-700: #5a6350;
+  --color-sage-900: #2f3628;
+  --color-burgundy-50: #f8eaea;
+  --color-burgundy-100: #eecdcd;
+  --color-burgundy-700: #5c0000;
+  --color-burgundy-900: #320000;
+  --color-pink-50: #fde6f1;
+  --color-pink-100: #fbc9df;
+  --color-coral-50: #fde7de;
+  --color-coral-100: #fbcebc;
+  --color-yellow-50: #fff4d0;
+  --color-yellow-100: #feeba8;
+
+  --color-ink: #1e1a17;            /* near-black warm */
+  --color-ink-soft: #3b342f;
+  --color-ink-muted: #6b625b;
+  --color-ink-subtle: #9a918a;
+  --color-hairline: rgba(30, 26, 23, 0.08);
+  --color-hairline-strong: rgba(30, 26, 23, 0.14);
+
+  /* === Semantic (mapped to brief palette) ================== */
+  --color-success: var(--color-sage);
+  --color-success-soft: var(--color-sage-50);
+  --color-warning: var(--color-pops-yellow);
+  --color-warning-soft: var(--color-yellow-50);
+  --color-danger: var(--color-burgundy);
+  --color-danger-soft: var(--color-burgundy-50);
+  --color-info: #3c5b7c;
+  --color-info-soft: #e6ecf3;
+
+  /* === Typography ========================================= */
+  --font-display: "Garet", "Outfit", "Noto Sans Thai Looped", system-ui, sans-serif;
+  --font-body: "Garet", "Outfit", "Noto Sans Thai Looped", system-ui, sans-serif;
+  --font-serif: "Fraunces", "Garet Serif", "Noto Serif Thai", Georgia, serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  /* Type scale — 8 steps, mobile-first */
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 30px;
+  --text-3xl: 38px;
+  --text-4xl: 48px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-heavy: 800;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-base: 1.5;
+  --leading-loose: 1.7;
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-base: 0;
+  --tracking-wide: 0.04em;
+  --tracking-caps: 0.12em;
+
+  /* === Spacing (4px base) ================================= */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* === Radii ============================================== */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-pill: 9999px;
+
+  /* === Elevation ========================================= */
+  --shadow-hairline: 0 0 0 1px var(--color-hairline);
+  --shadow-soft: 0 1px 2px rgba(30, 26, 23, 0.04), 0 8px 24px rgba(30, 26, 23, 0.05);
+  --shadow-lifted: 0 2px 6px rgba(30, 26, 23, 0.06), 0 18px 40px rgba(30, 26, 23, 0.08);
+  --shadow-pop: 0 8px 28px rgba(236, 37, 132, 0.22);   /* POPs-tinted */
+  --shadow-inner: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+
+  /* === Motion ============================================ */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  /* === Canvas ============================================ */
+  --device-width: 390px;
+  --device-height: 844px;
+  --safe-top: 44px;     /* Dynamic Island padding */
+  --safe-bottom: 34px;  /* home indicator padding */
+}
+
+/* -- Reset ---------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  color: var(--color-ink);
+  background: #e8e4dc;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+/* -- Phone-frame canvas -------------------------------------- *
+ * Desktop preview: centers a 390×844 device on a soft backdrop.
+ * Mobile preview: fills the viewport edge-to-edge.
+ * The .device is the scroll container; .device-inner is content.
+ */
+.stage {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(0px, 4vw, 48px);
+  background:
+    radial-gradient(circle at 20% 0%, #f4f0e7 0, transparent 60%),
+    radial-gradient(circle at 80% 100%, #ede8dc 0, transparent 55%),
+    #e8e4dc;
+}
+
+.device {
+  width: var(--device-width);
+  height: var(--device-height);
+  max-width: 100vw;
+  max-height: 100dvh;
+  position: relative;
+  background: var(--color-white);
+  border-radius: 48px;
+  overflow: hidden;
+  box-shadow:
+    0 40px 90px -20px rgba(30, 26, 23, 0.35),
+    0 0 0 10px rgba(30, 26, 23, 0.92),
+    0 0 0 12px rgba(30, 26, 23, 0.4);
+  isolation: isolate;
+}
+@media (max-width: 480px) {
+  .stage { padding: 0; background: var(--color-white); }
+  .device {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+.device-inner {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.device-inner::-webkit-scrollbar { display: none; }
+
+.status-bar {
+  height: var(--safe-top);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px 0;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: transparent;
+}
+.status-bar__icons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.status-bar__icons svg {
+  width: 14px;
+  height: 14px;
+}
+
+.screen {
+  min-height: calc(var(--device-height) - var(--safe-top));
+  padding-bottom: calc(96px + var(--safe-bottom));  /* room for bottom-nav */
+  position: relative;
+}
+
+/* -- Shared bottom-nav skeleton ------------------------------ *
+ * Every page includes a .bottom-nav with exactly 6 items.
+ * Variant styles each re-skin it via descendant selectors.
+ * Labels in Thai pulled from components/bottom-nav.tsx.
+ */
+.bottom-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: var(--safe-bottom);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  border-top: 1px solid var(--color-hairline);
+  z-index: 5;
+}
+.bottom-nav__list {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  height: 64px;
+  padding: 0 4px;
+}
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  color: var(--color-ink-muted);
+  position: relative;
+  transition: color var(--dur-base) var(--ease-out);
+  min-height: 44px;
+}
+.bottom-nav__item svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.bottom-nav__item[aria-current="page"] {
+  color: var(--color-burgundy);
+}
+.bottom-nav__item[aria-current="page"] svg {
+  transform: scale(1.12);
+}
+.bottom-nav__item[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+/* -- Utility classes ---------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.touch {
+  min-height: 44px;
+  min-width: 44px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: flex;
+  flex-direction: row;
+}
+.between { justify-content: space-between; }
+.center { align-items: center; justify-content: center; }
+.items-center { align-items: center; }
+.items-end { align-items: flex-end; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-6 { gap: var(--space-6); }
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-burgundy);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

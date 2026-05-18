@@ -1,0 +1,389 @@
+<!--
+  ============================================================
+  Pawrent v2 · Sticker — Home (/)
+  ============================================================
+  Grammar : V06 (bubble pill cards on warm canvas)
+  Palette : v2 brief — burgundy #7A0000 PRIMARY, coral #F05E38,
+            yellow #FDBC11, sage #7A8668, POPs pink #EC2584 accent
+  Heroes  : real character refs from ../pawrents-ref-charactor/
+  Font    : Noto Sans Thai via preconnect (works on file://)
+  Intent  : Burgundy carries authority + primary CTAs; POPs
+            tri-color reserved for avatar rings and celebration
+            beats. Pink demoted to small-flourish accent.
+  ============================================================
+-->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Pawrent v2 · หน้าหลัก</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          thai: ['"Noto Sans Thai"', 'system-ui', 'sans-serif'],
+          display: ['Fraunces', '"Noto Sans Thai"', 'serif'],
+        },
+        colors: {
+          burgundy: '#7A0000',
+          'burgundy-50': '#FAECEC',
+          sage: '#7A8668',
+          'sage-50': '#F0F2EC',
+          'sage-700': '#5A6350',
+          pink: { DEFAULT: '#EC2584', 50: '#FDE7F1', 100: '#FAC9DF' },
+          coral: { DEFAULT: '#F05E38', 50: '#FDE9E1', 100: '#FBCFBF' },
+          yellow: { DEFAULT: '#FDBC11', 50: '#FFF4CE', 100: '#FFE99A' },
+          ink: '#2A1A1A',
+          'ink-muted': '#6B5E5E',
+          surface: '#FFFFFF',
+          bone: '#FBF6EE',
+          border: '#EFE6D8',
+        },
+        borderRadius: { 'md-r': '16px', 'lg-r': '22px', 'xl-r': '28px', pill: '9999px' },
+        boxShadow: {
+          soft: '0 2px 10px rgba(42,26,26,0.06)',
+          lift: '0 8px 28px rgba(42,26,26,0.10)',
+          pop:  '0 6px 18px rgba(236,37,132,0.28)',
+          ink:  '0 3px 0 #2A1A1A',
+        },
+      },
+    },
+  }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { font-family: 'Noto Sans Thai', system-ui, sans-serif; }
+  body {
+    background: linear-gradient(180deg, #FFF6EE 0%, #FCECDF 100%);
+    color: #2A1A1A;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+  .display { font-family: 'Fraunces', 'Noto Sans Thai', serif; font-variation-settings: 'opsz' 96; }
+  .pops-g { background: linear-gradient(135deg, #EC2584 0%, #F05E38 55%, #FDBC11 100%); }
+  .pink-coral-g { background: linear-gradient(135deg, #EC2584, #F05E38); }
+  .warm-paper { background: linear-gradient(135deg, #FFF1E0, #FFE6D1); }
+
+  /* Hand-drawn underline */
+  .ink-under {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8'><path d='M2 5 Q 30 1 60 4 T 118 3' fill='none' stroke='%232A1A1A' stroke-width='2.5' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 100% 6px;
+    padding-bottom: 4px;
+  }
+  /* Sticker effect: 2px dark outline + offset shadow */
+  .sticker {
+    border: 2px solid #2A1A1A;
+    box-shadow: 3px 3px 0 #2A1A1A;
+  }
+  /* Tilted tape label */
+  .tape {
+    display: inline-block;
+    transform: rotate(-1.5deg);
+    transform-origin: left center;
+  }
+
+  button, a[role="button"], .tap { min-height: 44px; }
+</style>
+</head>
+<body class="font-thai">
+
+<div class="max-w-[390px] md:max-w-[430px] mx-auto min-h-screen relative pb-28 md:border-x md:border-border md:shadow-lift">
+
+  <!-- LINE Header placeholder -->
+  <div class="h-[44px] bg-[#F3EADC] flex items-center justify-center">
+    <span class="text-[10px] text-ink-muted tracking-widest">LINE · PAWRENT LIFF</span>
+  </div>
+
+  <!-- ── 1) Owner Greeting Bubble ─────────────────────────── -->
+  <div class="px-4 pt-4 pb-3">
+    <div class="bg-surface rounded-pill shadow-soft border border-border p-2.5 pl-3 flex items-center gap-3">
+      <!-- Avatar with POPs tri-color ring -->
+      <div class="w-12 h-12 rounded-full pops-g p-[2.5px] shrink-0">
+        <div class="w-full h-full rounded-full bg-surface flex items-center justify-center overflow-hidden">
+          <svg viewBox="0 0 40 40" class="w-9 h-9">
+            <circle cx="20" cy="16" r="6" fill="none" stroke="#2A1A1A" stroke-width="2"/>
+            <path d="M9 34c0-6 5-10 11-10s11 4 11 10" fill="none" stroke="#2A1A1A" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[13px] font-extrabold leading-tight">สวัสดีคุณน้ำ <span class="text-burgundy">✿</span></p>
+        <p class="text-[11px] text-ink-muted leading-tight mt-0.5">ศุกร์ · 24 เม.ย. · 28° แดดอ่อน</p>
+      </div>
+      <button aria-label="การแจ้งเตือน" class="w-10 h-10 rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center relative tap">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8a6 6 0 1 0-12 0c0 4.5-1.4 6-2.7 7.3Z"/></svg>
+        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-coral ring-2 ring-surface"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── 2) Hero Banner · photo + ink megaphone doodle ────── -->
+  <div class="px-4 pb-4">
+    <div class="relative rounded-xl-r overflow-hidden border border-border shadow-soft warm-paper">
+      <!-- Real character ref as hero -->
+      <img src="../../pawrents-ref-charactor/1.jpg" alt="" class="w-full h-[180px] object-cover mix-blend-multiply opacity-95"/>
+      <!-- Hand-drawn ink flourishes overlaid -->
+      <svg viewBox="0 0 390 180" class="absolute inset-0 w-full h-full pointer-events-none">
+        <!-- Small stars -->
+        <path d="M30 28 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 z" fill="#FDBC11" stroke="#2A1A1A" stroke-width="1.2"/>
+        <path d="M340 140 l2 5 5 0.5 -3 3.5 1 5 -5 -2.5 -4 2 0.5 -5 -3.5 -3 5 -0.5 z" fill="#EC2584" stroke="#2A1A1A" stroke-width="1"/>
+        <!-- Wavy underline sketch under title -->
+      </svg>
+      <!-- Overlay headline -->
+      <div class="absolute inset-0 flex flex-col justify-end p-4">
+        <span class="tape inline-block bg-yellow text-ink text-[10px] font-extrabold tracking-widest px-2.5 py-1 rounded-md-r sticker mb-2 w-fit">ข่าวด่วนของบ้าน</span>
+        <h1 class="display text-[26px] font-extrabold leading-[1.05] text-burgundy">
+          วันนี้โมจิมีนัด<br/>
+          <span class="ink-under">ตรวจสุขภาพ</span> 🎀
+        </h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3) Pet Status Bubbles ────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-[12px] font-extrabold flex items-center gap-1.5">
+        <span class="inline-flex w-5 h-5 rounded-full bg-burgundy items-center justify-center text-white text-[10px]">♡</span>
+        สุขภาพน้อง ๆ วันนี้
+      </p>
+      <a href="pets.html" class="text-[11px] font-bold text-burgundy">ทั้งหมด ›</a>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <!-- Mochi -->
+      <a href="pets.html" class="bg-surface rounded-lg-r shadow-soft border border-border p-3 flex flex-col items-center text-center tap">
+        <div class="w-16 h-16 rounded-full pops-g p-[3px] shadow-pop">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center overflow-hidden">
+            <!-- Inline ink dog -->
+            <svg viewBox="0 0 64 64" class="w-12 h-12">
+              <path d="M20 28 c-4 -8 8 -14 12 -14 c4 0 16 6 12 14 c0 0 2 4 -2 8 c-2 2 -4 3 -10 3 s-8 -1 -10 -3 c-4 -4 -2 -8 -2 -8 z" fill="#FFF1E0" stroke="#2A1A1A" stroke-width="2.2" stroke-linejoin="round"/>
+              <circle cx="26" cy="28" r="1.6" fill="#2A1A1A"/>
+              <circle cx="38" cy="28" r="1.6" fill="#2A1A1A"/>
+              <path d="M30 34 q2 2 4 0" stroke="#2A1A1A" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+              <path d="M17 18 q2 -4 5 -2" stroke="#2A1A1A" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M47 18 q-2 -4 -5 -2" stroke="#2A1A1A" stroke-width="2" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-[13px] font-extrabold mt-2">โมจิ</p>
+        <p class="text-[10px] text-ink-muted">ปอมฯ · 2ปี 4ด.</p>
+        <span class="mt-1.5 inline-flex items-center gap-1 bg-sage-50 text-sage-700 rounded-pill px-2.5 py-0.5 text-[10px] font-bold">
+          ● สุขภาพดี
+        </span>
+      </a>
+      <!-- Bento -->
+      <a href="pets.html" class="bg-surface rounded-lg-r shadow-soft border border-border p-3 flex flex-col items-center text-center tap">
+        <div class="w-16 h-16 rounded-full pops-g p-[3px] shadow-pop">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center overflow-hidden">
+            <!-- Inline ink cat -->
+            <svg viewBox="0 0 64 64" class="w-12 h-12">
+              <path d="M18 16 l6 8 16 0 6 -8 -2 16 q-4 10 -14 10 t-14 -10 z" fill="#2A1A1A" stroke="#2A1A1A" stroke-width="2" stroke-linejoin="round"/>
+              <circle cx="26" cy="28" r="1.6" fill="#FBF6EE"/>
+              <circle cx="38" cy="28" r="1.6" fill="#FBF6EE"/>
+              <path d="M30 34 q2 2 4 0" stroke="#FBF6EE" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-[13px] font-extrabold mt-2">เบนโตะ</p>
+        <p class="text-[10px] text-ink-muted">เมนคูน · 4ปี 1ด.</p>
+        <span class="mt-1.5 inline-flex items-center gap-1 bg-yellow-50 text-[#8a6000] rounded-pill px-2.5 py-0.5 text-[10px] font-bold">
+          ⚡ หยอดยาเห็บใน 6 วัน
+        </span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── 4) Today tasks ──────────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="bg-surface rounded-xl-r shadow-soft border border-border overflow-hidden">
+      <div class="px-4 pt-3 pb-2 flex items-center justify-between">
+        <p class="text-[12px] font-extrabold flex items-center gap-1.5">
+          <span class="display text-burgundy text-lg">✻</span> วันนี้ของบ้านเรา
+        </p>
+        <span class="bg-burgundy-50 text-burgundy rounded-pill px-2 py-0.5 text-[10px] font-extrabold">1 เร่งด่วน</span>
+      </div>
+      <!-- Row done -->
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/50">
+        <span class="w-8 h-8 rounded-full bg-sage-50 text-sage flex items-center justify-center text-[14px]">✓</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold text-ink-muted line-through">อาหารเช้าโมจิ 45g</p>
+          <p class="text-[10px] text-ink-muted">เสร็จ 07:00</p>
+        </div>
+        <span class="text-[10px] font-bold text-sage">เสร็จ</span>
+      </div>
+      <!-- Row vet -->
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/50 bg-burgundy-50/40">
+        <span class="w-8 h-8 rounded-full bg-burgundy text-white flex items-center justify-center">
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7c0-3 2-5 6-5s6 2 6 5v4l2 4H4l2-4V7Z"/></svg>
+        </span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-extrabold">ตรวจสุขภาพโมจิ · ThonglorPet</p>
+          <p class="text-[10px] text-burgundy font-bold">อีก 42 นาที · พกสมุดไปด้วย</p>
+        </div>
+        <button class="h-9 px-3 rounded-pill text-[10px] font-extrabold text-white bg-burgundy shadow-soft">แผนที่</button>
+      </div>
+      <!-- Row bath -->
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/50">
+        <span class="w-8 h-8 rounded-full bg-yellow-50 text-[#8a6000] flex items-center justify-center text-[14px]">🛁</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">อาบน้ำเบนโตะ</p>
+          <p class="text-[10px] text-ink-muted">18:00 · รอบที่ 3 ของเดือน</p>
+        </div>
+        <button class="h-9 px-3 rounded-pill text-[10px] font-bold border-2 border-border bg-surface">ทำเลย</button>
+      </div>
+      <!-- Row diary -->
+      <div class="px-4 py-2.5 flex items-center gap-3 border-t border-border/50">
+        <span class="w-8 h-8 rounded-full bg-sage-50 text-sage flex items-center justify-center text-[14px]">📓</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-bold">บันทึกไดอารี่</p>
+          <p class="text-[10px] text-ink-muted">21:30 · 14 วันแล้วยังไม่มีภาพใหม่</p>
+        </div>
+        <button class="h-9 px-3 rounded-pill text-[10px] font-bold border-2 border-border bg-surface">เปิดกล้อง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5) Lost Nearby ──────────────────────────────────── -->
+  <div class="px-4 pb-3">
+    <div class="flex items-center justify-between mb-2">
+      <p class="text-[12px] font-extrabold flex items-center gap-1.5">
+        <span class="w-5 h-5 rounded-full bg-coral text-white flex items-center justify-center text-[10px]">!</span>
+        ใกล้คุณ · รัศมี 5 กม.
+      </p>
+      <a href="post.html" class="text-[11px] font-bold text-burgundy">ฟีด ›</a>
+    </div>
+    <div class="bg-surface rounded-xl-r shadow-soft border border-border overflow-hidden">
+      <a href="post.html" class="px-3 py-3 flex items-center gap-3 border-b border-border/60 tap">
+        <div class="w-14 h-14 rounded-md-r shrink-0 bg-gradient-to-br from-[#FFD9C7] to-[#FFC2A8] flex items-center justify-center relative overflow-hidden border border-border">
+          <svg viewBox="0 0 40 40" class="w-10 h-10"><circle cx="20" cy="18" r="10" fill="#fff" stroke="#2A1A1A" stroke-width="2"/><circle cx="16" cy="17" r="1.5" fill="#2A1A1A"/><circle cx="24" cy="17" r="1.5" fill="#2A1A1A"/><path d="M18 22 q2 2 4 0" stroke="#2A1A1A" stroke-width="1.6" fill="none"/></svg>
+          <span class="absolute top-0.5 left-0.5 bg-burgundy text-white rounded-pill px-1.5 py-[1px] text-[8px] font-extrabold">หาย</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-extrabold">ลูกชิ้น · ชิสุห์ขาว</p>
+          <p class="text-[10px] text-ink-muted">📍 0.8 กม. · 2 ชม.ที่แล้ว · สุขุมวิท 49</p>
+        </div>
+        <div class="text-right shrink-0">
+          <span class="inline-flex items-center bg-yellow-50 text-[#8a6000] rounded-pill px-2 py-0.5 text-[10px] font-extrabold">🎁 ฿5,000</span>
+          <p class="text-[10px] text-burgundy font-bold mt-1">เห็นแล้ว ›</p>
+        </div>
+      </a>
+      <a href="post.html" class="px-3 py-3 flex items-center gap-3 border-b border-border/60 tap">
+        <div class="w-14 h-14 rounded-md-r shrink-0 bg-gradient-to-br from-[#E8D4C0] to-[#C9B8A4] flex items-center justify-center relative overflow-hidden border border-border">
+          <svg viewBox="0 0 40 40" class="w-10 h-10"><path d="M10 10 l5 8 10 0 5 -8 -1 14 q-3 6 -9 6 t-9 -6 z" fill="#2A1A1A"/></svg>
+          <span class="absolute top-0.5 left-0.5 bg-burgundy text-white rounded-pill px-1.5 py-[1px] text-[8px] font-extrabold">หาย</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-extrabold">เจ้าดำ · แมวไทย</p>
+          <p class="text-[10px] text-ink-muted">📍 2.4 กม. · 14 ชม. · พระโขนง</p>
+        </div>
+        <div class="text-right shrink-0">
+          <span class="inline-flex items-center bg-yellow-50 text-[#8a6000] rounded-pill px-2 py-0.5 text-[10px] font-extrabold">🎁 ฿2,000</span>
+          <p class="text-[10px] text-burgundy font-bold mt-1">เห็นแล้ว ›</p>
+        </div>
+      </a>
+      <a href="post.html" class="px-3 py-3 flex items-center gap-3 tap">
+        <div class="w-14 h-14 rounded-md-r shrink-0 bg-sage-50 flex items-center justify-center relative overflow-hidden border border-border">
+          <svg viewBox="0 0 40 40" class="w-10 h-10"><path d="M14 18 l4 -5 8 5 2 10 -7 4 -7 -4 z" fill="none" stroke="#2A1A1A" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="20" r="1.4" fill="#2A1A1A"/><circle cx="24" cy="20" r="1.4" fill="#2A1A1A"/></svg>
+          <span class="absolute top-0.5 left-0.5 bg-sage text-white rounded-pill px-1.5 py-[1px] text-[8px] font-extrabold">พบ</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[12px] font-extrabold">พบแมวสีขาว</p>
+          <p class="text-[10px] text-ink-muted">📍 3.1 กม. · เอกมัย 12 · ไม่มีปลอกคอ</p>
+        </div>
+        <span class="text-[10px] font-bold text-sage shrink-0">รู้จัก? ›</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── 6) Community highlight · character ref 3 ────────── -->
+  <div class="px-4 pb-3">
+    <div class="relative rounded-xl-r overflow-hidden border border-border shadow-soft pops-g text-white">
+      <div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image:radial-gradient(circle at 20% 80%,#FDBC11 0,transparent 40%),radial-gradient(circle at 80% 20%,#FDBC11 0,transparent 35%)"></div>
+      <div class="p-4 flex gap-3 items-center relative">
+        <div class="w-20 h-20 rounded-lg-r bg-white/95 p-2 shrink-0">
+          <img src="../../pawrents-ref-charactor/3.jpg" alt="" class="w-full h-full object-contain"/>
+        </div>
+        <div class="flex-1 min-w-0">
+          <span class="inline-block bg-yellow text-ink px-2 py-0.5 rounded-pill text-[9px] font-extrabold tracking-widest tape">HAPPY ENDING</span>
+          <p class="display text-[16px] font-extrabold leading-snug mt-1.5">ลูกชิ้นกลับบ้านแล้ว 🎉</p>
+          <p class="text-[11px] opacity-95 leading-snug">ชุมชนช่วยแชร์ 114 ครั้ง · ใช้เวลา 4 ชม.</p>
+          <div class="flex gap-3 mt-2 text-[10px] font-bold">
+            <span>♥ 248</span><span>💬 42</span><span class="opacity-80">11 นาทีก่อน</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7) Quick Actions ────────────────────────────────── -->
+  <div class="px-4 pb-4">
+    <p class="text-[12px] font-extrabold mb-2 flex items-center gap-1.5">
+      <span class="display text-burgundy text-lg">⚡</span> ทางลัดด่วน
+    </p>
+    <div class="grid grid-cols-3 gap-2">
+      <a href="post.html" class="bg-surface rounded-lg-r border-2 border-border shadow-soft p-3 text-center tap">
+        <div class="w-10 h-10 mx-auto rounded-full bg-burgundy-50 text-burgundy flex items-center justify-center mb-1">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        </div>
+        <p class="text-[10px] font-extrabold leading-tight">แจ้งสัตว์<br/>เลี้ยงหาย</p>
+      </a>
+      <a href="#" class="bg-surface rounded-lg-r border-2 border-border shadow-soft p-3 text-center tap">
+        <div class="w-10 h-10 mx-auto rounded-full bg-coral-50 text-coral flex items-center justify-center mb-1">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4Z"/></svg>
+        </div>
+        <p class="text-[10px] font-extrabold leading-tight">SOS<br/>24 ชั่วโมง</p>
+      </a>
+      <a href="#" class="bg-surface rounded-lg-r border-2 border-border shadow-soft p-3 text-center tap">
+        <div class="w-10 h-10 mx-auto rounded-full bg-yellow-50 text-[#8a6000] flex items-center justify-center mb-1">
+          <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4M16 2v4"/></svg>
+        </div>
+        <p class="text-[10px] font-extrabold leading-tight">นัด<br/>คุณหมอ</p>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Bottom nav ──────────────────────────────────────── -->
+  <nav aria-label="เมนูหลัก" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[430px] bg-surface/95 backdrop-blur-md border-t border-border pt-1 pb-[max(8px,env(safe-area-inset-bottom))] z-50">
+    <ul class="grid grid-cols-6 px-1">
+      <li><a href="home.html" aria-current="page" class="flex flex-col items-center justify-center gap-0.5 py-2 text-burgundy font-extrabold relative">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h3"/><path d="M19 10v10a1 1 0 0 1-1 1h-3"/><path d="M9 21v-6a3 3 0 0 1 6 0v6"/></svg>
+        <span class="text-[9px]">หน้าหลัก</span>
+        <span class="absolute bottom-0.5 w-1 h-1 rounded-full bg-burgundy"></span>
+      </a></li>
+      <li><a href="post.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a2 2 0 0 1 2-2h14v18a2 2 0 0 1-2 2H4Zm0 0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/><path d="M10 6h6M10 10h6M10 14h6"/></svg>
+        <span class="text-[9px]">ฟีด</span>
+      </a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        <span class="text-[9px]">แจ้ง</span>
+      </a></li>
+      <li><a href="notifications.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold relative">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M3.3 15.3A1 1 0 0 0 4 17h16a1 1 0 0 0 .7-1.7C19.4 14 18 12.5 18 8a6 6 0 1 0-12 0c0 4.5-1.4 6-2.7 7.3Z"/></svg>
+        <span class="text-[9px]">แจ้งเตือน</span>
+        <span class="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-coral"></span>
+      </a></li>
+      <li><a href="pets.html" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="16.5" cy="15.5" r="2"/><circle cx="7.5" cy="15.5" r="2"/><path d="M8 15a4 4 0 0 1 8 0c0 2.2-1.8 4-4 4s-4-1.8-4-4Z"/></svg>
+        <span class="text-[9px]">สัตว์เลี้ยง</span>
+      </a></li>
+      <li><a href="#" class="flex flex-col items-center justify-center gap-0.5 py-2 text-ink-muted font-bold">
+        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span class="text-[9px]">โปรไฟล์</span>
+      </a></li>
+    </ul>
+  </nav>
+
+</div>
+
+</body>
+</html>
