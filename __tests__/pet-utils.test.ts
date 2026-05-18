@@ -20,6 +20,7 @@ function makePet(overrides: Partial<Pet> = {}): Pet {
     microchip_number: null,
     photo_url: null,
     special_notes: null,
+    pawrent_id: "PW-PET1TEST",
     created_at: "2023-01-01T00:00:00Z",
     ...overrides,
   };

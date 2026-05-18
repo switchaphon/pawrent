@@ -8,7 +8,7 @@ On session start, check this file to resume interrupted pipelines.
 | PRP    | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
 | ------ | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
 | PRP-16 | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
-| Phase1.5 | finalize | Final | ready-to-commit | feature/prp-16-e2e-docs (same branch) | 2026-05-18 |
+| — | — | — | — | — | — |
 
 ### Morning continuation (Option A — stacked PRs)
 
@@ -168,6 +168,9 @@ all run in a single focused session once the image exists.
 
 | PRP      | Started    | Completed  | Commits                                                                    |
 | -------- | ---------- | ---------- | -------------------------------------------------------------------------- |
+| Phase1.5 | 2026-05-18 | 2026-05-18 | feat: Phase 1.5 UI state patterns — D2 empty, loading, error, toast, modal |
+| v2-Diary | 2026-05-18 | 2026-05-18 | feat: Phase 2A unified timeline diary — 4 APIs, page, FAB, day grouping |
+| v2-ID-Card | 2026-05-18 | 2026-05-18 | feat: Phase 2B virtual pet ID card — PNG, flip modal, QR, completion, webhook |
 | PRP-12   | 2026-04-20 | 2026-04-20 | feat(prp-12): pet health passport, line reminders, weight tracking         |
 | PRP-06   | 2026-04-20 | 2026-04-20 | feat(prp-06): line push notifications with geospatial targeting            |
 | PRP-05   | 2026-04-20 | 2026-04-20 | feat(prp-05): found pet reporting, sightings, and contact bridge           |

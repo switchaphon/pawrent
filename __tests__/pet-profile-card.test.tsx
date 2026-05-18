@@ -40,6 +40,7 @@ const mockPet: Pet = {
   microchip_number: "123456789012345",
   special_notes: "Loves belly rubs",
   photo_url: "https://example.com/luna.jpg",
+  pawrent_id: "PW-PET1TEST",
   created_at: "2024-01-01",
 };
 

@@ -184,11 +184,11 @@ GET /api/diary/timeline?pet_id=X&types=diary,vaccine,weight,parasite,grooming,ve
 
 ### Logging Endpoints
 
-- `POST /api/diary` — diary entry (photo + caption + mood)
-- `POST /api/vaccinations` — existing route
-- `POST /api/parasite-logs` — existing route
-- `POST /api/pet-weight` — existing route
-- `POST /api/health-events` — existing route (grooming + vet types)
+- `POST /api/diary` — **NEW** diary entry (photo + caption + mood)
+- `POST /api/vaccinations` — existing route ✅
+- `POST /api/parasite-logs` — existing route ✅
+- `POST /api/pet-weight` — existing route ✅
+- `POST /api/health-events` — **NEW** route (grooming + vet_visit types)
 
 ### Enrich Endpoint
 
@@ -206,14 +206,78 @@ GET /api/diary/timeline?pet_id=X&types=diary,vaccine,weight,parasite,grooming,ve
 
 ---
 
+## Database Changes
+
+### New table: `diary_entries`
+
+```sql
+CREATE TABLE IF NOT EXISTS diary_entries (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title TEXT,
+  caption TEXT,
+  mood TEXT,
+  photo_urls TEXT[],
+  linked_event_type TEXT,  -- 'vaccination' | 'parasite_log' | 'weight_log' | 'health_event'
+  linked_event_id UUID,    -- FK to the enriched event (nullable)
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE diary_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own diary entries"
+  ON diary_entries FOR ALL USING (user_id = auth.uid());
+CREATE INDEX idx_diary_entries_pet ON diary_entries(pet_id, created_at DESC);
+```
+
+### New table: `health_events`
+
+```sql
+CREATE TABLE IF NOT EXISTS health_events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,  -- 'grooming' | 'vet_visit' | 'lab' | 'diagnosis' | 'checkup'
+  title TEXT NOT NULL,
+  description TEXT,
+  event_date DATE NOT NULL,
+  attachment_urls TEXT[],
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE health_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own pet health events"
+  ON health_events FOR ALL
+  USING (pet_id IN (SELECT id FROM pets WHERE owner_id = auth.uid()));
+CREATE INDEX idx_health_events_pet ON health_events(pet_id, event_date DESC);
+```
+
+### Type update: `HealthEvent` (lib/types/pets.ts)
+
+Current `event_type` is `"lab" | "diagnosis" | "checkup"`. Expand to include `"grooming" | "vet_visit"`:
+
+```ts
+event_type: "lab" | "diagnosis" | "checkup" | "grooming" | "vet_visit";
+```
+
+### Existing tables (no changes needed)
+
+- `vaccinations` — exists (pre-migration, no DDL in repo)
+- `parasite_logs` — exists (pre-migration, no DDL in repo)
+- `pet_weight_logs` — exists (migration `20260414100000`)
+- `pet_milestones` — exists (migration `20260414100000`)
+
+---
+
 ## Execution Order
 
-1. Timeline aggregation API (`GET /api/diary/timeline`)
-2. Diary page UI (`app/diary/page.tsx`) — timeline + pet chips + urgent card
-3. FAB "+" action sheet → forms for each event type
-4. Enrich prompt + `POST /api/diary/enrich`
-5. Day grouping logic (client-side from timestamps)
-6. Pet profile Zone 6 "ดูทั้งหมด" link wiring
+1. Database migrations: `health_events` + `diary_entries` tables, update `HealthEvent` type
+2. `POST /api/health-events` — **NEW** route for grooming + vet_visit
+3. Timeline aggregation API (`GET /api/diary/timeline`)
+4. Diary page UI (`app/diary/page.tsx`) — timeline + pet chips + urgent card
+5. FAB "+" action sheet → forms for each event type
+6. `POST /api/diary` + `POST /api/diary/enrich` — **NEW** routes
+7. Day grouping logic (client-side from timestamps)
+8. Pet profile Zone 6 "ดูทั้งหมด" link wiring
 
 ---
 
@@ -237,3 +301,4 @@ GET /api/diary/timeline?pet_id=X&types=diary,vaccine,weight,parasite,grooming,ve
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-05-18 | Initial PRP from grill session — 7 decisions locked |
+| v1.1 | 2026-05-18 | Validation fix: added DDL for diary_entries + health_events tables, marked health-events API as NEW, expanded HealthEvent type, reordered execution |

@@ -213,16 +213,38 @@ This PRP defines the exact design and behavior locked through a grill session (2
 | `/api/pet-card/[petId]` | GET | Generate card PNG (`?side=front\|back`) |
 | `/api/pet-card/[petId]/qr` | GET | Generate QR code PNG |
 | `/p/[pawrentId]` | GET | Public QR landing page |
-| `/api/line/webhook` | POST | Handle Rich Menu postback → Flex carousel |
+| `/api/line/webhook` | POST | Handle Rich Menu postback → Flex carousel (**extend existing** — add postback case) |
 
 ---
 
 ## Database Changes
 
 ```sql
-ALTER TABLE pets ADD COLUMN pawrent_id TEXT UNIQUE NOT NULL;
+-- 1. Add pawrent_id to pets table
+ALTER TABLE pets ADD COLUMN pawrent_id TEXT UNIQUE;
 -- Format TBD, generated at pet creation, immutable
 -- Index: already unique constraint
+-- NOTE: nullable initially for existing pets; backfill migration generates IDs for all existing rows
+-- After backfill: ALTER TABLE pets ALTER COLUMN pawrent_id SET NOT NULL;
+
+-- 2. Backfill existing pets
+UPDATE pets SET pawrent_id = 'PW-' || UPPER(SUBSTRING(id::text, 1, 8))
+WHERE pawrent_id IS NULL;
+
+-- 3. Generation trigger for new pets
+CREATE OR REPLACE FUNCTION generate_pawrent_id()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.pawrent_id := 'PW-' || UPPER(SUBSTRING(NEW.id::text, 1, 8));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_pets_pawrent_id
+  BEFORE INSERT ON pets
+  FOR EACH ROW
+  WHEN (NEW.pawrent_id IS NULL)
+  EXECUTE FUNCTION generate_pawrent_id();
 ```
 
 ---
@@ -232,20 +254,42 @@ ALTER TABLE pets ADD COLUMN pawrent_id TEXT UNIQUE NOT NULL;
 | Feature | Connection |
 |---------|-----------|
 | Gamification (Owner Profile) | 100% completion → card unlocks |
-| Pet Profile | `.id-card-btn` on hero → modal |
+| Pet Profile | `.id-card-btn` on hero → modal (**current code links to `/pets/[id]/id-card` page — change to modal overlay**) |
 | Rich Menu v2 (Phase 2F) | "ประวัติ บัตรประจำตัว" tile → Flex carousel |
 | B2B Clinic (future) | `pawrent_id` = universal identity, QR → clinic check-in |
 | Completion Checklist | All 7 items at 100% required |
+
+### Completion System Expansion
+
+Current `calcPetCompletion()` in `app/owner/page.tsx` caps at 40 points (basic fields only). Expand to 100%:
+
+| Item | Points | Source |
+|------|--------|--------|
+| name + breed + dob + sex | 20 | `pets` table (exists) |
+| photo | 10 | `pets.photo_url` (exists) |
+| microchip | 10 | `pets.microchip_number` (exists) |
+| ≥1 weight log | 15 | `pet_weight_logs` (**API call needed**) |
+| ≥1 vaccination | 15 | `vaccinations` (**API call needed**) |
+| ≥1 parasite log | 15 | `parasite_logs` (**API call needed**) |
+| ≥1 diary entry | 15 | `diary_entries` (**API call needed — depends on Phase 2A**) |
+| **Total** | **100** | |
+
+**Note:** Diary entry check depends on `diary_entries` table from Phase 2A. If 2A executes first, wire it in. If 2B executes first, use 85% max (without diary) and add diary check later.
 
 ---
 
 ## Execution Order
 
-1. Build prototype: `public/prototype-v3-idcard-f-alpha.html` (front + back + flip + locked state)
-2. Mock data: Sammy (cat, female, pink, 100%, GOOD GIRL), Ricky (dog, male, blue, locked)
-3. Both sides with Variant B layout, paw prints, branding
-4. Flip animation (CSS 3D)
-5. Blurred lock overlay for incomplete pet
+1. Database migration: `pawrent_id` column + backfill + trigger
+2. Update `Pet` type in `lib/types/pets.ts` — add `pawrent_id: string`
+3. Expand `calcPetCompletion()` — API calls for weight/vaccine/parasite (+ diary if 2A done)
+4. Server-side card PNG: `GET /api/pet-card/[petId]?side=front|back` via `next/og`
+5. QR code generation: `GET /api/pet-card/[petId]/qr`
+6. Card modal component (CSS 3D flip + locked state + share/download)
+7. Wire pet profile button → modal (replace current Link to `/pets/[id]/id-card`)
+8. Public QR landing page: `app/p/[pawrentId]/page.tsx`
+9. LINE webhook postback handler → Flex Message carousel
+10. Rate limiting on card generation endpoints
 
 ---
 
@@ -266,3 +310,4 @@ ALTER TABLE pets ADD COLUMN pawrent_id TEXT UNIQUE NOT NULL;
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0 | 2026-05-18 | Initial PRP from grill session — 18 decisions locked |
+| v1.1 | 2026-05-18 | Validation fix: expanded DDL with backfill + trigger, added completion system expansion table, detailed execution order, noted webhook extension + modal change |

@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import type { Vaccination, ParasiteLog } from "@/lib/types/pets";
 import type { PetMilestone, PetWeightLog, HealthReminder } from "@/lib/types/health";
+import { PetIdCardModal } from "@/components/pet-id-card-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -252,6 +253,7 @@ export function PassportContent({
   const [aboutOpen, setAboutOpen] = useState(true);
   const [bsOpen, setBsOpen] = useState(false);
   const [bsParasiteId, setBsParasiteId] = useState<string | null>(null);
+  const [idCardOpen, setIdCardOpen] = useState(false);
 
   const chipScrollRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -430,14 +432,15 @@ export function PassportContent({
                       <span>ไม่มีไมโครชิป</span>
                     )}
                   </div>
-                  <Link
-                    href={`/pets/${pet.id}/id-card`}
+                  <button
+                    type="button"
+                    onClick={() => setIdCardOpen(true)}
                     className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] border border-border bg-surface-alt text-text-subtle transition-all active:scale-95 active:bg-border"
                     title="ดูบัตรประจำตัว"
                     aria-label="บัตรประจำตัวสัตว์เลี้ยง"
                   >
                     <IdCard size={14} />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1021,18 +1024,12 @@ export function PassportContent({
         <div className="mb-3.5">
           <div className="flex items-center justify-between px-4 pb-2.5 pt-1.5">
             <span className="text-[14px] font-bold text-text-main">ความทรงจำ</span>
-            <span className="flex items-center gap-[2px] text-[12px] font-semibold text-primary">
+            <Link
+              href={`/diary?pet_id=${pet.id}`}
+              className="flex items-center gap-[2px] text-[12px] font-semibold text-primary"
+            >
               ดูทั้งหมด <ArrowRight size={12} />
-            </span>
-          </div>
-
-          {/* Diary — Coming soon */}
-          <p className="px-4 pb-1.5 text-[11px] font-bold text-text-subtle">ไดอารี่ล่าสุด</p>
-          <div className="flex gap-2.5 overflow-x-auto px-4 pb-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex w-32 flex-shrink-0 flex-col items-center justify-center rounded-2xl border border-border bg-surface px-3 py-4 text-center shadow-soft">
-              <p className="text-[10px] text-text-muted">Coming soon</p>
-              <p className="mt-1 text-[11px] font-semibold text-text-main">Phase 2A</p>
-            </div>
+            </Link>
           </div>
 
           {/* Milestone placeholder when empty */}
@@ -1148,6 +1145,12 @@ export function PassportContent({
           </div>
         </div>
       )}
+
+      <PetIdCardModal
+        pet={pet}
+        open={idCardOpen}
+        onClose={() => setIdCardOpen(false)}
+      />
     </div>
   );
 }

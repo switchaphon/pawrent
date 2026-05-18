@@ -14,6 +14,7 @@ export interface Pet {
   neutered?: boolean | null;
   photo_url: string | null;
   special_notes: string | null;
+  pawrent_id: string;
   created_at: string;
 }
 
@@ -39,11 +40,24 @@ export interface ParasiteLog {
 export interface HealthEvent {
   id: string;
   pet_id: string;
-  event_type: "lab" | "diagnosis" | "checkup";
+  event_type: "grooming" | "vet_visit" | "lab" | "diagnosis" | "checkup";
   title: string;
   description: string | null;
   event_date: string;
   attachment_urls: string[] | null;
+  created_at: string;
+}
+
+export interface DiaryEntry {
+  id: string;
+  pet_id: string;
+  user_id: string;
+  title: string | null;
+  caption: string | null;
+  mood: string | null;
+  photo_urls: string[] | null;
+  linked_event_type: string | null;
+  linked_event_id: string | null;
   created_at: string;
 }
 

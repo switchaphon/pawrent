@@ -12,6 +12,7 @@ import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/empty-state";
+import { PetIdCardModal } from "@/components/pet-id-card-modal";
 import type { Pet, Profile } from "@/lib/types";
 import {
   ChevronRight,
@@ -40,24 +41,21 @@ const APP_VERSION = "0.4.1";
 // --- Completion logic ---
 
 /**
- * Calculate per-pet completion score based on available pet fields.
- * TODO: Phase 2 — factor in vaccinations, parasite logs, and weight logs
- * via separate API calls (not done here to keep Phase 1 simple).
+ * Per-pet completion score out of 100.
+ * Fields available from the pets row contribute 40 pts.
+ * Remaining 60 pts come from API-fetched counts (weight/vaccine/parasite/diary).
+ * The server-side /api/pets/[petId]/completion route computes the full score.
+ * This client-side helper is used only as a fallback when API data is unavailable.
  */
-function calcPetCompletion(pet: Pet): number {
+function calcPetCompletionLocal(pet: Pet): number {
   let score = 0;
   if (pet.name && pet.breed && pet.date_of_birth && pet.sex) score += 20;
-  else if (pet.name || pet.breed || pet.date_of_birth || pet.sex) score += 10;
   if (pet.photo_url) score += 10;
   if (pet.microchip_number) score += 10;
-  // weight log: +15% — requires API call, deferred
-  // vaccination: +15% — requires API call, deferred
-  // parasite log: +15% — requires API call, deferred
-  // diary entry: +15% — requires API call, deferred
   return score;
 }
 
-const BASE_COMPLETION_MAX = 40; // name+breed+dob+sex(20) + photo(10) + microchip(10)
+const BASE_COMPLETION_MAX = 100;
 
 function ownerLevel(avgCompletion: number): string {
   if (avgCompletion >= 100) return "👑 ทาสระดับตำนาน";
@@ -179,7 +177,7 @@ function SettingsRow({
   );
 }
 
-/** Circular progress ring for per-pet completion */
+/** Circular progress ring for per-pet completion (visual only — parent button handles interaction) */
 function CompletionRing({
   pet,
   score,
@@ -193,12 +191,11 @@ function CompletionRing({
   const r = 20;
   const circumference = 2 * Math.PI * r;
   const dashOffset = circumference - (pct / 100) * circumference;
+  // Use a stable per-pet gradient id to avoid SVG conflicts when multiple rings render
+  const gradientId = `ring-gradient-${pet.id}`;
 
   return (
-    <Link
-      href={`/pets/${pet.id}`}
-      className="flex flex-col items-center gap-1 min-w-[64px]"
-    >
+    <div className="flex flex-col items-center gap-1 min-w-[64px]">
       <div className="relative w-14 h-14">
         <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
           {/* Track */}
@@ -217,14 +214,14 @@ function CompletionRing({
             cy="28"
             r={r}
             fill="none"
-            stroke="url(#ring-gradient)"
+            stroke={`url(#${gradientId})`}
             strokeWidth="4"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
           />
           <defs>
-            <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#F06FA8" />
               <stop offset="100%" stopColor="#FFCB6B" />
             </linearGradient>
@@ -253,12 +250,32 @@ function CompletionRing({
         {pet.name}
       </p>
       <p className="text-[9px] text-text-muted">{pct}%</p>
-    </Link>
+    </div>
   );
 }
 
-/** Completion card — shows "สมุดพก" level bar + per-pet rings */
+/** Completion card — shows "สมุดพก" level bar + per-pet rings + ID card modal trigger */
 function CompletionCard({ pets }: { pets: Pet[] }) {
+  // API-fetched scores keyed by pet.id (out of 100)
+  const [apiScores, setApiScores] = useState<Record<string, number>>({});
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+
+  useEffect(() => {
+    if (pets.length === 0) return;
+    // Fetch completion scores for all pets in parallel
+    Promise.all(
+      pets.map((pet) =>
+        apiFetch(`/api/pets/${pet.id}/completion`)
+          .then((data: { score: number }) => ({ id: pet.id, score: data.score }))
+          .catch(() => ({ id: pet.id, score: calcPetCompletionLocal(pet) }))
+      )
+    ).then((results) => {
+      const map: Record<string, number> = {};
+      for (const r of results) map[r.id] = r.score;
+      setApiScores(map);
+    });
+  }, [pets]);
+
   if (pets.length === 0) {
     return (
       <EmptyState
@@ -281,10 +298,9 @@ function CompletionCard({ pets }: { pets: Pet[] }) {
     );
   }
 
-  const scores = pets.map((p) => calcPetCompletion(p));
-  const avgRaw = scores.reduce((a, b) => a + b, 0) / scores.length;
-  // Scale to 100 based on what fields are available client-side
-  const avgPct = Math.round((avgRaw / BASE_COMPLETION_MAX) * 100);
+  // Use API scores where available, fall back to local calculation
+  const scores = pets.map((p) => apiScores[p.id] ?? calcPetCompletionLocal(p));
+  const avgPct = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   const level = ownerLevel(avgPct);
 
   const levelColors: Record<string, string> = {
@@ -296,80 +312,98 @@ function CompletionCard({ pets }: { pets: Pet[] }) {
   };
   const levelColor = levelColors[level] ?? "bg-surface-alt text-text-muted";
 
-  // Derive next-action hints from the first incomplete pet
+  // Next-action hints from the first pet with the lowest score
+  const lowestIdx = scores.indexOf(Math.min(...scores));
+  const firstPet = pets[lowestIdx] ?? pets[0];
   const hints: string[] = [];
-  const firstPet = pets[0];
   if (!firstPet.photo_url) hints.push("เพิ่มรูปภาพน้อง");
   if (!firstPet.breed) hints.push("ระบุสายพันธุ์");
   if (!firstPet.date_of_birth) hints.push("เพิ่มวันเกิด");
   if (!firstPet.microchip_number) hints.push("บันทึกไมโครชิป");
-  // Phase 2 hints (deferred)
-  hints.push("บันทึกประวัติวัคซีน");
+  if (hints.length < 3) hints.push("บันทึกประวัติวัคซีน");
 
   return (
-    <BubbleCard>
-      <div className="h-1 bg-gradient-to-r from-[#F06FA8] via-[#FF9285] to-[#FFCB6B]" />
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-extrabold text-text-main">สมุดพก 📒</p>
-            <p className="text-[10px] text-text-muted">บันทึกสุขภาพน้อง · ครบ = คะแนนสูง</p>
+    <>
+      <BubbleCard>
+        <div className="h-1 bg-gradient-to-r from-[#F06FA8] via-[#FF9285] to-[#FFCB6B]" />
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-extrabold text-text-main">สมุดพก 📒</p>
+              <p className="text-[10px] text-text-muted">บันทึกสุขภาพน้อง · ครบ = ปลดล็อคบัตรประจำตัว</p>
+            </div>
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0",
+                levelColor
+              )}
+            >
+              {level}
+            </span>
           </div>
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0",
-              levelColor
-            )}
-          >
-            {level}
-          </span>
-        </div>
 
-        {/* Level bar */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-text-muted">ความสมบูรณ์เฉลี่ย</span>
-            <span className="text-[10px] font-bold text-text-main">{avgPct}%</span>
-          </div>
-          <div className="h-2.5 rounded-full bg-surface-alt overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#F06FA8] via-[#FF9285] to-[#FFCB6B] transition-all duration-500"
-              style={{ width: `${avgPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Per-pet rings */}
-        <div className="flex gap-3 flex-wrap mb-4">
-          {pets.map((pet, i) => (
-            <CompletionRing
-              key={pet.id}
-              pet={pet}
-              score={scores[i]}
-              max={BASE_COMPLETION_MAX}
-            />
-          ))}
-        </div>
-
-        {/* Next action hint */}
-        {hints.length > 0 && (
-          <div className="rounded-[16px] bg-surface-alt p-3">
-            <p className="text-[10px] font-bold text-text-main mb-1.5">สิ่งที่ควรทำต่อไป</p>
-            <div className="flex flex-wrap gap-1.5">
-              {hints.slice(0, 3).map((h) => (
-                <span
-                  key={h}
-                  className="bg-card border border-border rounded-full px-2.5 py-1 text-[10px] text-text-muted"
-                >
-                  + {h}
-                </span>
-              ))}
+          {/* Level bar */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-text-muted">ความสมบูรณ์เฉลี่ย</span>
+              <span className="text-[10px] font-bold text-text-main">{avgPct}%</span>
+            </div>
+            <div className="h-2.5 rounded-full bg-surface-alt overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#F06FA8] via-[#FF9285] to-[#FFCB6B] transition-all duration-500"
+                style={{ width: `${avgPct}%` }}
+              />
             </div>
           </div>
-        )}
-      </div>
-    </BubbleCard>
+
+          {/* Per-pet rings — tap to open ID card modal */}
+          <div className="flex gap-3 flex-wrap mb-4">
+            {pets.map((pet, i) => (
+              <button
+                key={pet.id}
+                type="button"
+                onClick={() => setSelectedPet(pet)}
+                className="flex flex-col items-center gap-1 min-w-[64px] focus:outline-none"
+                aria-label={`บัตรประจำตัว ${pet.name}`}
+              >
+                <CompletionRing
+                  pet={pet}
+                  score={scores[i]}
+                  max={BASE_COMPLETION_MAX}
+                />
+              </button>
+            ))}
+          </div>
+
+          {/* Next action hint */}
+          {hints.length > 0 && (
+            <div className="rounded-[16px] bg-surface-alt p-3">
+              <p className="text-[10px] font-bold text-text-main mb-1.5">สิ่งที่ควรทำต่อไป</p>
+              <div className="flex flex-wrap gap-1.5">
+                {hints.slice(0, 3).map((h) => (
+                  <span
+                    key={h}
+                    className="bg-card border border-border rounded-full px-2.5 py-1 text-[10px] text-text-muted"
+                  >
+                    + {h}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </BubbleCard>
+
+      {/* ID Card modal */}
+      {selectedPet && (
+        <PetIdCardModal
+          pet={selectedPet}
+          open={Boolean(selectedPet)}
+          onClose={() => setSelectedPet(null)}
+        />
+      )}
+    </>
   );
 }
 
