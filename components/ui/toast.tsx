@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { X, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 
 interface Toast {
   id: string;
@@ -78,40 +77,45 @@ function ToastContainer({
 const VARIANT_STYLES = {
   success: {
     bg: "bg-success-bg",
-    border: "border-success/30",
+    border: "#C7D6BE",
     text: "text-success",
-    Icon: CheckCircle2,
+    emoji: "✅",
+    dismissColor: "var(--success)",
   },
   error: {
     bg: "bg-danger-bg",
-    border: "border-danger/30",
+    border: "#F3C6C8",
     text: "text-danger",
-    Icon: AlertTriangle,
+    emoji: "❌",
+    dismissColor: "var(--danger)",
   },
   info: {
     bg: "bg-info-bg",
-    border: "border-info/30",
+    border: "#B6D4EC",
     text: "text-info",
-    Icon: Info,
+    emoji: "ℹ️",
+    dismissColor: "var(--info)",
   },
 } as const;
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
-  const { bg, border, text, Icon } = VARIANT_STYLES[toast.variant];
+  const { bg, border, text, emoji, dismissColor } = VARIANT_STYLES[toast.variant];
 
   return (
     <div
       role="status"
-      className={`animate-slide-in-down flex items-start gap-3 p-4 rounded-[20px] border ${border} ${bg} shadow-[0_4px_20px_rgba(46,42,46,0.12)] backdrop-blur-sm`}
+      className={`animate-slide-in-down p-[12px_14px] flex items-center gap-[10px] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${bg}`}
+      style={{ border: `1px solid ${border}` }}
     >
-      <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${text}`} />
-      <p className="flex-1 text-sm font-semibold text-text-main">{toast.message}</p>
+      <span className="text-[16px] leading-none flex-shrink-0">{emoji}</span>
+      <p className={`flex-1 text-[12px] font-semibold ${text}`}>{toast.message}</p>
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="ปิด"
-        className="flex-shrink-0 p-1 rounded-full hover:bg-foreground/10 transition-colors touch-target"
+        className="flex-shrink-0 text-[16px] leading-none touch-target flex items-center justify-center"
+        style={{ color: dismissColor, opacity: 0.6 }}
       >
-        <X className="w-4 h-4 text-muted-foreground" />
+        ×
       </button>
     </div>
   );

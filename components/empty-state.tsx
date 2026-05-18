@@ -8,6 +8,7 @@ interface EmptyStateProps {
   description?: string;
   action?: React.ReactNode;
   className?: string;
+  size?: "full" | "inline";
 }
 
 export function EmptyState({
@@ -17,27 +18,47 @@ export function EmptyState({
   description,
   action,
   className,
+  size = "full",
 }: EmptyStateProps) {
+  const isFull = size === "full";
+
   return (
     <div
       role="status"
       className={cn(
-        "flex flex-col items-center justify-center gap-3 py-12 px-6 text-center",
+        "flex flex-col items-center justify-center text-center",
+        isFull ? "gap-3 py-12 px-6" : "gap-2 py-4 px-4",
         className
       )}
     >
       {icon ? (
-        <div className="text-primary">{icon}</div>
+        <div className={isFull ? "mascot-halo" : "mascot-halo-xs"}>
+          {icon}
+        </div>
       ) : emoji ? (
-        <div aria-hidden className="text-5xl leading-none">
+        <div aria-hidden className={isFull ? "mascot-halo" : "mascot-halo-xs"}>
           {emoji}
         </div>
       ) : null}
-      <h3 className="text-base font-bold text-text-main">{title}</h3>
+      <h3
+        className={cn(
+          "font-extrabold text-text-main",
+          isFull ? "text-[14px]" : "text-[12px]"
+        )}
+      >
+        {title}
+      </h3>
       {description && (
-        <p className="text-sm text-text-muted max-w-xs leading-relaxed">{description}</p>
+        <p
+          className={cn(
+            "text-text-muted leading-relaxed",
+            isFull ? "text-[11px] max-w-[220px]" : "text-[11px] max-w-xs"
+          )}
+        >
+          {description}
+        </p>
       )}
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className={isFull ? "mt-2" : "mt-1"}>{action}</div>}
     </div>
   );
 }

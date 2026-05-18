@@ -155,7 +155,7 @@ describe("PassportContent", () => {
       />
     );
     expect(screen.getByText("ยังไม่มีข้อมูลวัคซีน")).toBeInTheDocument();
-    expect(screen.getByText("ยังไม่มีข้อมูล")).toBeInTheDocument();
+    expect(screen.getByText("ยังไม่มีข้อมูลถ่ายพยาธิ")).toBeInTheDocument();
     expect(screen.getByText("ยังไม่มีข้อมูลน้ำหนัก")).toBeInTheDocument();
     expect(screen.getByText("ยังไม่มี Milestone")).toBeInTheDocument();
     expect(screen.getByText("ไม่มีแจ้งเตือน")).toBeInTheDocument();

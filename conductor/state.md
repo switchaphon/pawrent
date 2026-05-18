@@ -15,6 +15,7 @@
 | PRP-05   | feature/prp-05-found-pet-reporting         | merged   | 2026-04-20   |
 | PRP-06   | feature/prp-06-line-push-alerts            | merged   | 2026-04-20   |
 | PRP-12   | feature/prp-12-pet-health-passport         | merged   | 2026-04-20   |
+| Phase1.5 | feature/prp-16-e2e-docs                    | complete | 2026-05-18   |
 
 ## Blocked PRPs
 

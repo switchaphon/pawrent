@@ -11,6 +11,7 @@ import { getPets, getProfile, uploadProfileAvatar } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/empty-state";
 import type { Pet, Profile } from "@/lib/types";
 import {
   ChevronRight,
@@ -258,7 +259,27 @@ function CompletionRing({
 
 /** Completion card — shows "สมุดพก" level bar + per-pet rings */
 function CompletionCard({ pets }: { pets: Pet[] }) {
-  if (pets.length === 0) return null;
+  if (pets.length === 0) {
+    return (
+      <EmptyState
+        emoji="🐾"
+        title="ยังไม่มีน้องในระบบ"
+        description="เพิ่มสัตว์เลี้ยงตัวแรกเพื่อเริ่มใช้งาน Pawrent"
+        action={
+          <Link
+            href="/pets"
+            className="inline-flex items-center justify-center min-h-[44px] px-6 text-[13px] font-bold text-white rounded-full"
+            style={{
+              background: "linear-gradient(135deg, #FF8263, #FFA563)",
+              boxShadow: "0 4px 14px rgba(255, 130, 99, 0.3)",
+            }}
+          >
+            เพิ่มน้องตัวแรก 🐕
+          </Link>
+        }
+      />
+    );
+  }
 
   const scores = pets.map((p) => calcPetCompletion(p));
   const avgRaw = scores.reduce((a, b) => a + b, 0) / scores.length;

@@ -12,3 +12,4 @@ When your task is done, update the Status column to "done" and commit.
 | PRP-04 All tests                                 | feature/prp-04-lost-pet-reporting | Tester          | 2026-04-13 | done   |
 | PRP-05 / 06 / 12 merge orchestration             | main (local)                      | Solo            | 2026-04-20 | done   |
 | PRP-16 overnight autonomous run (Option B)       | feature/prp-16-ui-migration       | Solo            | 2026-04-21 | done   |
+| Phase 1.5 UI State Patterns (Tasks 1-14)         | feature/prp-16-e2e-docs           | Team (A+B+Lead) | 2026-05-18 | done   |

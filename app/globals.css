@@ -351,6 +351,55 @@ textarea {
   box-shadow: var(--shadow-owner);
 }
 
+/* D2 mascot halo — POPS gradient circle for emotional empty states */
+.mascot-halo {
+  width: 88px;
+  height: 88px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  box-shadow: 0 4px 16px rgba(255, 146, 133, 0.3);
+}
+
+.mascot-halo-sm {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 4px 16px rgba(255, 146, 133, 0.3);
+}
+
+.mascot-halo-xs {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 16px rgba(255, 146, 133, 0.3);
+}
+
+.icon-circle-danger {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  background: var(--danger-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border: 2px solid #F8D7DA;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,

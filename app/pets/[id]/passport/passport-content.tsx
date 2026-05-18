@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { EmptyState } from "@/components/empty-state";
 import {
   User,
   SquarePen,
@@ -564,7 +565,7 @@ export function PassportContent({
                 </span>
               </div>
             ) : (
-              <p className="text-[12px] text-text-muted">ยังไม่มีข้อมูลน้ำหนัก</p>
+              <EmptyState size="inline" emoji="⚖️" title="ยังไม่มีข้อมูลน้ำหนัก" />
             )}
           </div>
 
@@ -650,7 +651,7 @@ export function PassportContent({
           </div>
 
           {vaccinations.length === 0 ? (
-            <p className="px-4 pb-4 text-[12px] text-text-muted">ยังไม่มีข้อมูลวัคซีน</p>
+            <EmptyState size="inline" emoji="💉" title="ยังไม่มีข้อมูลวัคซีน" className="px-4 pb-4" />
           ) : (
             vaccinations.map((v) => {
               const sConf = vaxStatusConfig[v.status];
@@ -844,7 +845,7 @@ export function PassportContent({
           </div>
 
           {parasiteLogs.length === 0 ? (
-            <p className="px-4 py-4 text-[12px] text-text-muted">ยังไม่มีข้อมูล</p>
+            <EmptyState size="inline" emoji="🐛" title="ยังไม่มีข้อมูลถ่ายพยาธิ" className="px-4 py-4" />
           ) : (
             parasiteLogs.map((p) => {
               const daysLeft = daysBetween(p.next_due_date, now);
@@ -1036,7 +1037,7 @@ export function PassportContent({
 
           {/* Milestone placeholder when empty */}
           {milestones.length === 0 && (
-            <p className="px-4 pb-2 text-[12px] text-text-muted">ยังไม่มี Milestone</p>
+            <EmptyState size="inline" emoji="🏆" title="ยังไม่มี Milestone" className="px-4 pb-2" />
           )}
 
           {/* Photo gallery */}

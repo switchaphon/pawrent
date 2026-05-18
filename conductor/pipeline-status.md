@@ -5,9 +5,10 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP    | Step    | Gate | Status                     | Branch                                                                | Last Updated |
-| ------ | ------- | ---- | -------------------------- | --------------------------------------------------------------------- | ------------ |
-| PRP-16 | execute | G4   | stacked-prs-ready-for-pr   | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
+| PRP    | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
+| ------ | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
+| PRP-16 | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
+| Phase1.5 | finalize | Final | ready-to-commit | feature/prp-16-e2e-docs (same branch) | 2026-05-18 |
 
 ### Morning continuation (Option A — stacked PRs)
 
