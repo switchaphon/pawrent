@@ -518,18 +518,45 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 .vax-progress-fill.warn { background: var(--warning); }
 .vax-progress-fill.danger { background: var(--danger); }
 
+/* Vaccine subtitle (เข็มที่ X/Y) */
+.vax-dose { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-top: 1px; }
+
 /* Vaccine inline expand detail */
 .vax-detail-inline {
   max-height: 0; overflow: hidden;
   transition: max-height 0.35s ease, opacity 0.25s ease;
   opacity: 0;
 }
-.vax-detail-inline.open { max-height: 400px; opacity: 1; }
+.vax-detail-inline.open { max-height: 500px; opacity: 1; }
 .vax-detail-inner {
   padding: 8px 0 4px;
   margin-top: 10px;
   border-top: 1px solid var(--border-subtle);
 }
+
+/* Vaccine pagination nav */
+.vax-pager {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 0 6px;
+}
+.vax-pager-label {
+  font-size: 11px; font-weight: 700; color: var(--text-sub);
+}
+.vax-pager-arrows {
+  display: flex; align-items: center; gap: 4px;
+}
+.vax-pager-btn {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
+}
+.vax-pager-btn:active { transform: scale(0.92); background: var(--border); }
+.vax-pager-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+.vax-record { display: none; }
+.vax-record.active { display: block; }
+
 .vdi-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 5px 0;
@@ -567,12 +594,14 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   background: none; border: none; cursor: pointer;
   display: flex; align-items: center; gap: 3px;
 }
-.pc-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px;
+.pc-item-wrap {
   border-bottom: 1px solid var(--border-subtle);
 }
-.pc-item:last-child { border-bottom: none; }
+.pc-item-wrap:last-child { border-bottom: none; }
+.pc-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px 8px;
+}
 .pc-circle {
   width: 48px; height: 48px; border-radius: 50%;
   border: 3px solid; flex-shrink: 0;
@@ -591,6 +620,122 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 }
 .pc-dot.danger { background: var(--danger); }
 .pc-dot.warn { background: var(--warning); }
+
+/* Parasite history expand */
+.pc-expand-hint {
+  display: flex; align-items: center; justify-content: center;
+  padding: 2px 0 6px; cursor: pointer; user-select: none;
+  color: var(--border); transition: color 0.2s;
+}
+.pc-expand-hint:hover { color: var(--text-muted); }
+.pc-expand-hint.open { color: var(--text-muted); }
+.pc-expand-hint.open i { transform: rotate(180deg); }
+.pc-expand-hint i { transition: transform 0.25s; }
+.pc-history {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+  opacity: 0;
+}
+.pc-history.open { max-height: 400px; opacity: 1; }
+.pc-history-inner {
+  padding: 0 16px 8px;
+}
+.pc-history-label {
+  font-size: 10px; font-weight: 700; color: var(--text-sub);
+  padding: 4px 0 6px;
+  display: flex; align-items: center; gap: 4px;
+}
+.pc-history-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.pc-history-row:last-of-type { border-bottom: none; }
+.pc-history-date { font-size: 11px; font-weight: 600; color: var(--text); }
+.pc-history-brand { font-size: 11px; color: var(--text-muted); }
+.pc-history-all {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 0 4px;
+  font-size: 11px; font-weight: 600; color: var(--primary);
+  cursor: pointer; gap: 4px;
+  background: none; width: 100%;
+}
+
+/* Bottom sheet overlay */
+.bs-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.4);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.bs-overlay.open { opacity: 1; pointer-events: auto; }
+.bs-sheet {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 390px; max-height: 70vh;
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+  z-index: 101; transition: transform 0.3s ease;
+  display: flex; flex-direction: column;
+}
+.bs-overlay.open .bs-sheet { transform: translateX(-50%) translateY(0); }
+.bs-handle {
+  display: flex; justify-content: center; padding: 10px 0 4px;
+  flex-shrink: 0;
+}
+.bs-handle-bar {
+  width: 36px; height: 4px; border-radius: 999px;
+  background: var(--border);
+}
+.bs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px 12px; flex-shrink: 0;
+}
+.bs-title { font-size: 14px; font-weight: 700; color: var(--text-heading); }
+.bs-close {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); cursor: pointer;
+}
+.bs-body {
+  overflow-y: auto; padding: 0 20px 24px;
+  flex: 1;
+}
+.bs-month-label {
+  font-size: 10px; font-weight: 700; color: var(--text-sub);
+  letter-spacing: 0.3px; padding: 10px 0 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.bs-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.bs-row:last-child { border-bottom: none; }
+.bs-row-date { font-size: 12px; font-weight: 600; color: var(--text); }
+.bs-row-brand { font-size: 12px; color: var(--text-muted); }
+.bs-year-nav {
+  display: flex; align-items: center; justify-content: center;
+  gap: 16px; padding: 0 0 10px;
+}
+.bs-year-label {
+  font-size: 16px; font-weight: 800; color: var(--text-heading);
+  min-width: 50px; text-align: center;
+}
+.bs-year-btn {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--surface-alt); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
+}
+.bs-year-btn:active { transform: scale(0.92); }
+.bs-year-btn.disabled { opacity: 0.3; pointer-events: none; }
+.bs-year-page { display: none; }
+.bs-year-page.active { display: block; }
+.bs-year-summary {
+  text-align: center; font-size: 10px; color: var(--text-muted);
+  padding: 10px 0 4px; font-weight: 500;
+}
 
 /* ─── ZONE 4 coming-soon footer ─── */
 .health-coming-soon {
@@ -1034,12 +1179,13 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
         <button class="vc-add-btn"><i data-lucide="plus" style="width:12px;height:12px;"></i> เพิ่มวัคซีน</button>
       </div>
 
-      <div class="vax-item" onclick="toggleVaxDetail(this)">
+      <div class="vax-item" onclick="toggleVaxDetail(this)" data-vax="dhpp">
         <div class="vax-row">
           <div class="vax-icon ok"><i data-lucide="syringe" style="width:16px;height:16px;"></i></div>
           <div class="vax-body">
             <div class="vax-name">DHPP (5 in 1)</div>
             <div class="vax-status ok">&#10003; ครบ</div>
+            <div class="vax-dose">เข็มที่ 4/4</div>
           </div>
           <div class="vax-right">
             <div><div class="vax-right-label">Booster</div><div class="vax-right-date">15 ธ.ค. 69</div></div>
@@ -1048,22 +1194,51 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
         </div>
         <div class="vax-detail-inline">
           <div class="vax-detail-inner">
-            <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac DHPPi</span></div>
-            <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">A1B2C345</span></div>
-            <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">15 ธ.ค. 2567</span></div>
-            <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
-            <div class="vdi-row"><span class="vdi-key">สัตวแพทย์</span><span class="vdi-val">นพ.สมชาย วงศ์เวช</span></div>
+            <div class="vax-pager">
+              <span class="vax-pager-label" data-pager-label>เข็มที่ 4/4</span>
+              <div class="vax-pager-arrows">
+                <button class="vax-pager-btn" onclick="event.stopPropagation(); vaxPage(this,-1)" title="เข็มก่อนหน้า"><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+                <button class="vax-pager-btn disabled" onclick="event.stopPropagation(); vaxPage(this,1)" title="เข็มถัดไป"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+              </div>
+            </div>
+            <div class="vax-records" data-current="3">
+              <div class="vax-record" data-idx="0">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">10 มิ.ย. 2566</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac DHPPi</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">X9K2M100</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
+              </div>
+              <div class="vax-record" data-idx="1">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">10 ก.ค. 2566</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac DHPPi</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">X9K2M201</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
+              </div>
+              <div class="vax-record" data-idx="2">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">10 ส.ค. 2566</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac DHPPi</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">X9K2M302</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
+              </div>
+              <div class="vax-record active" data-idx="3">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">15 ธ.ค. 2567</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac DHPPi</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">A1B2C345</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="vax-progress ok"><div class="vax-progress-fill ok" style="width: 85%"></div></div>
       </div>
 
-      <div class="vax-item" onclick="toggleVaxDetail(this)">
+      <div class="vax-item" onclick="toggleVaxDetail(this)" data-vax="rabies">
         <div class="vax-row">
           <div class="vax-icon warn"><i data-lucide="syringe" style="width:16px;height:16px;"></i></div>
           <div class="vax-body">
             <div class="vax-name">Rabies</div>
             <div class="vax-status warn">&#9888; ใกล้หมดอายุ</div>
+            <div class="vax-dose">เข็มที่ 2/2</div>
           </div>
           <div class="vax-right">
             <div><div class="vax-right-label">หมดอายุ</div><div class="vax-right-date warn">28 เม.ย. 69</div></div>
@@ -1072,22 +1247,39 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
         </div>
         <div class="vax-detail-inline">
           <div class="vax-detail-inner">
-            <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Rabies</span></div>
-            <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">R9X8Y765</span></div>
-            <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">28 เม.ย. 2568</span></div>
-            <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
-            <div class="vdi-row"><span class="vdi-key">สัตวแพทย์</span><span class="vdi-val">ดร.สมชาย</span></div>
+            <div class="vax-pager">
+              <span class="vax-pager-label" data-pager-label>เข็มที่ 2/2</span>
+              <div class="vax-pager-arrows">
+                <button class="vax-pager-btn" onclick="event.stopPropagation(); vaxPage(this,-1)" title="เข็มก่อนหน้า"><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+                <button class="vax-pager-btn disabled" onclick="event.stopPropagation(); vaxPage(this,1)" title="เข็มถัดไป"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+              </div>
+            </div>
+            <div class="vax-records" data-current="1">
+              <div class="vax-record" data-idx="0">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">28 เม.ย. 2567</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Rabies</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">R1A2B300</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
+              </div>
+              <div class="vax-record active" data-idx="1">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">28 เม.ย. 2568</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Rabies</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">R9X8Y765</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="vax-progress warn"><div class="vax-progress-fill warn" style="width: 25%"></div></div>
       </div>
 
-      <div class="vax-item" onclick="toggleVaxDetail(this)">
+      <div class="vax-item" onclick="toggleVaxDetail(this)" data-vax="lepto">
         <div class="vax-row">
           <div class="vax-icon danger"><i data-lucide="syringe" style="width:16px;height:16px;"></i></div>
           <div class="vax-body">
             <div class="vax-name">Leptospirosis</div>
             <div class="vax-status danger">&#10007; เลยกำหนด</div>
+            <div class="vax-dose">เข็มที่ 3/3</div>
           </div>
           <div class="vax-right">
             <div><div class="vax-right-label">หมดอายุ</div><div class="vax-right-date danger">1 มี.ค. 69</div></div>
@@ -1096,11 +1288,33 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
         </div>
         <div class="vax-detail-inline">
           <div class="vax-detail-inner">
-            <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Lepto</span></div>
-            <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">L5M6N789</span></div>
-            <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">1 มี.ค. 2568</span></div>
-            <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
-            <div class="vdi-row"><span class="vdi-key">สัตวแพทย์</span><span class="vdi-val">นพ.สมชาย วงศ์เวช</span></div>
+            <div class="vax-pager">
+              <span class="vax-pager-label" data-pager-label>เข็มที่ 3/3</span>
+              <div class="vax-pager-arrows">
+                <button class="vax-pager-btn" onclick="event.stopPropagation(); vaxPage(this,-1)" title="เข็มก่อนหน้า"><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+                <button class="vax-pager-btn disabled" onclick="event.stopPropagation(); vaxPage(this,1)" title="เข็มถัดไป"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+              </div>
+            </div>
+            <div class="vax-records" data-current="2">
+              <div class="vax-record" data-idx="0">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">1 มี.ค. 2566</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Lepto</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">L1A2B100</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">คลินิกรักหมา</span></div>
+              </div>
+              <div class="vax-record" data-idx="1">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">1 มี.ค. 2567</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Lepto</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">L3C4D200</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
+              </div>
+              <div class="vax-record active" data-idx="2">
+                <div class="vdi-row"><span class="vdi-key">วันที่ฉีด</span><span class="vdi-val">1 มี.ค. 2568</span></div>
+                <div class="vdi-row"><span class="vdi-key">ยี่ห้อ</span><span class="vdi-val">Nobivac Lepto</span></div>
+                <div class="vdi-row"><span class="vdi-key">เลขล็อต</span><span class="vdi-val mono">L5M6N789</span></div>
+                <div class="vdi-row"><span class="vdi-key">สถานที่</span><span class="vdi-val">รพส.ทองหล่อ</span></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="vax-progress danger"><div class="vax-progress-fill danger" style="width: 100%"></div></div>
@@ -1120,34 +1334,62 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
         <button class="pc-add-btn"><i data-lucide="plus" style="width:12px;height:12px;"></i> บันทึก</button>
       </div>
 
-      <div class="pc-item">
-        <div class="pc-circle ok">
-          <div class="pc-circle-days">0</div>
-          <div class="pc-circle-label">Days</div>
+      <div class="pc-item-wrap">
+        <div class="pc-item">
+          <div class="pc-circle ok">
+            <div class="pc-circle-days">0</div>
+            <div class="pc-circle-label">Days</div>
+          </div>
+          <div class="pc-body">
+            <div class="pc-name">NexGard Spectra</div>
+            <div class="pc-sub">
+              บันทึกล่าสุด: 14 พ.ค. 69<br>
+              ครั้งถัดไป: 14 มิ.ย. 69
+            </div>
+          </div>
+          <div class="pc-dot danger"></div>
         </div>
-        <div class="pc-body">
-          <div class="pc-name">NexGard Spectra</div>
-          <div class="pc-sub">
-            บันทึกล่าสุด: 14 พ.ค. 69<br>
-            ครั้งถัดไป: 14 มิ.ย. 69
+        <div class="pc-expand-hint" onclick="togglePcHistory(this)">
+          <i data-lucide="chevron-down" style="width:12px;height:12px;"></i>
+        </div>
+        <div class="pc-history">
+          <div class="pc-history-inner">
+            <div class="pc-history-row"><span class="pc-history-date">14 เม.ย. 69</span><span class="pc-history-brand">NexGard Spectra</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">14 มี.ค. 69</span><span class="pc-history-brand">NexGard Spectra</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">14 ก.พ. 69</span><span class="pc-history-brand">NexGard Spectra</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">14 ม.ค. 69</span><span class="pc-history-brand">NexGard Spectra</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">14 ธ.ค. 68</span><span class="pc-history-brand">Bravecto</span></div>
+            <button class="pc-history-all" onclick="event.stopPropagation(); openBottomSheet(this)">ดูทั้งหมด <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></button>
           </div>
         </div>
-        <div class="pc-dot danger"></div>
       </div>
 
-      <div class="pc-item">
-        <div class="pc-circle warn">
-          <div class="pc-circle-days">5</div>
-          <div class="pc-circle-label">Days</div>
+      <div class="pc-item-wrap">
+        <div class="pc-item">
+          <div class="pc-circle warn">
+            <div class="pc-circle-days">5</div>
+            <div class="pc-circle-label">Days</div>
+          </div>
+          <div class="pc-body">
+            <div class="pc-name">Drontal Plus (ถ่ายพยาธิ)</div>
+            <div class="pc-sub">
+              บันทึกล่าสุด: 19 ก.พ. 69<br>
+              ครั้งถัดไป: 19 พ.ค. 69
+            </div>
+          </div>
+          <div class="pc-dot warn"></div>
         </div>
-        <div class="pc-body">
-          <div class="pc-name">Drontal Plus (ถ่ายพยาธิ)</div>
-          <div class="pc-sub">
-            บันทึกล่าสุด: 19 ก.พ. 69<br>
-            ครั้งถัดไป: 19 พ.ค. 69
+        <div class="pc-expand-hint" onclick="togglePcHistory(this)">
+          <i data-lucide="chevron-down" style="width:12px;height:12px;"></i>
+        </div>
+        <div class="pc-history">
+          <div class="pc-history-inner">
+            <div class="pc-history-row"><span class="pc-history-date">19 ก.พ. 69</span><span class="pc-history-brand">Drontal Plus</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">19 พ.ย. 68</span><span class="pc-history-brand">Drontal Plus</span></div>
+            <div class="pc-history-row"><span class="pc-history-date">19 ส.ค. 68</span><span class="pc-history-brand">Drontal Plus</span></div>
+            <button class="pc-history-all" onclick="event.stopPropagation(); openBottomSheet(this)">ดูทั้งหมด <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></button>
           </div>
         </div>
-        <div class="pc-dot warn"></div>
       </div>
     </div>
 
@@ -1359,7 +1601,6 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 
     <!-- ═══ ZONE 7: UTILITY — Action Buttons ═══ -->
     <div class="actions-row">
-      <button class="act-btn"><i data-lucide="pencil" style="width:14px;height:14px;"></i> แก้ไข</button>
       <button class="act-btn"><i data-lucide="book-open" style="width:14px;height:14px;"></i> พาสปอร์ต</button>
       <button class="act-btn"><i data-lucide="share-2" style="width:14px;height:14px;"></i> แชร์</button>
     </div>
@@ -1367,6 +1608,47 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   </div><!-- /scroll-area -->
 
 </div><!-- /phone -->
+
+<!-- Bottom Sheet: Parasite Full History -->
+<div class="bs-overlay" id="bsOverlay" onclick="closeBottomSheet()">
+  <div class="bs-sheet" onclick="event.stopPropagation()">
+    <div class="bs-handle"><div class="bs-handle-bar"></div></div>
+    <div class="bs-header">
+      <div class="bs-title" id="bsTitle">ประวัติ NexGard Spectra</div>
+      <button class="bs-close" onclick="closeBottomSheet()"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+    </div>
+    <div class="bs-body" id="bsBody">
+      <div class="bs-year-nav">
+        <button class="bs-year-btn disabled" id="bsYearPrev" onclick="bsPageYear(-1)"><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+        <span class="bs-year-label" id="bsYearLabel">2569</span>
+        <button class="bs-year-btn" id="bsYearNext" onclick="bsPageYear(1)"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+      </div>
+      <div class="bs-year-page active" data-year="2569">
+        <div class="bs-row"><span class="bs-row-date">14 พ.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 เม.ย.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 มี.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ก.พ.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ม.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-year-summary">5 ครั้ง · NexGard Spectra ทั้งหมด</div>
+      </div>
+      <div class="bs-year-page" data-year="2568">
+        <div class="bs-row"><span class="bs-row-date">14 ธ.ค.</span><span class="bs-row-brand">Bravecto</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 พ.ย.</span><span class="bs-row-brand">Bravecto</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ต.ค.</span><span class="bs-row-brand">Bravecto</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ก.ย.</span><span class="bs-row-brand">Bravecto</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ส.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ก.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 มิ.ย.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 พ.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 เม.ย.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 มี.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ก.พ.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-row"><span class="bs-row-date">14 ม.ค.</span><span class="bs-row-brand">NexGard Spectra</span></div>
+        <div class="bs-year-summary">12 ครั้ง · เปลี่ยนจาก NexGard → Bravecto (ก.ย.)</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="variant-label">F-Alpha — Pet Profile (6-Zone Architecture)</div>
 
@@ -1407,6 +1689,67 @@ function toggleVaxDetail(item) {
   if (!wasOpen) {
     item.classList.add('expanded');
     detail.classList.add('open');
+    lucide.createIcons({nodes: detail.querySelectorAll('[data-lucide]')});
+  }
+}
+
+function vaxPage(btn, dir) {
+  const item = btn.closest('.vax-item');
+  const records = item.querySelector('.vax-records');
+  const all = records.querySelectorAll('.vax-record');
+  const total = all.length;
+  let cur = parseInt(records.dataset.current);
+  cur += dir;
+  if (cur < 0 || cur >= total) return;
+  records.dataset.current = cur;
+  all.forEach(r => r.classList.remove('active'));
+  all[cur].classList.add('active');
+  const label = item.querySelector('[data-pager-label]');
+  label.textContent = `เข็มที่ ${cur + 1}/${total}`;
+  const arrows = item.querySelectorAll('.vax-pager-btn');
+  arrows[0].classList.toggle('disabled', cur === 0);
+  arrows[1].classList.toggle('disabled', cur === total - 1);
+}
+
+function openBottomSheet(btn) {
+  const wrap = btn.closest('.pc-item-wrap');
+  const name = wrap.querySelector('.pc-name').textContent;
+  document.getElementById('bsTitle').textContent = 'ประวัติ ' + name;
+  const pages = document.querySelectorAll('.bs-year-page');
+  pages.forEach(p => p.classList.remove('active'));
+  pages[0].classList.add('active');
+  const years = Array.from(pages).map(p => p.dataset.year);
+  document.getElementById('bsYearLabel').textContent = years[0];
+  document.getElementById('bsYearPrev').classList.add('disabled');
+  document.getElementById('bsYearNext').classList.toggle('disabled', years.length <= 1);
+  const overlay = document.getElementById('bsOverlay');
+  overlay.classList.add('open');
+  lucide.createIcons({nodes: overlay.querySelectorAll('[data-lucide]')});
+}
+
+function closeBottomSheet() {
+  document.getElementById('bsOverlay').classList.remove('open');
+}
+
+function bsPageYear(dir) {
+  const pages = Array.from(document.querySelectorAll('.bs-year-page'));
+  const curIdx = pages.findIndex(p => p.classList.contains('active'));
+  const next = curIdx + dir;
+  if (next < 0 || next >= pages.length) return;
+  pages[curIdx].classList.remove('active');
+  pages[next].classList.add('active');
+  document.getElementById('bsYearLabel').textContent = pages[next].dataset.year;
+  document.getElementById('bsYearPrev').classList.toggle('disabled', next === 0);
+  document.getElementById('bsYearNext').classList.toggle('disabled', next === pages.length - 1);
+}
+
+function togglePcHistory(hint) {
+  const wrap = hint.closest('.pc-item-wrap');
+  const body = wrap.querySelector('.pc-history');
+  hint.classList.toggle('open');
+  body.classList.toggle('open');
+  if (body.classList.contains('open')) {
+    lucide.createIcons({nodes: body.querySelectorAll('[data-lucide]')});
   }
 }
 
