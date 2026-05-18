@@ -85,7 +85,7 @@ export function WeightChart({ data, width = 340, height = 200 }: WeightChartProp
         <polyline
           points={polyline}
           fill="none"
-          stroke="#6366F1"
+          stroke="var(--primary)"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -94,7 +94,7 @@ export function WeightChart({ data, width = 340, height = 200 }: WeightChartProp
 
       {/* Dots */}
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="4" fill="#6366F1" />
+        <circle key={i} cx={p.x} cy={p.y} r="4" fill="var(--primary)" />
       ))}
 
       {/* X-axis date labels (first and last) */}

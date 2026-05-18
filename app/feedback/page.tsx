@@ -105,7 +105,7 @@ function FeedbackContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-bg-start to-bg-end pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
@@ -116,10 +116,10 @@ function FeedbackContent() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold text-text-main">Feedback</h1>
+          <h1 className="text-lg font-extrabold text-text-main">ส่งความคิดเห็น</h1>
           {!user && (
-            <span className="ml-auto text-xs text-text-muted bg-surface-alt px-2 py-1 rounded-full">
-              Anonymous
+            <span className="ml-auto text-[10px] font-bold text-text-muted bg-surface-alt px-2.5 py-1 rounded-full">
+              ไม่ระบุตัวตน
             </span>
           )}
         </div>
@@ -127,33 +127,36 @@ function FeedbackContent() {
 
       {/* Content */}
       <main className="px-4 py-6 max-w-md mx-auto">
-        <Card className="p-6 rounded-2xl">
+        <Card className="p-6 rounded-[24px] border border-border shadow-soft">
           {success ? (
             <div className="py-8 text-center">
               <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-text-main mb-2">Thank You!</h2>
-              <p className="text-text-muted mb-6">Your feedback has been submitted successfully.</p>
-              <Button onClick={() => setSuccess(false)} className="bg-primary hover:bg-primary/90">
-                Submit Another Feedback
+              <h2 className="text-lg font-extrabold text-text-main mb-2">ขอบคุณค่ะ!</h2>
+              <p className="text-sm text-text-muted mb-6">ความคิดเห็นของคุณถูกส่งเรียบร้อยแล้ว</p>
+              <Button
+                onClick={() => setSuccess(false)}
+                className="h-11 rounded-full bg-gradient-to-br from-primary to-primary-light text-white font-bold shadow-primary"
+              >
+                ส่งอีกครั้ง
               </Button>
             </div>
           ) : (
             <>
               <div className="flex items-center gap-3 mb-4">
-                <MessageSquare className="w-8 h-8 text-primary" />
-                <h2 className="text-xl font-bold text-text-main">Send Feedback</h2>
+                <div className="w-10 h-10 rounded-full bg-primary/8 flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-text-main">บอกเราหน่อย</h2>
+                  <p className="text-[11px] text-text-muted">แชร์ประสบการณ์ · แจ้งปัญหา · แนะนำฟีเจอร์</p>
+                </div>
               </div>
-
-              <p className="text-sm text-text-muted mb-4">
-                Help us improve Pawrent! Share your experience, report issues, or suggest new
-                features.
-              </p>
 
               <textarea
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Describe your feedback, issue, or suggestion..."
-                className="w-full h-32 p-3 border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                placeholder="เล่าให้เราฟังว่าคิดอย่างไร..."
+                className="w-full h-32 p-3 border border-border rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm bg-surface"
               />
 
               {/* Image Upload */}
@@ -162,8 +165,8 @@ function FeedbackContent() {
                   <div className="relative">
                     <img
                       src={feedbackImagePreview}
-                      alt="Feedback attachment"
-                      className="w-full h-32 object-cover rounded-lg"
+                      alt="รูปแนบ"
+                      className="w-full h-32 object-cover rounded-2xl"
                     />
                     <button
                       onClick={() => {
@@ -177,9 +180,9 @@ function FeedbackContent() {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-surface-alt/30 transition-colors">
+                  <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-border rounded-2xl cursor-pointer hover:bg-surface-alt/30 transition-colors">
                     <ImagePlus className="w-5 h-5 text-text-muted" />
-                    <span className="text-sm text-text-muted">Attach screenshot (optional)</span>
+                    <span className="text-sm text-text-muted">แนบภาพหน้าจอ (ไม่บังคับ)</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -200,9 +203,9 @@ function FeedbackContent() {
               <Button
                 onClick={handleSubmit}
                 disabled={!feedbackText.trim() || submitting}
-                className="w-full mt-6 bg-primary hover:bg-primary/90"
+                className="w-full mt-6 h-12 rounded-full bg-gradient-to-br from-primary to-primary-light text-white font-bold shadow-primary disabled:opacity-50"
               >
-                {submitting ? "Submitting..." : "Submit Feedback"}
+                {submitting ? "กำลังส่ง..." : "ส่งความคิดเห็น"}
               </Button>
             </>
           )}

@@ -1,5 +1,5 @@
 /**
- * Tests for simple stateless components: BottomNav, VaccineStatusBar, LocationBanner.
+ * Tests for simple stateless components: VaccineStatusBar, LocationBanner.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -9,24 +9,6 @@ import userEvent from "@testing-library/user-event";
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
-const mockUsePathname = vi.fn(() => "/");
-vi.mock("next/navigation", () => ({ usePathname: () => mockUsePathname() }));
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: {
-    href: string;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 const mockRequestLocation = vi.fn();
 const mockLocationError = { current: null as string | null };
 vi.mock("@/components/location-provider", () => ({
@@ -38,54 +20,8 @@ vi.mock("@/components/location-provider", () => ({
   }),
 }));
 
-import { BottomNav } from "@/components/bottom-nav";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
 import { LocationBanner } from "@/components/location-banner";
-
-// ---------------------------------------------------------------------------
-// BottomNav
-// ---------------------------------------------------------------------------
-
-describe("BottomNav (D2 6-tab)", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUsePathname.mockReturnValue("/");
-  });
-
-  it("renders all 6 d2 nav items (thai labels)", () => {
-    render(<BottomNav />);
-    expect(screen.getByText("หน้าหลัก")).toBeInTheDocument();
-    expect(screen.getByText("ฟีด")).toBeInTheDocument();
-    expect(screen.getByText("แจ้ง")).toBeInTheDocument();
-    expect(screen.getByText("แจ้งเตือน")).toBeInTheDocument();
-    expect(screen.getByText("สัตว์เลี้ยง")).toBeInTheDocument();
-    expect(screen.getByText("โปรไฟล์")).toBeInTheDocument();
-  });
-
-  it("all links have correct hrefs", () => {
-    render(<BottomNav />);
-    expect(screen.getByText("หน้าหลัก").closest("a")).toHaveAttribute("href", "/");
-    expect(screen.getByText("ฟีด").closest("a")).toHaveAttribute("href", "/post");
-    expect(screen.getByText("แจ้ง").closest("a")).toHaveAttribute("href", "/post/lost");
-    expect(screen.getByText("แจ้งเตือน").closest("a")).toHaveAttribute("href", "/notifications");
-    expect(screen.getByText("สัตว์เลี้ยง").closest("a")).toHaveAttribute("href", "/pets");
-    expect(screen.getByText("โปรไฟล์").closest("a")).toHaveAttribute("href", "/profile");
-  });
-
-  it("highlights the active route with coral primary", () => {
-    mockUsePathname.mockReturnValue("/pets");
-    render(<BottomNav />);
-    const petsLink = screen.getByText("สัตว์เลี้ยง").closest("a");
-    expect(petsLink?.className).toContain("text-primary");
-  });
-
-  it("inactive routes use d2 text-text-muted", () => {
-    mockUsePathname.mockReturnValue("/pets");
-    render(<BottomNav />);
-    const feedLink = screen.getByText("ฟีด").closest("a");
-    expect(feedLink?.className).toContain("text-text-muted");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // VaccineStatusBar

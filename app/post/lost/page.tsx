@@ -210,7 +210,7 @@ function ShareRow({
         aria-label="แชร์ไปยัง Facebook"
         className="flex flex-col items-center gap-1 p-2 rounded-2xl bg-surface border border-border hover:border-primary transition-colors touch-target"
       >
-        <span className="w-8 h-8 rounded-full bg-[#1877F2] flex items-center justify-center text-white text-xs font-bold">
+        <span className="w-8 h-8 rounded-full bg-info flex items-center justify-center text-white text-xs font-bold">
           f
         </span>
         <span className="text-[10px] font-bold text-text-muted">FB</span>

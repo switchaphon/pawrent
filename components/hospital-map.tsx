@@ -123,11 +123,10 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
               >
                 <a
                   href={`tel:${hospital.phone}`}
-                  className="flex items-center gap-1"
-                  style={{ color: "#FFFFFF" }}
+                  className="flex items-center gap-1 text-surface"
                 >
-                  <Phone className="w-2.5 h-2.5" style={{ color: "#FFFFFF" }} />
-                  <span style={{ color: "#FFFFFF" }}>Call</span>
+                  <Phone className="w-2.5 h-2.5" />
+                  <span>Call</span>
                 </a>
               </Button>
             </div>

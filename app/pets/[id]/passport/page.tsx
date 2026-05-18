@@ -38,13 +38,20 @@ export default async function PassportPage({ params }: Props) {
   const { data: pet } = await supabase
     .from("pets")
     .select(
-      "id, name, species, breed, date_of_birth, microchip_number, photo_url, gotcha_day, is_spayed_neutered"
+      "id, name, species, breed, sex, color, weight_kg, date_of_birth, microchip_number, photo_url, gotcha_day, is_spayed_neutered"
     )
     .eq("id", id)
     .eq("owner_id", user.id)
     .maybeSingle();
 
   if (!pet) redirect("/pets");
+
+  // Fetch user's full pet list for chip switcher
+  const { data: userPets } = await supabase
+    .from("pets")
+    .select("id, name, species, photo_url")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: true });
 
   // Parallel data fetching
   const [vaccinations, parasiteLogs, weightLogs, milestones, reminders] = await Promise.all([
@@ -87,6 +94,8 @@ export default async function PassportPage({ params }: Props) {
       weightLogs={weightLogs.data ?? []}
       milestones={milestones.data ?? []}
       reminders={reminders.data ?? []}
+      userPets={userPets ?? []}
+      currentPetId={id}
     />
   );
 }

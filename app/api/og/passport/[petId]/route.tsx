@@ -51,7 +51,7 @@ export async function GET(
         height: "630px",
         display: "flex",
         flexDirection: "row",
-        backgroundColor: "#F5F3FF",
+        backgroundColor: "#FAF7F2",
         fontFamily: "sans-serif",
       }}
     >
@@ -63,7 +63,7 @@ export async function GET(
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#E0E7FF",
+          backgroundColor: "#EDEDE8",
         }}
       >
         {pet.photo_url ? (
@@ -80,7 +80,7 @@ export async function GET(
               width: "360px",
               height: "360px",
               borderRadius: "50%",
-              backgroundColor: "#C7D2FE",
+              backgroundColor: "#E8E2D8",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -105,7 +105,7 @@ export async function GET(
         <div
           style={{
             fontSize: "20px",
-            color: "#6366F1",
+            color: "#FF8263",
             fontWeight: 700,
             letterSpacing: "2px",
             textTransform: "uppercase" as const,
@@ -119,7 +119,7 @@ export async function GET(
           style={{
             fontSize: "56px",
             fontWeight: 800,
-            color: "#1E1B4B",
+            color: "#2E2A2E",
             marginTop: "12px",
             display: "flex",
           }}
@@ -130,7 +130,7 @@ export async function GET(
         <div
           style={{
             fontSize: "24px",
-            color: "#4B5563",
+            color: "#3D3935",
             marginTop: "8px",
             display: "flex",
           }}
@@ -150,7 +150,7 @@ export async function GET(
           <div
             style={{
               backgroundColor:
-                protectedCount === totalVaccines && totalVaccines > 0 ? "#10B981" : "#F59E0B",
+                protectedCount === totalVaccines && totalVaccines > 0 ? "#4C6B3C" : "#B8730A",
               color: "white",
               padding: "8px 20px",
               borderRadius: "24px",
@@ -177,7 +177,7 @@ export async function GET(
           <div
             style={{
               fontSize: "16px",
-              color: "#9CA3AF",
+              color: "#6B6560",
               display: "flex",
             }}
           >
