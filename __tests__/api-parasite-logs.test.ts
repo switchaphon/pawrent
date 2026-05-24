@@ -1,5 +1,5 @@
 /**
- * Integration tests for POST /api/parasite-logs.
+ * Integration tests for GET and POST /api/parasite-logs.
  *
  * Strategy: vi.mock the @/lib/supabase-api module so every test controls
  * exactly what Supabase returns. The route handler is imported directly
@@ -65,7 +65,7 @@ vi.mock("@/lib/supabase-api", () => ({
   })),
 }));
 
-import { POST } from "@/app/api/parasite-logs/route";
+import { GET, POST } from "@/app/api/parasite-logs/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -187,5 +187,151 @@ describe("POST /api/parasite-logs", () => {
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("DB error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/parasite-logs?pet_id=<uuid>
+// ---------------------------------------------------------------------------
+
+describe("GET /api/parasite-logs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+  });
+
+  function makeGetRequest(petId: string | null, withAuth = true): NextRequest {
+    const url =
+      petId !== null
+        ? `http://localhost/api/parasite-logs?pet_id=${petId}`
+        : "http://localhost/api/parasite-logs";
+    return new NextRequest(url, {
+      method: "GET",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  it("should return 401 when no Authorization header is present", async () => {
+    const req = makeGetRequest(VALID_UUID, false);
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 401 when the token resolves to no user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+    const req = makeGetRequest(VALID_UUID);
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 when pet_id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeGetRequest(null);
+    const res = await GET(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("pet_id is required");
+  });
+
+  it("should return 400 when pet_id is not a valid UUID", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeGetRequest("not-a-uuid");
+    const res = await GET(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("pet_id must be a valid UUID");
+  });
+
+  it("should return 404 when the pet does not belong to the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // First from() call is the ownership check — pet not found
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makeGetRequest(VALID_UUID);
+    const res = await GET(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Pet not found");
+  });
+
+  it("should return an array of parasite logs for the pet on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    // First from() call: ownership check → pet found
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const logs = [
+      {
+        id: "log-1",
+        pet_id: VALID_UUID,
+        medicine_name: "NexGard",
+        administered_date: "2025-06-01",
+      },
+      {
+        id: "log-2",
+        pet_id: VALID_UUID,
+        medicine_name: "Bravecto",
+        administered_date: "2025-03-01",
+      },
+    ];
+
+    // Second from() call: the actual parasite_logs select with order
+    const orderMock = vi.fn().mockResolvedValue({ data: logs, error: null });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+
+    // fromCallIndex starts at 0; first call (pets ownership) uses the chain from buildOwnershipChain,
+    // second call (parasite_logs) needs to return our custom chain.
+    mockFrom
+      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
+      .mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest(VALID_UUID);
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toHaveLength(2);
+    expect(json[0].medicine_name).toBe("NexGard");
+  });
+
+  it("should return an empty array when the pet has no parasite logs", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom
+      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
+      .mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest(VALID_UUID);
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual([]);
+  });
+
+  it("should return 500 when Supabase returns a database error on the list query", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const orderMock = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: "Query timeout" } });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom
+      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
+      .mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest(VALID_UUID);
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Query timeout");
   });
 });
