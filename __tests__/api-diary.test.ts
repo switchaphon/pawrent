@@ -310,7 +310,7 @@ describe("POST /api/diary", () => {
     await POST(req);
 
     // Verify insert was called with null values for omitted fields
-    const insertCall = mockInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    const insertCall = (mockInsert.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
     expect(insertCall.title).toBeNull();
     expect(insertCall.caption).toBeNull();
     expect(insertCall.mood).toBeNull();

@@ -364,7 +364,7 @@ describe("POST /api/diary/enrich", () => {
     const req = makeRequest({ event_type: "vaccination", event_id: EVENT_UUID });
     await POST(req);
 
-    const insertPayload = mockInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    const insertPayload = (mockInsert.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
     expect(insertPayload.caption).toBeNull();
     expect(insertPayload.photo_urls).toBeNull();
     expect(insertPayload.linked_event_type).toBe("vaccination");
@@ -446,7 +446,7 @@ describe("POST /api/diary/enrich", () => {
     const req = makeRequest({ event_type: "vaccination", event_id: VALID_UUID });
     await POST(req);
 
-    const insertPayload = mockInsert.mock.calls[0]?.[0] as Record<string, unknown>;
+    const insertPayload = (mockInsert.mock.calls as unknown[][])[0]?.[0] as Record<string, unknown>;
     expect(insertPayload.linked_event_id).toBe(VALID_UUID);
   });
 });

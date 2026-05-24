@@ -287,7 +287,8 @@ describe("GET /api/parasite-logs", () => {
     // second call (parasite_logs) needs to return our custom chain.
     mockFrom
       .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      .mockReturnValueOnce({ select: selectMock });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockReturnValueOnce({ select: selectMock } as any);
 
     const req = makeGetRequest(VALID_UUID);
     const res = await GET(req);
@@ -306,7 +307,8 @@ describe("GET /api/parasite-logs", () => {
     const selectMock = vi.fn(() => ({ eq: eqMock }));
     mockFrom
       .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      .mockReturnValueOnce({ select: selectMock });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockReturnValueOnce({ select: selectMock } as any);
 
     const req = makeGetRequest(VALID_UUID);
     const res = await GET(req);
@@ -326,7 +328,8 @@ describe("GET /api/parasite-logs", () => {
     const selectMock = vi.fn(() => ({ eq: eqMock }));
     mockFrom
       .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      .mockReturnValueOnce({ select: selectMock });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockReturnValueOnce({ select: selectMock } as any);
 
     const req = makeGetRequest(VALID_UUID);
     const res = await GET(req);

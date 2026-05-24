@@ -171,7 +171,8 @@ describe("GET /api/pet-card/[petId]/qr", () => {
   it("should return PNG body as Uint8Array (not raw Buffer)", async () => {
     // The route wraps Buffer in new Uint8Array(pngBuffer) before returning
     const fakeBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47]); // PNG magic bytes
-    vi.mocked(QRCode.toBuffer).mockResolvedValueOnce(fakeBuffer);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(QRCode.toBuffer).mockResolvedValueOnce(fakeBuffer as any);
     mockMaybySingle.mockResolvedValueOnce({ data: { pawrent_id: "PAW-0001" } });
     const req = makeRequest(PET_ID, "10.0.0.1");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
