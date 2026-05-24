@@ -70,7 +70,8 @@ function formatThaiDate(dateStr: string): string {
 
 export function HealthRecordsCard({
   healthEvents,
-  isMemorial: _isMemorial,
+  // isMemorial will be used when clinic integration lands
+  isMemorial: _,
 }: HealthRecordsCardProps) {
   const [open, setOpen] = useState(healthEvents.length > 0);
 

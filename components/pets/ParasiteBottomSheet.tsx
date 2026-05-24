@@ -91,11 +91,13 @@ export function ParasiteBottomSheet({
 }: ParasiteBottomSheetProps) {
   const yearGroups = groupByYear(logs);
   const [yearIdx, setYearIdx] = useState(0);
+  const [resetKey, setResetKey] = useState("");
 
-  // Reset to newest year when sheet opens with new data
-  useEffect(() => {
-    if (open) setYearIdx(0);
-  }, [open, medicineName]);
+  const currentKey = `${open}-${medicineName}`;
+  if (open && currentKey !== resetKey) {
+    setResetKey(currentKey);
+    setYearIdx(0);
+  }
 
   // Trap escape key
   useEffect(() => {

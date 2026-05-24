@@ -67,7 +67,7 @@ export function MemoriesZone({
   photos,
   isMemorial,
   onAddPhoto,
-  onDeletePhoto: _onDeletePhoto,
+  onDeletePhoto: _,
 }: MemoriesZoneProps) {
   return (
     <div className="mb-[14px]" role="region" aria-label="ความทรงจำ">

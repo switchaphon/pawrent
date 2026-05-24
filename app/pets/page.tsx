@@ -134,8 +134,9 @@ function PetsContent() {
         setSelectedPet(null);
       }
       setLoading(false);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // selectedPet?.id intentionally excluded to avoid re-fetch loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, petIdFromUrl, fetchPetDetails]
   );
 

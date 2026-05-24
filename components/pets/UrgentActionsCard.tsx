@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert, Pill, Scale, Weight } from "lucide-react";
+import { TriangleAlert, Pill, Scale } from "lucide-react";
 
 export type UrgentItemType = "parasite_overdue" | "vaccine_overdue" | "weight_stale";
 

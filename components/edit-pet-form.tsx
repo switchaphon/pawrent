@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { uploadPetPhoto } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
