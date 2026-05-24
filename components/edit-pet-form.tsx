@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ImageCropper } from "@/components/image-cropper";
 import { SearchableSelect } from "@/components/searchable-select";
-import { Camera, Loader2, X, Pencil } from "lucide-react";
+import { Camera, Loader2, X, Pencil, Star, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { Pet } from "@/lib/types";
 import { petSchema } from "@/lib/validations";
 import speciesData from "@/data/species.json";
@@ -32,8 +33,12 @@ function getBreedOptions(species: string): string[] {
   return breedsData.other || ["Mixed Breed", "Other"];
 }
 
-export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
+export function EditPetForm({ pet, onSuccess, onCancel, onDelete }: EditPetFormProps) {
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [memorializing, setMemorializing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMemorialConfirm, setShowMemorialConfirm] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(pet.photo_url);
   const [showCropper, setShowCropper] = useState(false);
@@ -350,7 +355,85 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
             </Button>
           </div>
+
+          {/* Memorial + Delete */}
+          {pet.status !== "memorial" && (
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMemorialConfirm(true)}
+                className="flex-1 py-3 text-sm font-semibold text-warning hover:bg-warning-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
+              >
+                <Star className="w-4 h-4" aria-hidden />
+                กลับดาว
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex-1 py-3 text-sm font-semibold text-danger hover:bg-danger-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
+              >
+                <Trash2 className="w-4 h-4" aria-hidden />
+                ลบประวัติน้อง
+              </button>
+            </div>
+          )}
         </form>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={`ลบ ${pet.name}?`}
+          description="การลบจะเอาข้อมูลน้องและประวัติทั้งหมดออกอย่างถาวร ไม่สามารถย้อนกลับได้"
+          confirmLabel="ลบถาวร"
+          cancelLabel="ยกเลิก"
+          variant="destructive"
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await apiFetch("/api/pets", {
+                method: "DELETE",
+                body: JSON.stringify({ petId: pet.id }),
+              });
+              setShowDeleteConfirm(false);
+              onDelete?.();
+            } catch (error) {
+              console.error("Error deleting pet:", error);
+            } finally {
+              setDeleting(false);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+          loading={deleting}
+        />
+
+        <ConfirmDialog
+          open={showMemorialConfirm}
+          title={`${pet.name} กลับดาวแล้ว?`}
+          description="น้องจะถูกบันทึกเป็นความทรงจำ ข้อมูลทั้งหมดจะยังคงอยู่ แต่จะไม่แสดงการแจ้งเตือนวัคซีนและยาอีกต่อไป"
+          confirmLabel="กลับดาว 🌟"
+          cancelLabel="ยกเลิก"
+          variant="default"
+          onConfirm={async () => {
+            setMemorializing(true);
+            try {
+              await apiFetch("/api/pets", {
+                method: "PUT",
+                body: JSON.stringify({
+                  petId: pet.id,
+                  status: "memorial",
+                  memorial_date: new Date().toISOString().split("T")[0],
+                }),
+              });
+              setShowMemorialConfirm(false);
+              onSuccess?.();
+            } catch (error) {
+              console.error("Error memorializing pet:", error);
+            } finally {
+              setMemorializing(false);
+            }
+          }}
+          onCancel={() => setShowMemorialConfirm(false)}
+          loading={memorializing}
+        />
       </Card>
     </>
   );

@@ -1,63 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/liff-provider";
-import { Button } from "@/components/ui/button";
 import { CreatePetForm } from "@/components/create-pet-form";
 import { EditPetForm } from "@/components/edit-pet-form";
-import { PetProfileCard } from "@/components/pet-profile-card";
 import { AddVaccineForm } from "@/components/add-vaccine-form";
 import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
 import { EmptyState } from "@/components/empty-state";
 import { SkeletonCard } from "@/components/skeleton-card";
-import { ConfirmDialog } from "@/components/confirm-dialog";
-import {
-  getCoreVaccineTypesBySpecies,
-  matchesVaccineType,
-  isOptionalVaccine,
-} from "@/data/vaccines";
-import { calculateDaysLeft, formatDate, sortByDOB } from "@/lib/pet-utils";
-import { VaccineStatusBar } from "@/components/vaccine-status-bar";
+import { ImageCropper } from "@/components/image-cropper";
+import { PetIdCardModal } from "@/components/pet-id-card-modal";
+import { PetChipSelector } from "@/components/pets/PetChipSelector";
+import { PetHeroCard } from "@/components/pets/PetHeroCard";
+import { UrgentActionsCard } from "@/components/pets/UrgentActionsCard";
+import type { UrgentItem } from "@/components/pets/UrgentActionsCard";
+import { WeightCard } from "@/components/pets/WeightCard";
+import { VaccineCard } from "@/components/pets/VaccineCard";
+import { ParasiteCard } from "@/components/pets/ParasiteCard";
+import { ParasiteBottomSheet } from "@/components/pets/ParasiteBottomSheet";
+import { HealthRecordsCard } from "@/components/pets/HealthRecordsCard";
+import { MemoriesZone } from "@/components/pets/MemoriesZone";
 import {
   getPets,
   getPetWithDetails,
-  getActivePetReportForPet,
   getPetPhotos,
   uploadPetGalleryImage,
 } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
-import type { Pet, Vaccination, ParasiteLog, HealthEvent, PetReport, PetPhoto } from "@/lib/types";
-import { ImageCropper } from "@/components/image-cropper";
-import { Plus, Stethoscope, Syringe, Pill, Trash2, Calendar } from "lucide-react";
+import { sortByDOB } from "@/lib/pet-utils";
+import type { Pet, Vaccination, ParasiteLog, HealthEvent, PetPhoto, DiaryEntry } from "@/lib/types/pets";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 function PetsContent() {
   const { user } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const petIdFromUrl = searchParams.get("pet");
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
-  const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
-  const [parasiteLog, setParasiteLog] = useState<ParasiteLog | null>(null);
-  const [, setHealthEvents] = useState<HealthEvent[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pet details
+  const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
+  const [parasiteLogs, setParasiteLogs] = useState<ParasiteLog[]>([]);
+  const [healthEvents, setHealthEvents] = useState<HealthEvent[]>([]);
+  const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
+  const [weightHistory, setWeightHistory] = useState<{ weight: number; recorded_at: string }[]>([]);
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
+
+  // UI state
   const [showAddPet, setShowAddPet] = useState(false);
   const [showEditPet, setShowEditPet] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
   const [showAddParasiteLog, setShowAddParasiteLog] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [activePetReport, setActivePetReport] = useState<PetReport | null>(null);
-
-  const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
+  const [showIdCard, setShowIdCard] = useState(false);
   const [showPhotoCropper, setShowPhotoCropper] = useState(false);
   const [photoToCrop, setPhotoToCrop] = useState<string | null>(null);
-  const [, setUploadingPhoto] = useState(false);
+  const [bsOpen, setBsOpen] = useState(false);
+  const [bsMedicineName, setBsMedicineName] = useState("");
+  const [bsLogs, setBsLogs] = useState<ParasiteLog[]>([]);
 
-  const fetchPets = async (preserveSelection = false) => {
+  const isMemorial = selectedPet?.status === "memorial";
+
+  const fetchPetDetails = useCallback(async (petId: string) => {
+    const [detailsRes, photosRes] = await Promise.all([
+      getPetWithDetails(petId),
+      getPetPhotos(petId),
+    ]);
+
+    if (detailsRes.data) {
+      setVaccinations(detailsRes.data.vaccinations || []);
+      setHealthEvents(detailsRes.data.healthEvents || []);
+    }
+
+    setPetPhotos(photosRes.data || []);
+
+    // Fetch all parasite logs (not just latest)
+    try {
+      const res = await apiFetch(`/api/parasite-logs?pet_id=${petId}`);
+      setParasiteLogs(Array.isArray(res) ? res : []);
+    } catch {
+      setParasiteLogs([]);
+    }
+
+    // Fetch weight history
+    try {
+      const res = await apiFetch(`/api/pet-weight?pet_id=${petId}&limit=12`);
+      setWeightHistory(Array.isArray(res) ? res : []);
+    } catch {
+      setWeightHistory([]);
+    }
+
+    // Fetch diary entries for preview
+    try {
+      const res = await apiFetch(`/api/diary/timeline?pet_id=${petId}&limit=5`);
+      setDiaryEntries(Array.isArray(res?.entries) ? res.entries : []);
+    } catch {
+      setDiaryEntries([]);
+    }
+  }, []);
+
+  const fetchPets = useCallback(async (preserveSelection = false) => {
     if (!user) return;
     setLoading(true);
     const { data } = await getPets(user.id);
@@ -65,12 +112,11 @@ function PetsContent() {
     setPets(sortedPets);
 
     if (sortedPets.length > 0) {
-      const urlPetId = petIdFromUrl;
       const currentPetId = selectedPet?.id;
-      let petToSelect;
+      let petToSelect: Pet | undefined;
 
-      if (urlPetId) {
-        petToSelect = sortedPets.find((p) => p.id === urlPetId);
+      if (petIdFromUrl) {
+        petToSelect = sortedPets.find((p) => p.id === petIdFromUrl);
       }
       if (!petToSelect && preserveSelection && currentPetId) {
         petToSelect = sortedPets.find((p) => p.id === currentPetId);
@@ -85,136 +131,135 @@ function PetsContent() {
       setSelectedPet(null);
     }
     setLoading(false);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, petIdFromUrl, fetchPetDetails]);
 
-  const fetchPetDetails = async (petId: string) => {
-    const { data } = await getPetWithDetails(petId);
-    if (data) {
-      setVaccinations(data.vaccinations || []);
-      setParasiteLog(data.latestParasiteLog || null);
-      setHealthEvents(data.healthEvents || []);
-    }
-    const { data: petReport } = await getActivePetReportForPet(petId);
-    setActivePetReport(petReport || null);
-
-    const { data: photos } = await getPetPhotos(petId);
-    setPetPhotos(photos || []);
-  };
+  useEffect(() => {
+    fetchPets();
+  }, [fetchPets]);
 
   const handleSelectPet = async (pet: Pet) => {
     setSelectedPet(pet);
     await fetchPetDetails(pet.id);
   };
 
-  useEffect(() => {
-    fetchPets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  // Compute urgent items
+  const urgentItems: UrgentItem[] = [];
+  if (selectedPet && !isMemorial) {
+    // Overdue vaccines
+    vaccinations
+      .filter((v) => v.status === "overdue")
+      .forEach((v) => {
+        urgentItems.push({
+          id: `vax-${v.id}`,
+          type: "vaccine_overdue",
+          title: `ฉีดวัคซีน ${v.name} ให้${selectedPet.name}`,
+          detail: "เลยกำหนด",
+          severity: "danger",
+          onAction: () => setShowAddVaccine(true),
+        });
+      });
 
-  const handleReport = () => {
-    if (selectedPet) {
-      router.push(`/post?pet=${selectedPet.id}`);
+    // Overdue parasites
+    parasiteLogs
+      .filter((p) => {
+        if (!p.next_due_date) return false;
+        return new Date(p.next_due_date) < new Date();
+      })
+      .slice(0, 1)
+      .forEach((p) => {
+        const days = Math.ceil(
+          (Date.now() - new Date(p.next_due_date).getTime()) / 86400000
+        );
+        urgentItems.push({
+          id: `para-${p.id}`,
+          type: "parasite_overdue",
+          title: `หยดยาเห็บหมัดให้${selectedPet.name}`,
+          detail: `เลยกำหนด ${days} วัน`,
+          severity: "danger",
+          onAction: () => setShowAddParasiteLog(true),
+        });
+      });
+
+    // Stale weight
+    const latestWeight = weightHistory[0];
+    if (latestWeight) {
+      const daysSince = Math.ceil(
+        (Date.now() - new Date(latestWeight.recorded_at).getTime()) / 86400000
+      );
+      if (daysSince > 30) {
+        urgentItems.push({
+          id: "weight-stale",
+          type: "weight_stale",
+          title: `ชั่งน้ำหนัก${selectedPet.name}`,
+          detail: `ครบ ${daysSince} วัน — ควรบันทึกใหม่`,
+          severity: "warning",
+          onAction: () => {},
+        });
+      }
     }
-  };
+  }
 
-  const handleDeletePet = async () => {
+  const handlePhotoUpload = async (croppedBlob: Blob) => {
     if (!selectedPet) return;
-    setDeleting(true);
     try {
-      await apiFetch("/api/pets", {
-        method: "DELETE",
-        body: JSON.stringify({ petId: selectedPet.id }),
+      const file = new File([croppedBlob], "gallery-photo.jpg", { type: "image/jpeg" });
+      const fileResult = imageFileSchema.safeParse({ size: file.size, type: file.type });
+      if (!fileResult.success) return;
+
+      const photoId = `${Date.now()}`;
+      const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(
+        file, selectedPet.id, photoId
+      );
+      if (uploadError || !photoUrl) return;
+
+      await apiFetch("/api/pet-photos", {
+        method: "POST",
+        body: JSON.stringify({
+          pet_id: selectedPet.id,
+          photo_url: photoUrl,
+          display_order: petPhotos.length,
+        }),
       });
-      setShowDeleteConfirm(false);
-      setSelectedPet(null);
-      fetchPets();
-    } catch (error) {
-      console.error("Error deleting pet:", error);
+
+      const { data } = await getPetPhotos(selectedPet.id);
+      setPetPhotos(data || []);
+    } catch (err) {
+      console.error("Photo upload failed:", err);
     } finally {
-      setDeleting(false);
+      setShowPhotoCropper(false);
+      setPhotoToCrop(null);
     }
   };
 
-  const handlePetFound = async (alertId: string) => {
+  const handleDeletePhoto = async (photoId: string) => {
     try {
-      await apiFetch("/api/post", {
-        method: "PUT",
-        body: JSON.stringify({ alertId, resolution: "found" }),
+      await apiFetch("/api/pet-photos", {
+        method: "DELETE",
+        body: JSON.stringify({ photoId }),
       });
       if (selectedPet) {
-        await fetchPetDetails(selectedPet.id);
+        const { data } = await getPetPhotos(selectedPet.id);
+        setPetPhotos(data || []);
       }
     } catch (e) {
-      console.error("handlePetFound error:", e);
+      console.error("Error deleting photo:", e);
     }
   };
 
-  const handleGiveUp = async (alertId: string) => {
-    try {
-      await apiFetch("/api/post", {
-        method: "PUT",
-        body: JSON.stringify({ alertId, resolution: "given_up" }),
-      });
-      if (selectedPet) {
-        await fetchPetDetails(selectedPet.id);
-      }
-    } catch (e) {
-      console.error("handleGiveUp error:", e);
-    }
-  };
-
-  const daysLeft = calculateDaysLeft(parasiteLog?.next_due_date || null);
-  const coreVaccineTypes = selectedPet ? getCoreVaccineTypesBySpecies(selectedPet.species) : [];
-
-  const getCoreVaccineStatus = (vaccineTypeId: string) => {
-    const vaccineType = coreVaccineTypes.find((t) => t.id === vaccineTypeId);
-    if (!vaccineType) return { status: "none" as const, percentage: 0, brandName: undefined };
-
-    const matchingVaccine = vaccinations.find((v) => matchesVaccineType(v.name, vaccineType));
-    if (!matchingVaccine) return { status: "none" as const, percentage: 0, brandName: undefined };
-
-    return {
-      status: matchingVaccine.status,
-      percentage:
-        matchingVaccine.status === "protected"
-          ? 100
-          : matchingVaccine.status === "due_soon"
-            ? 70
-            : 30,
-      brandName: matchingVaccine.name,
-    };
-  };
-
-  const optionalVaccinesWithRecords = vaccinations.filter(
-    (v) => selectedPet && isOptionalVaccine(v.name, selectedPet.species)
-  );
-
-  const getOptionalVaccineStatus = () => {
-    if (optionalVaccinesWithRecords.length === 0) return null;
-
-    const hasOverdue = optionalVaccinesWithRecords.some((v) => v.status === "overdue");
-    const hasDueSoon = optionalVaccinesWithRecords.some((v) => v.status === "due_soon");
-
-    const brandNames = optionalVaccinesWithRecords
-      .slice(0, 2)
-      .map((v) => v.name)
-      .join(", ");
-    const brandName =
-      optionalVaccinesWithRecords.length > 2
-        ? `${brandNames} +${optionalVaccinesWithRecords.length - 2} อื่น ๆ`
-        : brandNames;
-
-    if (hasOverdue) return { status: "overdue" as const, percentage: 30, brandName };
-    if (hasDueSoon) return { status: "due_soon" as const, percentage: 70, brandName };
-    return { status: "protected" as const, percentage: 100, brandName };
+  const handleShowFullHistory = (medicineName: string) => {
+    const logs = parasiteLogs.filter((l) => l.medicine_name === medicineName);
+    setBsMedicineName(medicineName);
+    setBsLogs(logs);
+    setBsOpen(true);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen-safe">
         <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-border px-4 py-4">
-          <h1 className="text-xl font-bold text-text-main">น้องของฉัน</h1>
-          <p className="text-xs text-text-muted">กำลังโหลด…</p>
+          <p className="text-xs text-text-muted">โปรไฟล์สัตว์เลี้ยง</p>
+          <h1 className="text-xl font-extrabold text-text-main">นายท่านของฉัน 🐾</h1>
         </header>
         <main className="px-4 py-4 max-w-md mx-auto space-y-4">
           <SkeletonCard lines={4} />
@@ -227,45 +272,33 @@ function PetsContent() {
 
   return (
     <div className="min-h-screen-safe">
-      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-border px-4 py-4">
-        <h1 className="text-xl font-bold text-text-main">น้องของฉัน</h1>
-        <p className="text-xs text-text-muted">สมุดพาสปอร์ตน้อง</p>
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-border px-5 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-text-subtle">โปรไฟล์สัตว์เลี้ยง</p>
+          <h1 className="text-xl font-extrabold text-text-main">
+            นายท่านของ<span className="text-primary">ฉัน</span> 🐾
+          </h1>
+        </div>
+        <Link
+          href="/owner"
+          className="w-[42px] h-[42px] rounded-full bg-pops-gradient p-[2px] shadow-glow flex-shrink-0"
+        >
+          <span className="w-full h-full rounded-full bg-surface-alt flex items-center justify-center text-text-muted text-sm">
+            👤
+          </span>
+        </Link>
       </header>
 
-      <main className="px-4 py-4 max-w-md mx-auto space-y-4">
-        <ConfirmDialog
-          open={showDeleteConfirm && !!selectedPet}
-          title={selectedPet ? `ลบ ${selectedPet.name}?` : ""}
-          description="การลบจะเอาข้อมูลน้องและประวัติทั้งหมดออกอย่างถาวร ไม่สามารถย้อนกลับได้"
-          confirmLabel="ลบถาวร"
-          cancelLabel="ยกเลิก"
-          variant="destructive"
-          onConfirm={handleDeletePet}
-          onCancel={() => setShowDeleteConfirm(false)}
-          loading={deleting}
-        />
-
+      <main className="px-0 py-4 max-w-md mx-auto space-y-3.5">
+        {/* Dialogs */}
         {showAddVaccine && selectedPet && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <button
-              type="button"
-              aria-label="ปิด"
-              tabIndex={-1}
-              onClick={() => setShowAddVaccine(false)}
-              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            />
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <button type="button" aria-label="ปิด" tabIndex={-1} onClick={() => setShowAddVaccine(false)} className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" />
             <div className="relative max-w-sm w-full">
               <AddVaccineForm
                 petId={selectedPet.id}
                 petSpecies={selectedPet.species}
-                onSuccess={() => {
-                  setShowAddVaccine(false);
-                  fetchPetDetails(selectedPet.id);
-                }}
+                onSuccess={() => { setShowAddVaccine(false); fetchPetDetails(selectedPet.id); }}
                 onCancel={() => setShowAddVaccine(false)}
               />
             </div>
@@ -273,170 +306,130 @@ function PetsContent() {
         )}
 
         {showAddParasiteLog && selectedPet && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <button
-              type="button"
-              aria-label="ปิด"
-              tabIndex={-1}
-              onClick={() => setShowAddParasiteLog(false)}
-              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            />
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <button type="button" aria-label="ปิด" tabIndex={-1} onClick={() => setShowAddParasiteLog(false)} className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" />
             <div className="relative max-w-sm w-full">
               <AddParasiteLogForm
                 petId={selectedPet.id}
                 petSpecies={selectedPet.species}
-                onSuccess={() => {
-                  setShowAddParasiteLog(false);
-                  fetchPetDetails(selectedPet.id);
-                }}
+                onSuccess={() => { setShowAddParasiteLog(false); fetchPetDetails(selectedPet.id); }}
                 onCancel={() => setShowAddParasiteLog(false)}
               />
             </div>
           </div>
         )}
 
+        {showPhotoCropper && photoToCrop && (
+          <ImageCropper
+            imageSrc={photoToCrop}
+            onCropComplete={handlePhotoUpload}
+            onCancel={() => { setShowPhotoCropper(false); setPhotoToCrop(null); }}
+            aspectRatio={1}
+            cropShape="rect"
+          />
+        )}
+
+        <PetIdCardModal pet={selectedPet ?? { id: "", name: "" }} open={showIdCard && !!selectedPet} onClose={() => setShowIdCard(false)} />
+
+        <ParasiteBottomSheet
+          open={bsOpen}
+          onClose={() => setBsOpen(false)}
+          medicineName={bsMedicineName}
+          logs={bsLogs}
+        />
+
         {showEditPet && selectedPet ? (
-          <EditPetForm
-            pet={selectedPet}
-            onSuccess={() => {
-              setShowEditPet(false);
-              fetchPets(true);
-            }}
-            onCancel={() => setShowEditPet(false)}
-            onDelete={() => {
-              setShowEditPet(false);
-              setSelectedPet(null);
-              fetchPets();
-            }}
-          />
+          <div className="px-4">
+            <EditPetForm
+              pet={selectedPet}
+              onSuccess={() => { setShowEditPet(false); fetchPets(true); }}
+              onCancel={() => setShowEditPet(false)}
+              onDelete={() => { setShowEditPet(false); setSelectedPet(null); fetchPets(); }}
+            />
+          </div>
         ) : showAddPet ? (
-          <CreatePetForm
-            onSuccess={() => {
-              setShowAddPet(false);
-              fetchPets();
-            }}
-            onCancel={() => setShowAddPet(false)}
-          />
+          <div className="px-4">
+            <CreatePetForm
+              onSuccess={() => { setShowAddPet(false); fetchPets(); }}
+              onCancel={() => setShowAddPet(false)}
+            />
+          </div>
         ) : pets.length === 0 ? (
-          <EmptyState
-            emoji="🐶"
-            title="ยังไม่มีน้องในสมุด"
-            description="เพิ่มน้องตัวแรกเพื่อเริ่มบันทึกประวัติสุขภาพ"
-            action={
-              <Button onClick={() => setShowAddPet(true)}>
-                <Plus className="w-4 h-4 mr-1" aria-hidden />
-                เพิ่มน้อง
-              </Button>
-            }
-          />
+          <div className="px-4">
+            <EmptyState
+              emoji="🐶"
+              title="ยังไม่มีน้องในสมุด"
+              description="เพิ่มน้องตัวแรกเพื่อเริ่มบันทึกประวัติสุขภาพ"
+              action={
+                <Button onClick={() => setShowAddPet(true)}>
+                  <Plus className="w-4 h-4 mr-1" aria-hidden />
+                  เพิ่มน้อง
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
-            <nav
-              aria-label="เลือกน้อง"
-              className={pets.length > 3 ? "-mx-4 px-4 overflow-x-auto hide-scrollbar" : ""}
-            >
-              <ul className="flex items-end gap-3 pb-1">
-                {pets.map((pet) => {
-                  const isActive = selectedPet?.id === pet.id;
-                  return (
-                    <li key={pet.id} className="flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleSelectPet(pet)}
-                        aria-pressed={isActive}
-                        aria-label={pet.name}
-                        className="flex flex-col items-center gap-1.5 touch-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl p-1"
-                      >
-                        <span
-                          className={`relative inline-block w-14 h-14 rounded-full ${
-                            isActive
-                              ? "bg-pops-gradient p-[3px] shadow-glow"
-                              : "bg-surface-alt p-[2px]"
-                          }`}
-                        >
-                          <span
-                            className={`block w-full h-full rounded-full overflow-hidden bg-surface ${
-                              !isActive ? "opacity-60" : ""
-                            }`}
-                          >
-                            {pet.photo_url ? (
-                              <Image
-                                src={pet.photo_url}
-                                alt=""
-                                width={56}
-                                height={56}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span
-                                className="flex items-center justify-center h-full text-xl"
-                                aria-hidden
-                              >
-                                🐕
-                              </span>
-                            )}
-                          </span>
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            isActive ? "bg-primary text-white" : "bg-surface-alt text-text-subtle"
-                          }`}
-                        >
-                          {pet.name.length > 8 ? pet.name.slice(0, 8) + "…" : pet.name}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-                <li className="flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPet(true)}
-                    aria-label="เพิ่มน้อง"
-                    className="flex flex-col items-center gap-1.5 touch-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-2xl p-1"
-                  >
-                    <span className="inline-flex w-14 h-14 rounded-full border-2 border-dashed border-border text-text-muted items-center justify-center">
-                      <Plus className="w-6 h-6" aria-hidden />
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-surface-alt text-text-subtle">
-                      เพิ่ม
-                    </span>
-                  </button>
-                </li>
-              </ul>
-            </nav>
+            {/* Pet Chip Selector */}
+            <div className="px-4">
+              <PetChipSelector
+                pets={pets}
+                selectedPetId={selectedPet?.id ?? null}
+                onSelect={handleSelectPet}
+              />
+            </div>
 
             {selectedPet && (
               <>
-                <PetProfileCard
+                {/* Zone 1: Identity */}
+                <PetHeroCard
                   pet={selectedPet}
-                  activePetReport={activePetReport}
-                  photos={petPhotos}
                   onEdit={() => setShowEditPet(true)}
-                  onReport={handleReport}
-                  onPetFound={handlePetFound}
-                  onGiveUp={handleGiveUp}
+                  onShowIdCard={() => setShowIdCard(true)}
+                />
+
+                {/* Zone 2: Urgent Actions */}
+                <UrgentActionsCard items={urgentItems} isMemorial={isMemorial} />
+
+                {/* Zone 3a: Weight */}
+                <WeightCard
+                  latestWeight={weightHistory.length > 0 ? weightHistory[0] : null}
+                  weightHistory={weightHistory}
+                  isMemorial={isMemorial}
+                />
+
+                {/* Zone 3b: Vaccines */}
+                <VaccineCard
+                  vaccinations={vaccinations}
+                  petSpecies={selectedPet.species || "dog"}
+                  isMemorial={isMemorial}
+                  onAddVaccine={() => setShowAddVaccine(true)}
+                />
+
+                {/* Zone 3c: Parasites */}
+                <ParasiteCard
+                  parasiteLogs={parasiteLogs}
+                  isMemorial={isMemorial}
+                  onAddLog={() => setShowAddParasiteLog(true)}
+                  onShowFullHistory={handleShowFullHistory}
+                />
+
+                {/* Zone 4: Health Records */}
+                <HealthRecordsCard
+                  healthEvents={healthEvents}
+                  isMemorial={isMemorial}
+                />
+
+                {/* Zone 6: Memories */}
+                <MemoriesZone
+                  petId={selectedPet.id}
+                  diaryEntries={diaryEntries}
+                  photos={petPhotos}
+                  isMemorial={isMemorial}
                   onAddPhoto={() => {
                     document.getElementById("photo-upload-input")?.click();
                   }}
-                  onDeletePhoto={async (photoId) => {
-                    try {
-                      await apiFetch("/api/pet-photos", {
-                        method: "DELETE",
-                        body: JSON.stringify({ photoId }),
-                      });
-                      if (selectedPet) {
-                        const { data } = await getPetPhotos(selectedPet.id);
-                        setPetPhotos(data || []);
-                      }
-                    } catch (e) {
-                      console.error("Error deleting photo:", e);
-                    }
-                  }}
+                  onDeletePhoto={handleDeletePhoto}
                 />
 
                 <input
@@ -454,195 +447,21 @@ function PetsContent() {
                   }}
                 />
 
-                {showPhotoCropper && photoToCrop && (
-                  <ImageCropper
-                    imageSrc={photoToCrop}
-                    onCropComplete={async (croppedBlob) => {
-                      if (!selectedPet) return;
-                      setUploadingPhoto(true);
-                      try {
-                        const file = new File([croppedBlob], "gallery-photo.jpg", {
-                          type: "image/jpeg",
-                        });
-                        const fileResult = imageFileSchema.safeParse({
-                          size: file.size,
-                          type: file.type,
-                        });
-                        if (!fileResult.success) {
-                          console.error(fileResult.error.issues[0].message);
-                          setUploadingPhoto(false);
-                          return;
-                        }
-                        const photoId = `${Date.now()}`;
-                        const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(
-                          file,
-                          selectedPet.id,
-                          photoId
-                        );
-
-                        if (uploadError) {
-                          console.error("Storage upload error:", uploadError);
-                          return;
-                        }
-
-                        if (photoUrl) {
-                          const currentCount = petPhotos.length;
-                          await apiFetch("/api/pet-photos", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              pet_id: selectedPet.id,
-                              photo_url: photoUrl,
-                              display_order: currentCount,
-                            }),
-                          });
-
-                          const { data } = await getPetPhotos(selectedPet.id);
-                          setPetPhotos(data || []);
-                        }
-                      } catch (err) {
-                        console.error("Photo upload failed:", err);
-                      } finally {
-                        setUploadingPhoto(false);
-                        setShowPhotoCropper(false);
-                        setPhotoToCrop(null);
-                      }
-                    }}
-                    onCancel={() => {
-                      setShowPhotoCropper(false);
-                      setPhotoToCrop(null);
-                    }}
-                    aspectRatio={1}
-                    cropShape="rect"
-                  />
-                )}
-
-                <section
-                  aria-label="สถานะวัคซีน"
-                  className="bg-surface border border-border rounded-[24px] shadow-soft p-5"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-text-main flex items-center gap-2">
-                      <Syringe className="w-5 h-5 text-primary" aria-hidden />
-                      สถานะวัคซีน
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddVaccine(true)}
-                      className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-bold transition-colors touch-target px-2 -mx-2"
-                    >
-                      <Plus className="w-4 h-4" aria-hidden />
-                      เพิ่ม
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {coreVaccineTypes.map((vaccineType) => (
-                      <VaccineStatusBar
-                        key={vaccineType.id}
-                        name={vaccineType.name}
-                        {...getCoreVaccineStatus(vaccineType.id)}
-                      />
-                    ))}
-                    {optionalVaccinesWithRecords.length > 0 && (
-                      <VaccineStatusBar name="อื่น ๆ" {...getOptionalVaccineStatus()!} />
-                    )}
-                  </div>
-                </section>
-
-                <section
-                  aria-label="ยาป้องกันพยาธิ"
-                  className="bg-surface border border-border rounded-[24px] shadow-soft p-5"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-text-main flex items-center gap-2">
-                      <Pill className="w-5 h-5 text-primary" aria-hidden />
-                      ยาป้องกันพยาธิ
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddParasiteLog(true)}
-                      className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-bold transition-colors touch-target px-2 -mx-2"
-                    >
-                      <Plus className="w-4 h-4" aria-hidden />
-                      บันทึก
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 flex-shrink-0">
-                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80" aria-hidden>
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="35"
-                          fill="none"
-                          stroke="var(--border)"
-                          strokeWidth="6"
-                        />
-                        <circle
-                          cx="40"
-                          cy="40"
-                          r="35"
-                          fill="none"
-                          stroke="url(#parasite-gradient)"
-                          strokeWidth="6"
-                          strokeDasharray={`${((daysLeft || 0) / 30) * 220} 220`}
-                          strokeLinecap="round"
-                        />
-                        <defs>
-                          <linearGradient id="parasite-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="var(--primary)" />
-                            <stop offset="100%" stopColor="var(--primary-light)" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold text-text-main">{daysLeft ?? "–"}</span>
-                        <span className="text-xs text-text-muted">วัน</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-text-main truncate">
-                        {parasiteLog?.medicine_name || "นับถอยหลังครบกำหนด"}
-                      </p>
-                      <p className="text-sm text-text-muted leading-relaxed">
-                        {parasiteLog?.administered_date && (
-                          <span className="block">
-                            บันทึก: {formatDate(parasiteLog.administered_date)}
-                          </span>
-                        )}
-                        {parasiteLog?.next_due_date
-                          ? `ครั้งถัดไป: ${formatDate(parasiteLog.next_due_date)}`
-                          : "ยังไม่มีการบันทึก"}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <section
-                  aria-label="แดชบอร์ดสุขภาพ"
-                  className="bg-surface border border-border rounded-[24px] shadow-soft p-5"
-                >
-                  <h3 className="font-bold text-text-main mb-3 flex items-center gap-2">
-                    <Stethoscope className="w-5 h-5 text-primary" aria-hidden />
-                    แดชบอร์ดสุขภาพ
-                  </h3>
-                  <div className="text-center py-6 bg-gradient-to-br from-primary/5 to-primary-light/5 rounded-2xl">
-                    <Calendar className="w-10 h-10 text-primary/50 mx-auto mb-2" aria-hidden />
-                    <p className="text-sm text-text-muted leading-relaxed">
-                      เร็ว ๆ นี้: เชื่อมต่อคลินิกเพื่อบันทึก
-                      <br />
-                      ประวัติรักษาและนัดหมายอัตโนมัติ
-                    </p>
-                  </div>
-                </section>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="w-full py-3 mt-2 text-danger text-sm font-semibold hover:bg-danger-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
-                >
-                  <Trash2 className="w-4 h-4" aria-hidden />
-                  ลบประวัติน้อง
-                </button>
+                {/* Zone 7: Utility */}
+                <div className="flex gap-2.5 px-4">
+                  <Link
+                    href={`/pets/${selectedPet.id}/passport`}
+                    className="flex-1 py-3 rounded-full text-sm font-semibold text-center flex items-center justify-center gap-1.5 bg-surface border-[1.5px] border-border text-text-muted min-h-[44px]"
+                  >
+                    📖 พาสปอร์ต
+                  </Link>
+                  <button
+                    type="button"
+                    className="flex-1 py-3 rounded-full text-sm font-semibold text-center flex items-center justify-center gap-1.5 bg-surface border-[1.5px] border-border text-text-muted min-h-[44px]"
+                  >
+                    🔗 แชร์
+                  </button>
+                </div>
               </>
             )}
           </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { TriangleAlert, Syringe, Pill, Scale, User } from "lucide-react";
 import Link from "next/link";
@@ -163,6 +164,7 @@ interface UrgentItem {
 
 export default function DiaryPage() {
   const now = new Date();
+  const searchParams = useSearchParams();
 
   const [pets, setPets] = useState<UserPet[]>([]);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
@@ -182,7 +184,7 @@ export default function DiaryPage() {
     }
   }, []);
 
-  // Fetch pets list
+  // Fetch pets list, then apply pet_id URL param if present
   useEffect(() => {
     async function loadPets() {
       if (!authHeader.current) return;
@@ -193,11 +195,17 @@ export default function DiaryPage() {
         if (!res.ok) return;
         const data: UserPet[] = await res.json();
         setPets(data);
+        const urlPetId = searchParams.get("pet_id");
+        if (urlPetId && data.some((p) => p.id === urlPetId)) {
+          setSelectedPetId(urlPetId);
+        }
       } catch {
         // silently ignore — pets list failing doesn't block timeline
       }
     }
     loadPets();
+  // searchParams is stable across renders; omit to avoid re-fetching on unrelated param changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch urgent items for the selected pet

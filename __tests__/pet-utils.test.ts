@@ -21,6 +21,8 @@ function makePet(overrides: Partial<Pet> = {}): Pet {
     photo_url: null,
     special_notes: null,
     pawrent_id: "PW-PET1TEST",
+    status: "active",
+    memorial_date: null,
     created_at: "2023-01-01T00:00:00Z",
     ...overrides,
   };

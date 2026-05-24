@@ -41,6 +41,8 @@ const mockPet: Pet = {
   special_notes: "Loves belly rubs",
   photo_url: "https://example.com/luna.jpg",
   pawrent_id: "PW-PET1TEST",
+  status: "active",
+  memorial_date: null,
   created_at: "2024-01-01",
 };
 

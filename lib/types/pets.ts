@@ -15,6 +15,8 @@ export interface Pet {
   photo_url: string | null;
   special_notes: string | null;
   pawrent_id: string;
+  status: 'active' | 'memorial';
+  memorial_date: string | null;
   created_at: string;
 }
 

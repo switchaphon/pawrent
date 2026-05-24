@@ -12,6 +12,8 @@ export const petSchema = z.object({
   neutered: z.boolean().nullable().default(false),
   special_notes: z.string().max(1000).nullable(),
   photo_url: z.string().url().max(2048).nullable().optional(),
+  status: z.enum(['active', 'memorial']).default('active'),
+  memorial_date: z.string().nullable().optional(),
 });
 
 export const vaccinationSchema = z.object({

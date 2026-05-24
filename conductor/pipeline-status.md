@@ -8,7 +8,7 @@ On session start, check this file to resume interrupted pipelines.
 | PRP    | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
 | ------ | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
 | PRP-16 | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
-| — | — | — | — | — | — |
+| v2-PetProfile | review | G5 | awaiting-human | feature/v2-pet-profile-6zone | 2026-05-24 |
 
 ### Morning continuation (Option A — stacked PRs)
 
