@@ -16,7 +16,14 @@ async function getAuthUser(request: NextRequest) {
 }
 
 const enrichSchema = z.object({
-  event_type: z.enum(["grooming", "vet_visit", "vaccination", "parasite_log", "weight_log", "milestone"]),
+  event_type: z.enum([
+    "grooming",
+    "vet_visit",
+    "vaccination",
+    "parasite_log",
+    "weight_log",
+    "milestone",
+  ]),
   event_id: z.string().uuid(),
   photo_urls: z.array(z.string().url()).max(10).optional(),
   caption: z.string().max(2000).optional(),

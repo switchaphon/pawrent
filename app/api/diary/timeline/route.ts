@@ -76,12 +76,10 @@ export async function GET(request: NextRequest) {
 
   // Parse type filter
   const requestedTypes = typesParam
-    ? (typesParam
+    ? typesParam
         .split(",")
         .map((t) => t.trim())
-        .filter((t): t is TimelineType =>
-          (ALL_TYPES as readonly string[]).includes(t)
-        ))
+        .filter((t): t is TimelineType => (ALL_TYPES as readonly string[]).includes(t))
     : ([...ALL_TYPES] as TimelineType[]);
 
   // Decode cursor
@@ -89,10 +87,7 @@ export async function GET(request: NextRequest) {
   const cursorTimestamp = cursorPayload?.created_at ?? null;
 
   // Fetch user's pets (scoped to optional pet_id filter)
-  let petQuery = supabase
-    .from("pets")
-    .select("id, name")
-    .eq("owner_id", user.id);
+  let petQuery = supabase.from("pets").select("id, name").eq("owner_id", user.id);
   if (pet_id) petQuery = petQuery.eq("id", pet_id);
 
   const { data: pets, error: petsError } = await petQuery;
@@ -270,8 +265,7 @@ export async function GET(request: NextRequest) {
   const pageItems = items.slice(0, limit);
   const hasMore = items.length > limit;
   const lastItem = pageItems[pageItems.length - 1];
-  const nextCursor =
-    hasMore && lastItem ? encodeCursor(lastItem.timestamp, lastItem.id) : null;
+  const nextCursor = hasMore && lastItem ? encodeCursor(lastItem.timestamp, lastItem.id) : null;
 
   return NextResponse.json({ items: pageItems, next_cursor: nextCursor });
 }

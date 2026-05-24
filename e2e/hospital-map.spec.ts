@@ -52,5 +52,4 @@ test.describe("Hospital map page", () => {
     await marker.click();
     await expect(page.locator(".leaflet-popup")).toBeVisible({ timeout: 5000 });
   });
-
 });

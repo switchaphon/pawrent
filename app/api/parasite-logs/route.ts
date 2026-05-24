@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
   if (!pet_id) return NextResponse.json({ error: "pet_id is required" }, { status: 400 });
 
   const uuidResult = z.string().uuid().safeParse(pet_id);
-  if (!uuidResult.success) return NextResponse.json({ error: "pet_id must be a valid UUID" }, { status: 400 });
+  if (!uuidResult.success)
+    return NextResponse.json({ error: "pet_id must be a valid UUID" }, { status: 400 });
 
   // Verify the pet belongs to the authenticated user
   const { data: pet } = await auth.supabase

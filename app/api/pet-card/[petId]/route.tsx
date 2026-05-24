@@ -213,13 +213,7 @@ export async function GET(
           </div>
 
           {/* QR code */}
-          <img
-            src={qrUrl}
-            alt="QR"
-            width={96}
-            height={96}
-            style={{ borderRadius: "8px" }}
-          />
+          <img src={qrUrl} alt="QR" width={96} height={96} style={{ borderRadius: "8px" }} />
         </div>
 
         {/* Right panel */}
@@ -366,7 +360,10 @@ export async function GET(
 
   // Fetch completion to show สมุดพก badge
   const [wCount, vCount, pCount, dCount] = await Promise.all([
-    supabase.from("pet_weight_logs").select("id", { count: "exact", head: true }).eq("pet_id", petId),
+    supabase
+      .from("pet_weight_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("pet_id", petId),
     supabase.from("vaccinations").select("id", { count: "exact", head: true }).eq("pet_id", petId),
     supabase.from("parasite_logs").select("id", { count: "exact", head: true }).eq("pet_id", petId),
     supabase.from("diary_entries").select("id", { count: "exact", head: true }).eq("pet_id", petId),
@@ -431,7 +428,15 @@ export async function GET(
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
           {/* Owner */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "10px", color: "#B8730A", fontWeight: 700, letterSpacing: "1px", display: "flex" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#B8730A",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                display: "flex",
+              }}
+            >
               เจ้าของ
             </div>
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}>
@@ -446,23 +451,49 @@ export async function GET(
 
           {/* Microchip */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "10px", color: "#B8730A", fontWeight: 700, letterSpacing: "1px", display: "flex" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#B8730A",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                display: "flex",
+              }}
+            >
               ไมโครชิป
             </div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "#2E2A2E", fontFamily: "monospace", display: "flex" }}>
+            <div
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#2E2A2E",
+                fontFamily: "monospace",
+                display: "flex",
+              }}
+            >
               {pet.microchip_number ?? "—"}
             </div>
           </div>
 
           {/* Weight */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "10px", color: "#B8730A", fontWeight: 700, letterSpacing: "1px", display: "flex" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#B8730A",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                display: "flex",
+              }}
+            >
               น้ำหนักล่าสุด
             </div>
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}>
               {latestWeight ? `${latestWeight.weight_kg} kg` : "—"}
               {latestWeight?.recorded_at && (
-                <span style={{ fontSize: "11px", color: "#6B6560", marginLeft: "8px", display: "flex" }}>
+                <span
+                  style={{ fontSize: "11px", color: "#6B6560", marginLeft: "8px", display: "flex" }}
+                >
                   ({latestWeight.recorded_at.slice(0, 10)})
                 </span>
               )}
@@ -471,7 +502,15 @@ export async function GET(
 
           {/* Parasite */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <div style={{ fontSize: "10px", color: "#B8730A", fontWeight: 700, letterSpacing: "1px", display: "flex" }}>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#B8730A",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                display: "flex",
+              }}
+            >
               ยากำจัดปรสิตล่าสุด
             </div>
             <div style={{ fontSize: "13px", fontWeight: 600, color: "#2E2A2E", display: "flex" }}>
@@ -484,11 +523,21 @@ export async function GET(
 
         {/* Right column — Vaccines */}
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "260px" }}>
-          <div style={{ fontSize: "10px", color: "#B8730A", fontWeight: 700, letterSpacing: "1px", display: "flex" }}>
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#B8730A",
+              fontWeight: 700,
+              letterSpacing: "1px",
+              display: "flex",
+            }}
+          >
             วัคซีน
           </div>
           {vaccines.length === 0 ? (
-            <div style={{ fontSize: "13px", color: "#6B6560", display: "flex" }}>ยังไม่มีข้อมูล</div>
+            <div style={{ fontSize: "13px", color: "#6B6560", display: "flex" }}>
+              ยังไม่มีข้อมูล
+            </div>
           ) : (
             vaccines.map((v, i) => (
               <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -501,14 +550,16 @@ export async function GET(
                       v.status === "protected"
                         ? "#4C6B3C"
                         : v.status === "due_soon"
-                        ? "#B8730A"
-                        : "#D32F2F",
+                          ? "#B8730A"
+                          : "#D32F2F",
                     flexShrink: 0,
                     display: "flex",
                   }}
                 />
                 <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}>
+                  <span
+                    style={{ fontSize: "12px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}
+                  >
                     {v.name}
                   </span>
                   {v.last_date && (
@@ -536,7 +587,9 @@ export async function GET(
         <div style={{ fontSize: "10px", color: "#6B6560", display: "flex" }}>
           Pawrent · Part of POPS
         </div>
-        <div style={{ fontSize: "10px", color: "#6B6560", fontFamily: "monospace", display: "flex" }}>
+        <div
+          style={{ fontSize: "10px", color: "#6B6560", fontFamily: "monospace", display: "flex" }}
+        >
           {pet.pawrent_id}
         </div>
       </div>

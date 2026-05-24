@@ -90,9 +90,7 @@ function MedicineGroup({
           aria-label={`${displayDays} วัน`}
         >
           <span className="text-[14px] font-extrabold leading-none">{displayDays}</span>
-          <span className="text-[7px] font-semibold uppercase tracking-[0.3px] mt-[1px]">
-            Days
-          </span>
+          <span className="text-[7px] font-semibold uppercase tracking-[0.3px] mt-[1px]">Days</span>
         </div>
 
         {/* Body */}
@@ -106,10 +104,7 @@ function MedicineGroup({
         </div>
 
         {/* Status dot */}
-        <div
-          className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_COLORS[status]}`}
-          aria-hidden
-        />
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_COLORS[status]}`} aria-hidden />
       </div>
 
       {/* Expand chevron hint */}
@@ -141,7 +136,9 @@ function MedicineGroup({
               <span className="text-[11px] font-semibold text-text-main">
                 {formatThaiDate(log.administered_date)}
               </span>
-              <span className="text-[11px] text-text-muted">{log.medicine_name ?? medicineName}</span>
+              <span className="text-[11px] text-text-muted">
+                {log.medicine_name ?? medicineName}
+              </span>
             </div>
           ))}
           {hasMore && (

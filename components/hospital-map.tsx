@@ -121,10 +121,7 @@ function HospitalMarker({ hospital }: { hospital: Hospital }) {
                 className="bg-primary hover:bg-primary/90 h-6 text-[10px] px-3 rounded-full shadow-soft"
                 asChild
               >
-                <a
-                  href={`tel:${hospital.phone}`}
-                  className="flex items-center gap-1 text-surface"
-                >
+                <a href={`tel:${hospital.phone}`} className="flex items-center gap-1 text-surface">
                   <Phone className="w-2.5 h-2.5" />
                   <span>Call</span>
                 </a>

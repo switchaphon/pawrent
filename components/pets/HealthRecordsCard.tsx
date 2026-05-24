@@ -13,7 +13,12 @@ type BadgeVariant = "ok" | "warn" | "danger";
 
 const EVENT_TYPE_CONFIG: Record<
   HealthEvent["event_type"],
-  { iconClass: string; icon: "stethoscope" | "alert"; badgeVariant: BadgeVariant; badgeLabel: string }
+  {
+    iconClass: string;
+    icon: "stethoscope" | "alert";
+    badgeVariant: BadgeVariant;
+    badgeLabel: string;
+  }
 > = {
   vet_visit: {
     iconClass: "bg-info-bg text-info",
@@ -63,7 +68,10 @@ function formatThaiDate(dateStr: string): string {
   });
 }
 
-export function HealthRecordsCard({ healthEvents, isMemorial: _isMemorial }: HealthRecordsCardProps) {
+export function HealthRecordsCard({
+  healthEvents,
+  isMemorial: _isMemorial,
+}: HealthRecordsCardProps) {
   const [open, setOpen] = useState(healthEvents.length > 0);
 
   const toggle = useCallback(() => setOpen((v) => !v), []);

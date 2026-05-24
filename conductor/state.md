@@ -2,22 +2,22 @@
 
 ## Active PRPs
 
-| PRP      | Branch                                     | Status   | Last Updated |
-| -------- | ------------------------------------------ | -------- | ------------ |
-| PRP-01   | feature/prp-01-line-liff-auth              | complete | 2026-04-10   |
-| PRP-01c  | feature/prp-01c-liff-email-scope           | complete | 2026-04-11   |
-| PRP-02   | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
-| PRP-03   | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
-| PRP-03.1 | feature/prp-03.1-rename-sos-to-pet-reports | complete | 2026-04-13   |
-| PRP-04   | feature/prp-04-lost-pet-reporting          | complete | 2026-04-13   |
-| PRP-04.1 | feature/prp-04.1-poster-share-card         | merged   | 2026-04-20   |
-| PRP-04.2 | feature/prp-04.2-voice-recording           | merged   | 2026-04-20   |
-| PRP-05   | feature/prp-05-found-pet-reporting         | merged   | 2026-04-20   |
-| PRP-06   | feature/prp-06-line-push-alerts            | merged   | 2026-04-20   |
-| PRP-12   | feature/prp-12-pet-health-passport         | merged   | 2026-04-20   |
-| Phase1.5 | feature/prp-16-e2e-docs                    | complete | 2026-05-18   |
-| v2-Diary | feature/v2-phase2ab                        | complete | 2026-05-18   |
-| v2-IDCard| feature/v2-phase2ab                        | complete | 2026-05-18   |
+| PRP       | Branch                                     | Status   | Last Updated |
+| --------- | ------------------------------------------ | -------- | ------------ |
+| PRP-01    | feature/prp-01-line-liff-auth              | complete | 2026-04-10   |
+| PRP-01c   | feature/prp-01c-liff-email-scope           | complete | 2026-04-11   |
+| PRP-02    | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
+| PRP-03    | feature/prp-02-03-postgis-richmenu         | complete | 2026-04-12   |
+| PRP-03.1  | feature/prp-03.1-rename-sos-to-pet-reports | complete | 2026-04-13   |
+| PRP-04    | feature/prp-04-lost-pet-reporting          | complete | 2026-04-13   |
+| PRP-04.1  | feature/prp-04.1-poster-share-card         | merged   | 2026-04-20   |
+| PRP-04.2  | feature/prp-04.2-voice-recording           | merged   | 2026-04-20   |
+| PRP-05    | feature/prp-05-found-pet-reporting         | merged   | 2026-04-20   |
+| PRP-06    | feature/prp-06-line-push-alerts            | merged   | 2026-04-20   |
+| PRP-12    | feature/prp-12-pet-health-passport         | merged   | 2026-04-20   |
+| Phase1.5  | feature/prp-16-e2e-docs                    | complete | 2026-05-18   |
+| v2-Diary  | feature/v2-phase2ab                        | complete | 2026-05-18   |
+| v2-IDCard | feature/v2-phase2ab                        | complete | 2026-05-18   |
 
 ## Blocked PRPs
 

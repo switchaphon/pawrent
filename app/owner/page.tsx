@@ -178,15 +178,7 @@ function SettingsRow({
 }
 
 /** Circular progress ring for per-pet completion (visual only — parent button handles interaction) */
-function CompletionRing({
-  pet,
-  score,
-  max,
-}: {
-  pet: Pet;
-  score: number;
-  max: number;
-}) {
+function CompletionRing({ pet, score, max }: { pet: Pet; score: number; max: number }) {
   const pct = Math.round((score / max) * 100);
   const r = 20;
   const circumference = 2 * Math.PI * r;
@@ -331,13 +323,12 @@ function CompletionCard({ pets }: { pets: Pet[] }) {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-sm font-extrabold text-text-main">สมุดพก 📒</p>
-              <p className="text-[10px] text-text-muted">บันทึกสุขภาพน้อง · ครบ = ปลดล็อคบัตรประจำตัว</p>
+              <p className="text-[10px] text-text-muted">
+                บันทึกสุขภาพน้อง · ครบ = ปลดล็อคบัตรประจำตัว
+              </p>
             </div>
             <span
-              className={cn(
-                "rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0",
-                levelColor
-              )}
+              className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0", levelColor)}
             >
               {level}
             </span>
@@ -367,11 +358,7 @@ function CompletionCard({ pets }: { pets: Pet[] }) {
                 className="flex flex-col items-center gap-1 min-w-[64px] focus:outline-none"
                 aria-label={`บัตรประจำตัว ${pet.name}`}
               >
-                <CompletionRing
-                  pet={pet}
-                  score={scores[i]}
-                  max={BASE_COMPLETION_MAX}
-                />
+                <CompletionRing pet={pet} score={scores[i]} max={BASE_COMPLETION_MAX} />
               </button>
             ))}
           </div>

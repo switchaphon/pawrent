@@ -102,17 +102,12 @@ export function ConfirmDialog({
           </div>
         )}
 
-        <h2
-          id="confirm-dialog-title"
-          className="text-[15px] font-extrabold text-text-main mb-2"
-        >
+        <h2 id="confirm-dialog-title" className="text-[15px] font-extrabold text-text-main mb-2">
           {title}
         </h2>
 
         {description && (
-          <p className="text-[11px] text-text-muted leading-relaxed mb-4">
-            {description}
-          </p>
+          <p className="text-[11px] text-text-muted leading-relaxed mb-4">{description}</p>
         )}
 
         {/* Buttons */}

@@ -16,7 +16,14 @@ type StatusKey = "protected" | "due_soon" | "overdue";
 
 const STATUS_CONFIG: Record<
   StatusKey,
-  { iconClass: string; textClass: string; barClass: string; fillClass: string; label: string; progressPct: number }
+  {
+    iconClass: string;
+    textClass: string;
+    barClass: string;
+    fillClass: string;
+    label: string;
+    progressPct: number;
+  }
 > = {
   protected: {
     iconClass: "bg-success-bg text-success",
@@ -77,13 +84,10 @@ function VaxRow({ vax, allForType, isExpanded, onToggle }: VaxRowProps) {
   const doseLabel = `เข็มที่ ${totalDoses}/${totalDoses}`;
   const activeDose = allForType[currentIdx];
 
-  const handlePrev = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setCurrentIdx((i) => Math.max(0, i - 1));
-    },
-    []
-  );
+  const handlePrev = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIdx((i) => Math.max(0, i - 1));
+  }, []);
 
   const handleNext = useCallback(
     (e: React.MouseEvent) => {

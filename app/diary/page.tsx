@@ -12,13 +12,33 @@ import type { TimelineItem } from "@/app/api/diary/timeline/route";
 // ─── Thai date helpers ────────────────────────────────────────────────────────
 
 const TH_MONTHS_SHORT = [
-  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+  "ม.ค.",
+  "ก.พ.",
+  "มี.ค.",
+  "เม.ย.",
+  "พ.ค.",
+  "มิ.ย.",
+  "ก.ค.",
+  "ส.ค.",
+  "ก.ย.",
+  "ต.ค.",
+  "พ.ย.",
+  "ธ.ค.",
 ];
 
 const TH_MONTHS_FULL = [
-  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
 ];
 
 function toLocalDate(ts: string): Date {
@@ -75,34 +95,64 @@ function getGroupLabel(key: string, now: Date, sampleDate: Date): string {
 
 function typeIcon(type: TimelineItem["type"]): React.ReactNode {
   switch (type) {
-    case "diary_entry": return <span className="text-[16px]" aria-hidden>📸</span>;
-    case "vaccination": return <Syringe size={16} className="text-success" />;
-    case "parasite_log": return <Pill size={16} className="text-info" />;
-    case "weight_log": return <Scale size={16} className="text-primary" />;
-    case "health_event": return <span className="text-[16px]" aria-hidden>🏥</span>;
-    case "milestone": return <span className="text-[16px]" aria-hidden>🏆</span>;
+    case "diary_entry":
+      return (
+        <span className="text-[16px]" aria-hidden>
+          📸
+        </span>
+      );
+    case "vaccination":
+      return <Syringe size={16} className="text-success" />;
+    case "parasite_log":
+      return <Pill size={16} className="text-info" />;
+    case "weight_log":
+      return <Scale size={16} className="text-primary" />;
+    case "health_event":
+      return (
+        <span className="text-[16px]" aria-hidden>
+          🏥
+        </span>
+      );
+    case "milestone":
+      return (
+        <span className="text-[16px]" aria-hidden>
+          🏆
+        </span>
+      );
   }
 }
 
 function typeIconBg(type: TimelineItem["type"]): string {
   switch (type) {
-    case "diary_entry": return "bg-[rgba(255,130,99,0.08)]";
-    case "vaccination": return "bg-success-bg";
-    case "parasite_log": return "bg-info-bg";
-    case "weight_log": return "bg-[rgba(255,130,99,0.08)]";
-    case "health_event": return "bg-[rgba(255,203,107,0.15)]";
-    case "milestone": return "bg-warning-bg";
+    case "diary_entry":
+      return "bg-[rgba(255,130,99,0.08)]";
+    case "vaccination":
+      return "bg-success-bg";
+    case "parasite_log":
+      return "bg-info-bg";
+    case "weight_log":
+      return "bg-[rgba(255,130,99,0.08)]";
+    case "health_event":
+      return "bg-[rgba(255,203,107,0.15)]";
+    case "milestone":
+      return "bg-warning-bg";
   }
 }
 
 function typeLabel(type: TimelineItem["type"]): string {
   switch (type) {
-    case "diary_entry": return "ไดอารี่";
-    case "vaccination": return "วัคซีน";
-    case "parasite_log": return "ยากำจัดปรสิต";
-    case "weight_log": return "ชั่งน้ำหนัก";
-    case "health_event": return "สุขภาพ";
-    case "milestone": return "ไมลสโตน";
+    case "diary_entry":
+      return "ไดอารี่";
+    case "vaccination":
+      return "วัคซีน";
+    case "parasite_log":
+      return "ยากำจัดปรสิต";
+    case "weight_log":
+      return "ชั่งน้ำหนัก";
+    case "health_event":
+      return "สุขภาพ";
+    case "milestone":
+      return "ไมลสโตน";
   }
 }
 
@@ -204,8 +254,8 @@ export default function DiaryPage() {
       }
     }
     loadPets();
-  // searchParams is stable across renders; omit to avoid re-fetching on unrelated param changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // searchParams is stable across renders; omit to avoid re-fetching on unrelated param changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch urgent items for the selected pet
@@ -307,7 +357,9 @@ export default function DiaryPage() {
     );
     const el = sentinelRef.current;
     if (el) observer.observe(el);
-    return () => { if (el) observer.unobserve(el); };
+    return () => {
+      if (el) observer.unobserve(el);
+    };
   }, [nextCursor, loadingMore, fetchTimeline]);
 
   // Group timeline
@@ -406,7 +458,9 @@ export default function DiaryPage() {
               >
                 <div
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                    item.variant === "danger" ? "bg-danger-bg text-danger" : "bg-warning-bg text-warning"
+                    item.variant === "danger"
+                      ? "bg-danger-bg text-danger"
+                      : "bg-warning-bg text-warning"
                   }`}
                 >
                   {item.icon}
@@ -421,9 +475,7 @@ export default function DiaryPage() {
                     {item.detail}
                   </p>
                 </div>
-                <button
-                  className="flex min-h-9 flex-shrink-0 items-center gap-1 rounded-full bg-gradient-to-br from-primary to-primary-light px-3.5 py-2 text-[11px] font-bold text-white shadow-[0_4px_14px_rgba(255,130,99,0.3)]"
-                >
+                <button className="flex min-h-9 flex-shrink-0 items-center gap-1 rounded-full bg-gradient-to-br from-primary to-primary-light px-3.5 py-2 text-[11px] font-bold text-white shadow-[0_4px_14px_rgba(255,130,99,0.3)]">
                   ทำตอนนี้
                 </button>
               </div>
@@ -489,8 +541,7 @@ function TimelineCard({ item, now }: { item: TimelineItem; now: Date }) {
 
   // Photo layout: diary → full-width 160px; health enriched → 80px thumbnail
   const hasFullPhoto = isDiaryEntry && item.photo_urls && item.photo_urls.length > 0;
-  const hasThumbnail =
-    isHealthEvent && item.photo_urls && item.photo_urls.length > 0;
+  const hasThumbnail = isHealthEvent && item.photo_urls && item.photo_urls.length > 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-soft">

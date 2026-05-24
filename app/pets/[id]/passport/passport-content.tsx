@@ -93,14 +93,40 @@ function calculateAge(dateOfBirth: string): string {
 function formatThaiDate(dateStr: string | null): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
-  const thMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const thMonths = [
+    "ม.ค.",
+    "ก.พ.",
+    "มี.ค.",
+    "เม.ย.",
+    "พ.ค.",
+    "มิ.ย.",
+    "ก.ค.",
+    "ส.ค.",
+    "ก.ย.",
+    "ต.ค.",
+    "พ.ย.",
+    "ธ.ค.",
+  ];
   return `${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
 
 function formatThaiDateShort(dateStr: string | null): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
-  const thMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const thMonths = [
+    "ม.ค.",
+    "ก.พ.",
+    "มี.ค.",
+    "เม.ย.",
+    "พ.ค.",
+    "มิ.ย.",
+    "ก.ค.",
+    "ส.ค.",
+    "ก.ย.",
+    "ต.ค.",
+    "พ.ย.",
+    "ธ.ค.",
+  ];
   return `${d.getDate()} ${thMonths[d.getMonth()]}`;
 }
 
@@ -238,10 +264,9 @@ export function PassportContent({
   const age = pet.date_of_birth ? calculateAge(pet.date_of_birth) : null;
   const latestWeight = weightLogs[0] ?? null;
   const now = new Date();
-  const weightIsStale =
-    latestWeight
-      ? Math.abs(daysBetween(latestWeight.measured_at, now)) > 30
-      : false;
+  const weightIsStale = latestWeight
+    ? Math.abs(daysBetween(latestWeight.measured_at, now)) > 30
+    : false;
 
   // Accordion / collapse state
   const [basicOpen, setBasicOpen] = useState(false);
@@ -290,18 +315,14 @@ export function PassportContent({
     overdue: "เลยกำหนด",
   };
 
-  const bsParasite = bsParasiteId
-    ? parasiteLogs.filter((p) => p.id === bsParasiteId)
-    : [];
+  const bsParasite = bsParasiteId ? parasiteLogs.filter((p) => p.id === bsParasiteId) : [];
   const bsParasiteName = bsParasiteId
-    ? parasiteLogs.find((p) => p.id === bsParasiteId)?.medicine_name ?? "ยา"
+    ? (parasiteLogs.find((p) => p.id === bsParasiteId)?.medicine_name ?? "ยา")
     : "";
 
   // Weight chart bars (recent 7 readings, oldest first)
   const chartLogs = [...weightLogs].reverse().slice(-7);
-  const chartMax = chartLogs.length
-    ? Math.max(...chartLogs.map((l) => l.weight_kg))
-    : 1;
+  const chartMax = chartLogs.length ? Math.max(...chartLogs.map((l) => l.weight_kg)) : 1;
 
   return (
     <div className="min-h-dvh pb-10">
@@ -313,11 +334,7 @@ export function PassportContent({
             นายท่านของ<em className="not-italic text-primary">ฉัน</em> 🐾
           </h1>
         </div>
-        <Link
-          href="/owner"
-          className="flex-shrink-0"
-          aria-label="โปรไฟล์เจ้าของ"
-        >
+        <Link href="/owner" className="flex-shrink-0" aria-label="โปรไฟล์เจ้าของ">
           <div className="h-[42px] w-[42px] rounded-full bg-gradient-to-br from-[#F06FA8] via-[#FF9285] to-[#FFCB6B] p-[2px] shadow-[0_2px_8px_rgba(240,94,56,0.2)]">
             <div className="flex h-full w-full items-center justify-center rounded-full bg-[#E8DDD5] text-text-muted">
               <User size={18} />
@@ -456,7 +473,9 @@ export function PassportContent({
               <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[rgba(255,130,99,0.08)] text-primary">
                 <PawPrint size={14} />
               </div>
-              <span className="text-[13px] font-semibold text-text-subtle">ข้อมูลประจำตัว{pet.name}</span>
+              <span className="text-[13px] font-semibold text-text-subtle">
+                ข้อมูลประจำตัว{pet.name}
+              </span>
             </div>
             <ChevronDown
               size={14}
@@ -483,8 +502,12 @@ export function PassportContent({
                     key={label}
                     className="flex items-center justify-between border-b border-border-subtle py-2 last:border-b-0"
                   >
-                    <span className="flex-shrink-0 text-[12px] font-medium text-text-muted">{label}</span>
-                    <span className="text-right text-[12px] font-semibold text-text-main">{value}</span>
+                    <span className="flex-shrink-0 text-[12px] font-medium text-text-muted">
+                      {label}
+                    </span>
+                    <span className="text-right text-[12px] font-semibold text-text-main">
+                      {value}
+                    </span>
                   </div>
                 ))}
             </div>
@@ -512,7 +535,9 @@ export function PassportContent({
               >
                 <div
                   className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                    item.variant === "danger" ? "bg-danger-bg text-danger" : "bg-warning-bg text-warning"
+                    item.variant === "danger"
+                      ? "bg-danger-bg text-danger"
+                      : "bg-warning-bg text-warning"
                   }`}
                 >
                   {item.icon}
@@ -576,7 +601,9 @@ export function PassportContent({
           {weightIsStale && (
             <div className="mx-4 mb-3 flex items-center gap-2 rounded-[10px] bg-warning-bg px-3 py-2.5">
               <Clock size={14} className="flex-shrink-0 text-warning" />
-              <p className="flex-1 text-[11px] font-semibold text-warning">ควรชั่งน้ำหนักใหม่ (เกิน 30 วัน)</p>
+              <p className="flex-1 text-[11px] font-semibold text-warning">
+                ควรชั่งน้ำหนักใหม่ (เกิน 30 วัน)
+              </p>
               <button className="flex-shrink-0 rounded-full bg-warning px-3.5 py-1.5 text-[11px] font-bold text-white">
                 บันทึก
               </button>
@@ -654,7 +681,12 @@ export function PassportContent({
           </div>
 
           {vaccinations.length === 0 ? (
-            <EmptyState size="inline" emoji="💉" title="ยังไม่มีข้อมูลวัคซีน" className="px-4 pb-4" />
+            <EmptyState
+              size="inline"
+              emoji="💉"
+              title="ยังไม่มีข้อมูลวัคซีน"
+              className="px-4 pb-4"
+            />
           ) : (
             vaccinations.map((v) => {
               const sConf = vaxStatusConfig[v.status];
@@ -673,10 +705,7 @@ export function PassportContent({
               const curDose = doses[doseIdx];
 
               return (
-                <div
-                  key={v.id}
-                  className="border-b border-border-subtle last:border-b-0"
-                >
+                <div key={v.id} className="border-b border-border-subtle last:border-b-0">
                   <button
                     onClick={() => toggleVax(v.id)}
                     className="flex w-full cursor-pointer items-start gap-3 px-4 py-2.5 transition-colors active:bg-surface-alt"
@@ -686,8 +715,8 @@ export function PassportContent({
                         sConf.cls === "ok"
                           ? "bg-success-bg text-success"
                           : sConf.cls === "warn"
-                          ? "bg-warning-bg text-warning"
-                          : "bg-danger-bg text-danger"
+                            ? "bg-warning-bg text-warning"
+                            : "bg-danger-bg text-danger"
                       }`}
                     >
                       <Syringe size={16} />
@@ -699,27 +728,31 @@ export function PassportContent({
                           sConf.cls === "ok"
                             ? "text-success"
                             : sConf.cls === "warn"
-                            ? "text-warning"
-                            : "text-danger"
+                              ? "text-warning"
+                              : "text-danger"
                         }`}
                       >
                         <span aria-hidden="true">{sConf.icon} </span>
                         {vaxStatusText[v.status]}
                       </p>
-                      <p className="text-[10px] text-text-muted">เข็มที่ {doseIdx + 1}/{totalDoses}</p>
+                      <p className="text-[10px] text-text-muted">
+                        เข็มที่ {doseIdx + 1}/{totalDoses}
+                      </p>
                     </div>
                     <div className="flex flex-shrink-0 items-center gap-1.5 text-right">
                       <div>
                         <p className="text-[10px] text-text-muted">
-                          {v.status === "overdue" || v.status === "due_soon" ? "หมดอายุ" : "Booster"}
+                          {v.status === "overdue" || v.status === "due_soon"
+                            ? "หมดอายุ"
+                            : "Booster"}
                         </p>
                         <p
                           className={`text-[11px] font-bold ${
                             sConf.cls === "ok"
                               ? "text-text-main"
                               : sConf.cls === "warn"
-                              ? "text-warning"
-                              : "text-danger"
+                                ? "text-warning"
+                                : "text-danger"
                           }`}
                         >
                           {v.next_due_date ? formatThaiDate(v.next_due_date) : "—"}
@@ -806,21 +839,25 @@ export function PassportContent({
                       sConf.cls === "ok"
                         ? "bg-success-bg"
                         : sConf.cls === "warn"
-                        ? "bg-warning-bg"
-                        : "bg-danger-bg"
+                          ? "bg-warning-bg"
+                          : "bg-danger-bg"
                     }`}
                   >
                     <div
                       className={`h-full rounded-none ${
-                        sConf.cls === "ok" ? "bg-success" : sConf.cls === "warn" ? "bg-warning" : "bg-danger"
+                        sConf.cls === "ok"
+                          ? "bg-success"
+                          : sConf.cls === "warn"
+                            ? "bg-warning"
+                            : "bg-danger"
                       }`}
                       style={{
                         width:
                           v.status === "protected"
                             ? "85%"
                             : v.status === "due_soon"
-                            ? "25%"
-                            : "100%",
+                              ? "25%"
+                              : "100%",
                       }}
                     />
                   </div>
@@ -848,7 +885,12 @@ export function PassportContent({
           </div>
 
           {parasiteLogs.length === 0 ? (
-            <EmptyState size="inline" emoji="🐛" title="ยังไม่มีข้อมูลถ่ายพยาธิ" className="px-4 py-4" />
+            <EmptyState
+              size="inline"
+              emoji="🐛"
+              title="ยังไม่มีข้อมูลถ่ายพยาธิ"
+              className="px-4 py-4"
+            />
           ) : (
             parasiteLogs.map((p) => {
               const daysLeft = daysBetween(p.next_due_date, now);
@@ -856,16 +898,14 @@ export function PassportContent({
                 daysLeft < 0
                   ? "border-danger text-danger"
                   : daysLeft <= 7
-                  ? "border-warning text-warning"
-                  : "border-success text-success";
-              const dotCls = daysLeft < 0 ? "bg-danger" : daysLeft <= 7 ? "bg-warning" : "bg-success";
+                    ? "border-warning text-warning"
+                    : "border-success text-success";
+              const dotCls =
+                daysLeft < 0 ? "bg-danger" : daysLeft <= 7 ? "bg-warning" : "bg-success";
               const isHistoryOpen = expandedParasiteId === p.id;
 
               return (
-                <div
-                  key={p.id}
-                  className="border-b border-border-subtle last:border-b-0"
-                >
+                <div key={p.id} className="border-b border-border-subtle last:border-b-0">
                   <div className="flex items-center gap-3.5 px-4 pb-2 pt-3.5">
                     {/* Countdown circle */}
                     <div
@@ -891,9 +931,7 @@ export function PassportContent({
 
                   {/* Expand hint */}
                   <button
-                    onClick={() =>
-                      setExpandedParasiteId((prev) => (prev === p.id ? null : p.id))
-                    }
+                    onClick={() => setExpandedParasiteId((prev) => (prev === p.id ? null : p.id))}
                     className="flex w-full items-center justify-center py-[6px] text-border transition-colors hover:text-text-muted"
                     aria-label="ดูประวัติ"
                   >
@@ -1013,7 +1051,9 @@ export function PassportContent({
                     className="flex items-center justify-between border-b border-border-subtle py-2 last:border-b-0"
                   >
                     <span className="flex-shrink-0 text-[12px] text-text-muted">{label}</span>
-                    <span className="text-right text-[12px] font-semibold text-text-main">{value}</span>
+                    <span className="text-right text-[12px] font-semibold text-text-main">
+                      {value}
+                    </span>
                   </div>
                 ))}
             </div>
@@ -1134,7 +1174,10 @@ export function PassportContent({
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-5 pb-6">
               {bsParasite.map((p) => (
-                <div key={p.id} className="flex items-center justify-between border-b border-border-subtle py-2.5 last:border-b-0">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between border-b border-border-subtle py-2.5 last:border-b-0"
+                >
                   <span className="text-[12px] font-semibold text-text-main">
                     {formatThaiDate(p.administered_date)}
                   </span>
@@ -1146,11 +1189,7 @@ export function PassportContent({
         </div>
       )}
 
-      <PetIdCardModal
-        pet={pet}
-        open={idCardOpen}
-        onClose={() => setIdCardOpen(false)}
-      />
+      <PetIdCardModal pet={pet} open={idCardOpen} onClose={() => setIdCardOpen(false)} />
     </div>
   );
 }

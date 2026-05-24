@@ -26,10 +26,7 @@ export default function PassportLoading() {
 
         {/* Zone card skeletons (3 cards for vaccine, parasite, weight) */}
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="bg-surface border border-border rounded-[24px] shadow-soft p-4"
-          >
+          <div key={i} className="bg-surface border border-border rounded-[24px] shadow-soft p-4">
             <div className="flex items-center gap-2.5 mb-3">
               <span className="skeleton rounded-full w-7 h-7" aria-hidden />
               <div className="flex-1 space-y-1.5">

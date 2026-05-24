@@ -56,9 +56,7 @@ function DiaryChip({ entry }: DiaryChipProps) {
           {entry.title}
         </div>
       )}
-      {entry.mood && (
-        <div className="text-[10px] text-primary mt-[3px]">{entry.mood}</div>
-      )}
+      {entry.mood && <div className="text-[10px] text-primary mt-[3px]">{entry.mood}</div>}
     </div>
   );
 }
@@ -110,9 +108,7 @@ export function MemoriesZone({
           <div className="flex items-center gap-1.5 text-[12px] font-bold text-text-main">
             <Camera className="w-3.5 h-3.5 text-text-subtle" aria-hidden />
             อัลบั้มรูป{" "}
-            <span className="text-[10px] font-normal text-text-muted">
-              ({photos.length} รูป)
-            </span>
+            <span className="text-[10px] font-normal text-text-muted">({photos.length} รูป)</span>
           </div>
           {!isMemorial && (
             <button
@@ -127,11 +123,7 @@ export function MemoriesZone({
         </div>
 
         {/* 4-column grid */}
-        <div
-          className="grid grid-cols-4 gap-1.5"
-          role="list"
-          aria-label="อัลบั้มรูปสัตว์เลี้ยง"
-        >
+        <div className="grid grid-cols-4 gap-1.5" role="list" aria-label="อัลบั้มรูปสัตว์เลี้ยง">
           {photos.map((photo) => (
             <div
               key={photo.id}

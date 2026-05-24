@@ -38,9 +38,7 @@ export default function RootLayout({
         <DebugConsole />
         <ToastProvider>
           <LiffProvider>
-            <LocationProvider>
-              {children}
-            </LocationProvider>
+            <LocationProvider>{children}</LocationProvider>
           </LiffProvider>
         </ToastProvider>
       </body>

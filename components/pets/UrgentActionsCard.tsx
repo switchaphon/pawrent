@@ -1,51 +1,49 @@
-'use client'
+"use client";
 
-import { TriangleAlert, Pill, Scale, Weight } from 'lucide-react'
+import { TriangleAlert, Pill, Scale, Weight } from "lucide-react";
 
-export type UrgentItemType = 'parasite_overdue' | 'vaccine_overdue' | 'weight_stale'
+export type UrgentItemType = "parasite_overdue" | "vaccine_overdue" | "weight_stale";
 
 export interface UrgentItem {
-  id: string
-  type: UrgentItemType
-  title: string
-  detail: string
-  severity: 'danger' | 'warning'
-  onAction: () => void
+  id: string;
+  type: UrgentItemType;
+  title: string;
+  detail: string;
+  severity: "danger" | "warning";
+  onAction: () => void;
 }
 
 interface UrgentActionsCardProps {
-  items: UrgentItem[]
-  isMemorial: boolean
+  items: UrgentItem[];
+  isMemorial: boolean;
 }
 
-function ItemIcon({ type, severity }: { type: UrgentItemType; severity: 'danger' | 'warning' }) {
-  const iconClass = 'w-[18px] h-[18px]'
+function ItemIcon({ type, severity }: { type: UrgentItemType; severity: "danger" | "warning" }) {
+  const iconClass = "w-[18px] h-[18px]";
   const icon =
-    type === 'vaccine_overdue' ? (
+    type === "vaccine_overdue" ? (
       <Pill className={iconClass} aria-hidden />
-    ) : type === 'parasite_overdue' ? (
+    ) : type === "parasite_overdue" ? (
       <Pill className={iconClass} aria-hidden />
     ) : (
       <Scale className={iconClass} aria-hidden />
-    )
+    );
 
   return (
     <div
       aria-hidden
       className={[
-        'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
-        severity === 'danger'
-          ? 'bg-danger-bg text-danger'
-          : 'bg-warning-bg text-warning',
-      ].join(' ')}
+        "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+        severity === "danger" ? "bg-danger-bg text-danger" : "bg-warning-bg text-warning",
+      ].join(" ")}
     >
       {icon}
     </div>
-  )
+  );
 }
 
 export function UrgentActionsCard({ items, isMemorial }: UrgentActionsCardProps) {
-  if (items.length === 0 || isMemorial) return null
+  if (items.length === 0 || isMemorial) return null;
 
   return (
     <div
@@ -85,17 +83,15 @@ export function UrgentActionsCard({ items, isMemorial }: UrgentActionsCardProps)
             <div className="text-[12px] font-bold text-text-main">{item.title}</div>
             <div
               className={[
-                'text-[10px] mt-[1px]',
-                item.severity === 'danger'
-                  ? 'text-danger font-semibold'
-                  : 'text-text-muted',
-              ].join(' ')}
+                "text-[10px] mt-[1px]",
+                item.severity === "danger" ? "text-danger font-semibold" : "text-text-muted",
+              ].join(" ")}
             >
               {item.detail}
             </div>
           </div>
 
-          {item.severity === 'danger' ? (
+          {item.severity === "danger" ? (
             <button
               type="button"
               onClick={item.onAction}
@@ -117,5 +113,5 @@ export function UrgentActionsCard({ items, isMemorial }: UrgentActionsCardProps)
         </div>
       ))}
     </div>
-  )
+  );
 }

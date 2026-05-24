@@ -24,9 +24,7 @@ export default function Error({
       >
         ⚠️
       </div>
-      <h2 className="text-[14px] font-extrabold text-text-main mb-1.5">
-        โหลดข้อมูลไม่สำเร็จ
-      </h2>
+      <h2 className="text-[14px] font-extrabold text-text-main mb-1.5">โหลดข้อมูลไม่สำเร็จ</h2>
       <p className="text-[11px] text-text-muted leading-relaxed max-w-[220px] mb-4">
         {error.message || "เกิดข้อผิดพลาด โปรดตรวจสอบการเชื่อมต่อ"}
       </p>

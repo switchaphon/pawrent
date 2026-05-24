@@ -356,7 +356,7 @@ textarea {
   width: 88px;
   height: 88px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  background: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -368,7 +368,7 @@ textarea {
   width: 64px;
   height: 64px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  background: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,7 +380,7 @@ textarea {
   width: 40px;
   height: 40px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+  background: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -397,7 +397,7 @@ textarea {
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  border: 2px solid #F8D7DA;
+  border: 2px solid #f8d7da;
 }
 
 /* Respect prefers-reduced-motion */

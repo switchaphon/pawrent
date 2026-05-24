@@ -148,7 +148,9 @@ function FeedbackContent() {
                 </div>
                 <div>
                   <h2 className="text-base font-extrabold text-text-main">บอกเราหน่อย</h2>
-                  <p className="text-[11px] text-text-muted">แชร์ประสบการณ์ · แจ้งปัญหา · แนะนำฟีเจอร์</p>
+                  <p className="text-[11px] text-text-muted">
+                    แชร์ประสบการณ์ · แจ้งปัญหา · แนะนำฟีเจอร์
+                  </p>
                 </div>
               </div>
 

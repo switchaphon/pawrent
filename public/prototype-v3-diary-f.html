@@ -1,791 +1,1146 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Pawrents v2 — Diary Variant F (Custom)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-:root {
-  /* D2 POPS Balanced tokens */
-  --bg: #FAF7F2;
-  --bg-end: #F5F1EA;
-  --surface: #FFFFFF;
-  --surface-alt: #EDEDE8;
-  --border: #E8E2D8;
-  --border-subtle: #F0EDE6;
-  --text: #2E2A2E;
-  --text-heading: #2E2A2E;
-  --text-muted: #6B6560;
-  --text-sub: #3D3935;
-  --primary: #FF8263;
-  --primary-light: #FFA563;
-  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
-  --primary-soft: rgba(255,130,99,0.08);
-  --primary-shadow: 0 4px 14px rgba(255,130,99,0.3);
-  --accent-pink: #F06FA8;
-  --accent-yellow: #FFCB6B;
-  --accent-green: #6B8F5E;
-  --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
-  --success: #4C6B3C; --success-bg: #EDF0EA;
-  --warning: #B8730A; --warning-bg: #FFF3D9;
-  --danger: #D32F2F; --danger-bg: #FFEBEE;
-  --info: #1565C0; --info-bg: #E3F2FD;
-  --shadow: 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
-  --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
-  --radius: 16px;
-  --radius-lg: 24px;
-  --avatar-ring: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
-}
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Pawrents v2 — Diary Variant F (Custom)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* D2 POPS Balanced tokens */
+        --bg: #faf7f2;
+        --bg-end: #f5f1ea;
+        --surface: #ffffff;
+        --surface-alt: #edede8;
+        --border: #e8e2d8;
+        --border-subtle: #f0ede6;
+        --text: #2e2a2e;
+        --text-heading: #2e2a2e;
+        --text-muted: #6b6560;
+        --text-sub: #3d3935;
+        --primary: #ff8263;
+        --primary-light: #ffa563;
+        --primary-gradient: linear-gradient(135deg, #ff8263, #ffa563);
+        --primary-soft: rgba(255, 130, 99, 0.08);
+        --primary-shadow: 0 4px 14px rgba(255, 130, 99, 0.3);
+        --accent-pink: #f06fa8;
+        --accent-yellow: #ffcb6b;
+        --accent-green: #6b8f5e;
+        --pops-gradient: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
+        --success: #4c6b3c;
+        --success-bg: #edf0ea;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #d32f2f;
+        --danger-bg: #ffebee;
+        --info: #1565c0;
+        --info-bg: #e3f2fd;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+        --shadow-owner: 0 2px 10px rgba(46, 42, 46, 0.08);
+        --shadow-glow: 0 4px 16px rgba(255, 146, 133, 0.3);
+        --radius: 16px;
+        --radius-lg: 24px;
+        --avatar-ring: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
+      }
 
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body {
-  font-family: 'Noto Sans Thai', system-ui, sans-serif;
-  background: #E8E2D8;
-  display: flex; justify-content: center; align-items: flex-start;
-  min-height: 100dvh; padding: 20px 0 80px;
-  -webkit-font-smoothing: antialiased;
-}
-button { font-family: inherit; cursor: pointer; border: none; outline: none; }
-::-webkit-scrollbar { width: 0; height: 0; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        font-family: "Noto Sans Thai", system-ui, sans-serif;
+        background: #e8e2d8;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100dvh;
+        padding: 20px 0 80px;
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        outline: none;
+      }
+      ::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+      }
 
-/* ─── PHONE SHELL ─── */
-.phone {
-  width: 390px; min-height: 844px; position: relative;
-  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-end) 100%);
-  border-radius: 44px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
-  overflow: hidden;
-}
+      /* ─── PHONE SHELL ─── */
+      .phone {
+        width: 390px;
+        min-height: 844px;
+        position: relative;
+        background: linear-gradient(180deg, var(--bg) 0%, var(--bg-end) 100%);
+        border-radius: 44px;
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.22),
+          0 0 0 1px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
 
-/* ─── STATUS BAR ─── */
-.status-bar {
-  height: 54px; display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 28px 0; font-size: 12px; font-weight: 600;
-  color: var(--text); position: relative; z-index: 10;
-}
-.status-time { font-size: 16px; font-weight: 700; }
-.status-icons { display: flex; gap: 5px; align-items: center; font-size: 13px; }
+      /* ─── STATUS BAR ─── */
+      .status-bar {
+        height: 54px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 28px 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        position: relative;
+        z-index: 10;
+      }
+      .status-time {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .status-icons {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        font-size: 13px;
+      }
 
-/* ─── HEADER: Title + Owner Avatar ─── */
-.diary-header {
-  padding: 0 20px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.header-left { flex: 1; }
-.header-greeting { font-size: 12px; font-weight: 400; color: var(--text-sub); }
-.header-title { font-size: 20px; font-weight: 800; color: var(--text-heading); line-height: 1.2; }
-.header-title em { font-style: normal; color: var(--primary); }
+      /* ─── HEADER: Title + Owner Avatar ─── */
+      .diary-header {
+        padding: 0 20px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .header-left {
+        flex: 1;
+      }
+      .header-greeting {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-sub);
+      }
+      .header-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-heading);
+        line-height: 1.2;
+      }
+      .header-title em {
+        font-style: normal;
+        color: var(--primary);
+      }
 
-.owner-avatar-link {
-  width: 42px; height: 42px; border-radius: 50%;
-  background: var(--avatar-ring); padding: 2px;
-  flex-shrink: 0; cursor: pointer;
-  box-shadow: 0 2px 8px rgba(240,94,56,0.2);
-  text-decoration: none;
-}
-.owner-avatar-inner {
-  width: 100%; height: 100%; border-radius: 50%;
-  background: #E8DDD5; display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
+      .owner-avatar-link {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--avatar-ring);
+        padding: 2px;
+        flex-shrink: 0;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(240, 94, 56, 0.2);
+        text-decoration: none;
+      }
+      .owner-avatar-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #e8ddd5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
 
-/* ─── PET FILTER CHIPS (multi-select) ─── */
-.pet-chips-wrap {
-  position: relative; padding: 0 0 14px;
-}
-.pet-chips {
-  display: flex; gap: 8px; padding: 0 20px;
-  overflow-x: auto; scrollbar-width: none;
-}
-.pet-chips::-webkit-scrollbar { display: none; }
-.fade-hint-right {
-  position: absolute; top: 0; right: 0; bottom: 14px; width: 48px;
-  background: linear-gradient(90deg, transparent, var(--bg));
-  pointer-events: none; z-index: 2;
-}
-.fade-hint-left {
-  position: absolute; top: 0; left: 0; bottom: 14px; width: 48px;
-  background: linear-gradient(270deg, transparent, var(--bg));
-  pointer-events: none; z-index: 2;
-  opacity: 0; transition: opacity 0.2s;
-}
-.fade-hint-left.visible { opacity: 1; }
-.pet-chip {
-  flex-shrink: 0; display: flex; align-items: center; gap: 5px;
-  padding: 6px 14px; border-radius: 999px;
-  background: var(--surface); color: var(--text-sub);
-  font-size: 12px; font-weight: 500;
-  border: 1.5px solid var(--border);
-  transition: all 0.2s;
-  user-select: none;
-}
-.pet-chip.active {
-  background: var(--primary); color: #fff;
-  border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(255,130,99,0.2);
-}
-.pet-chip .chip-avatar {
-  width: 20px; height: 20px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; background: rgba(255,255,255,0.2);
-}
-.pet-chip:not(.active) .chip-avatar { background: var(--surface-alt); }
+      /* ─── PET FILTER CHIPS (multi-select) ─── */
+      .pet-chips-wrap {
+        position: relative;
+        padding: 0 0 14px;
+      }
+      .pet-chips {
+        display: flex;
+        gap: 8px;
+        padding: 0 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pet-chips::-webkit-scrollbar {
+        display: none;
+      }
+      .fade-hint-right {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 14px;
+        width: 48px;
+        background: linear-gradient(90deg, transparent, var(--bg));
+        pointer-events: none;
+        z-index: 2;
+      }
+      .fade-hint-left {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 14px;
+        width: 48px;
+        background: linear-gradient(270deg, transparent, var(--bg));
+        pointer-events: none;
+        z-index: 2;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .fade-hint-left.visible {
+        opacity: 1;
+      }
+      .pet-chip {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text-sub);
+        font-size: 12px;
+        font-weight: 500;
+        border: 1.5px solid var(--border);
+        transition: all 0.2s;
+        user-select: none;
+      }
+      .pet-chip.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+        box-shadow: 0 2px 8px rgba(255, 130, 99, 0.2);
+      }
+      .pet-chip .chip-avatar {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .pet-chip:not(.active) .chip-avatar {
+        background: var(--surface-alt);
+      }
 
-/* ─── DAY GROUP DIVIDER ─── */
-.day-group {
-  display: flex; align-items: center; gap: 8px;
-  padding: 16px 20px 10px;
-}
-.day-label {
-  font-size: 10px; font-weight: 700; color: var(--text-sub);
-  letter-spacing: 0.5px; text-transform: uppercase;
-  background: var(--surface-alt); border-radius: 999px;
-  padding: 4px 12px; white-space: nowrap;
-}
-.day-line { flex: 1; height: 1px; background: var(--border); }
+      /* ─── DAY GROUP DIVIDER ─── */
+      .day-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 20px 10px;
+      }
+      .day-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-sub);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: var(--surface-alt);
+        border-radius: 999px;
+        padding: 4px 12px;
+        white-space: nowrap;
+      }
+      .day-line {
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
 
-/* ─── TIMELINE CARD (notification style) ─── */
-.tl { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+      /* ─── TIMELINE CARD (notification style) ─── */
+      .tl {
+        padding: 0 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-.tl-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  box-shadow: var(--shadow);
-}
+      .tl-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px;
+        box-shadow: var(--shadow);
+      }
 
-/* Card inner layout: icon | content */
-.tl-row { display: flex; gap: 12px; align-items: flex-start; }
+      /* Card inner layout: icon | content */
+      .tl-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
 
-.tl-icon {
-  width: 44px; height: 44px; border-radius: 14px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
-}
-.tl-icon.diary { background: rgba(255,203,107,0.15); }
-.tl-icon.vaccine { background: var(--success-bg); }
-.tl-icon.weight { background: var(--warning-bg); }
-.tl-icon.parasite { background: rgba(255,130,99,0.08); }
-.tl-icon.shower { background: var(--info-bg); }
-.tl-icon.vet { background: rgba(236,37,132,0.06); }
+      .tl-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .tl-icon.diary {
+        background: rgba(255, 203, 107, 0.15);
+      }
+      .tl-icon.vaccine {
+        background: var(--success-bg);
+      }
+      .tl-icon.weight {
+        background: var(--warning-bg);
+      }
+      .tl-icon.parasite {
+        background: rgba(255, 130, 99, 0.08);
+      }
+      .tl-icon.shower {
+        background: var(--info-bg);
+      }
+      .tl-icon.vet {
+        background: rgba(236, 37, 132, 0.06);
+      }
 
-.tl-content { flex: 1; min-width: 0; }
+      .tl-content {
+        flex: 1;
+        min-width: 0;
+      }
 
-/* Event title row */
-.tl-title-row {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
-  margin-bottom: 3px;
-}
-.tl-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.35; }
-.tl-time { font-size: 10px; color: var(--text-sub); white-space: nowrap; flex-shrink: 0; margin-top: 3px; }
+      /* Event title row */
+      .tl-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 6px;
+        margin-bottom: 3px;
+      }
+      .tl-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.35;
+      }
+      .tl-time {
+        font-size: 10px;
+        color: var(--text-sub);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 3px;
+      }
 
-/* Detail text */
-.tl-detail { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+      /* Detail text */
+      .tl-detail {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
 
-/* Tags row */
-.tl-tags {
-  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-  margin-top: 8px;
-}
-.tl-tag {
-  padding: 2px 8px; border-radius: 999px;
-  font-size: 10px; font-weight: 600;
-}
-.tl-tag.pet { background: var(--surface-alt); color: var(--text-sub); }
-.tl-tag.ok { background: var(--success-bg); color: var(--success); }
-.tl-tag.warn { background: var(--warning-bg); color: var(--warning); }
-.tl-tag.mood { background: rgba(255,203,107,0.15); color: var(--text-sub); }
+      /* Tags row */
+      .tl-tags {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .tl-tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .tl-tag.pet {
+        background: var(--surface-alt);
+        color: var(--text-sub);
+      }
+      .tl-tag.ok {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .tl-tag.warn {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .tl-tag.mood {
+        background: rgba(255, 203, 107, 0.15);
+        color: var(--text-sub);
+      }
 
-/* Photo attachment */
-.tl-photo {
-  width: 100%; height: 160px; border-radius: 12px;
-  background: var(--surface-alt);
-  margin-top: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px; color: var(--text-sub);
-  overflow: hidden;
-}
-.tl-photo.small {
-  width: 80px; height: 80px; border-radius: 10px;
-  margin-top: 0; font-size: 24px;
-  flex-shrink: 0;
-}
+      /* Photo attachment */
+      .tl-photo {
+        width: 100%;
+        height: 160px;
+        border-radius: 12px;
+        background: var(--surface-alt);
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        color: var(--text-sub);
+        overflow: hidden;
+      }
+      .tl-photo.small {
+        width: 80px;
+        height: 80px;
+        border-radius: 10px;
+        margin-top: 0;
+        font-size: 24px;
+        flex-shrink: 0;
+      }
 
-/* Photo caption */
-.tl-caption {
-  font-size: 13px; color: var(--text); margin-top: 6px;
-  font-style: italic; line-height: 1.4;
-}
+      /* Photo caption */
+      .tl-caption {
+        font-size: 13px;
+        color: var(--text);
+        margin-top: 6px;
+        font-style: italic;
+        line-height: 1.4;
+      }
 
-/* Enrich prompt */
-.tl-enrich {
-  margin-top: 8px; padding: 8px 12px;
-  border: 1.5px dashed rgba(240,111,168,0.2);
-  border-radius: 10px;
-  font-size: 11px; color: var(--accent-pink);
-  font-weight: 500; cursor: pointer;
-  background: rgba(240,111,168,0.02);
-  display: flex; align-items: center; gap: 6px;
-}
+      /* Enrich prompt */
+      .tl-enrich {
+        margin-top: 8px;
+        padding: 8px 12px;
+        border: 1.5px dashed rgba(240, 111, 168, 0.2);
+        border-radius: 10px;
+        font-size: 11px;
+        color: var(--accent-pink);
+        font-weight: 500;
+        cursor: pointer;
+        background: rgba(240, 111, 168, 0.02);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-/* ─── DIARY ENTRY (with full photo) ─── */
-.tl-card.has-photo .tl-row { flex-direction: column; gap: 0; }
-.tl-card.has-photo .tl-icon-row {
-  display: flex; gap: 12px; align-items: flex-start;
-}
+      /* ─── DIARY ENTRY (with full photo) ─── */
+      .tl-card.has-photo .tl-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      .tl-card.has-photo .tl-icon-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
 
-/* ─── FAB ─── */
-.fab {
-  position: absolute; bottom: 24px; right: 24px;
-  width: 56px; height: 56px; border-radius: 50%;
-  background: var(--primary-gradient); color: #fff;
-  font-size: 28px; font-weight: 300;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--primary-shadow), 0 8px 24px rgba(0,0,0,0.15);
-  z-index: 100; transition: transform 0.2s;
-}
-.fab:active { transform: scale(0.92); }
+      /* ─── FAB ─── */
+      .fab {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-size: 28px;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          var(--primary-shadow),
+          0 8px 24px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+        transition: transform 0.2s;
+      }
+      .fab:active {
+        transform: scale(0.92);
+      }
 
-/* ─── ACTION SHEET ─── */
-.action-sheet-overlay {
-  position: absolute; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.4);
-  display: none; align-items: flex-end;
-  border-radius: 44px; overflow: hidden;
-}
-.action-sheet-overlay.visible { display: flex; }
-.action-sheet {
-  width: 100%; background: var(--surface);
-  border-radius: 24px 24px 0 0;
-  padding: 20px 20px 40px;
-}
-.action-sheet-handle {
-  width: 36px; height: 4px; border-radius: 2px;
-  background: var(--border); margin: 0 auto 16px;
-}
-.action-sheet-title {
-  font-size: 16px; font-weight: 700; color: var(--text-heading);
-  text-align: center; margin-bottom: 16px;
-}
-.action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.action-item {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 16px 8px; border-radius: var(--radius);
-  background: var(--surface-alt); border: 1px solid var(--border);
-  transition: all 0.15s;
-}
-.action-item:active { transform: scale(0.95); }
-.action-item .ai-icon { font-size: 28px; }
-.action-item .ai-label { font-size: 12px; font-weight: 600; color: var(--text); text-align: center; }
+      /* ─── ACTION SHEET ─── */
+      .action-sheet-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.4);
+        display: none;
+        align-items: flex-end;
+        border-radius: 44px;
+        overflow: hidden;
+      }
+      .action-sheet-overlay.visible {
+        display: flex;
+      }
+      .action-sheet {
+        width: 100%;
+        background: var(--surface);
+        border-radius: 24px 24px 0 0;
+        padding: 20px 20px 40px;
+      }
+      .action-sheet-handle {
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border);
+        margin: 0 auto 16px;
+      }
+      .action-sheet-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-heading);
+        text-align: center;
+        margin-bottom: 16px;
+      }
+      .action-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 8px;
+        border-radius: var(--radius);
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .action-item:active {
+        transform: scale(0.95);
+      }
+      .action-item .ai-icon {
+        font-size: 28px;
+      }
+      .action-item .ai-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        text-align: center;
+      }
 
-/* ─── SCROLL ─── */
-.scroll-area { overflow-y: auto; padding-bottom: 100px; }
+      /* ─── SCROLL ─── */
+      .scroll-area {
+        overflow-y: auto;
+        padding-bottom: 100px;
+      }
 
-/* ─── TIMELINE END ─── */
-.tl-end {
-  text-align: center; padding: 24px 20px 40px;
-  color: var(--text-sub); font-size: 12px;
-}
-.tl-end .te-mascot { font-size: 48px; margin-bottom: 8px; }
-.tl-end strong { color: var(--text-muted); }
+      /* ─── TIMELINE END ─── */
+      .tl-end {
+        text-align: center;
+        padding: 24px 20px 40px;
+        color: var(--text-sub);
+        font-size: 12px;
+      }
+      .tl-end .te-mascot {
+        font-size: 48px;
+        margin-bottom: 8px;
+      }
+      .tl-end strong {
+        color: var(--text-muted);
+      }
 
-/* ─── PET HEALTH STATUS ROW ─── */
-.pet-health-row {
-  padding: 0 16px 12px;
-}
-.pet-health-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 8px;
-}
-.pet-health-title {
-  font-size: 12px; font-weight: 700; color: var(--text);
-  display: flex; align-items: center; gap: 6px;
-}
-.pet-health-link { font-size: 11px; font-weight: 600; color: var(--primary); background: none; border: none; }
-.pet-health-grid {
-  display: flex; gap: 10px;
-}
-.pet-health-bubble {
-  flex: 1; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px;
-  box-shadow: var(--shadow);
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  cursor: pointer;
-}
-.pet-bubble-avatar {
-  width: 52px; height: 52px; border-radius: 50%;
-  background: var(--pops-gradient); padding: 2.5px;
-  box-shadow: var(--shadow-glow);
-}
-.pet-bubble-avatar-inner {
-  width: 100%; height: 100%; border-radius: 50%;
-  background: var(--surface); display: flex; align-items: center; justify-content: center;
-  font-size: 24px;
-}
-.pet-bubble-name { font-size: 12px; font-weight: 800; color: var(--text); margin-top: 6px; }
-.pet-bubble-breed { font-size: 10px; color: var(--text-muted); }
-.pet-bubble-status {
-  display: inline-flex; align-items: center; gap: 4px;
-  margin-top: 6px; padding: 2px 10px; border-radius: 999px;
-  font-size: 10px; font-weight: 700;
-}
-.pet-bubble-status.ok { background: var(--success-bg); color: var(--success); }
-.pet-bubble-status.warn { background: var(--warning-bg); color: var(--warning); }
+      /* ─── PET HEALTH STATUS ROW ─── */
+      .pet-health-row {
+        padding: 0 16px 12px;
+      }
+      .pet-health-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .pet-health-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pet-health-link {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--primary);
+        background: none;
+        border: none;
+      }
+      .pet-health-grid {
+        display: flex;
+        gap: 10px;
+      }
+      .pet-health-bubble {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        cursor: pointer;
+      }
+      .pet-bubble-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: var(--pops-gradient);
+        padding: 2.5px;
+        box-shadow: var(--shadow-glow);
+      }
+      .pet-bubble-avatar-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .pet-bubble-name {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--text);
+        margin-top: 6px;
+      }
+      .pet-bubble-breed {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .pet-bubble-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .pet-bubble-status.ok {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .pet-bubble-status.warn {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
 
-/* ─── URGENT ACTIONS (ต้องทำวันนี้) ─── */
-.urgent-card {
-  margin: 0 16px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.urgent-header {
-  padding: 12px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.urgent-header-left {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px; font-weight: 800; color: var(--text);
-}
-.urgent-header-icon {
-  width: 24px; height: 24px; border-radius: 999px;
-  background: var(--danger-bg); color: var(--danger);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
-}
-.urgent-count {
-  padding: 2px 8px; border-radius: 999px;
-  background: var(--danger-bg); color: var(--danger);
-  font-size: 10px; font-weight: 700;
-}
-.urgent-item {
-  padding: 12px 16px;
-  display: flex; align-items: center; gap: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.urgent-item:last-child { border-bottom: none; }
-.urgent-item-icon {
-  width: 40px; height: 40px; border-radius: 999px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-}
-.urgent-item-icon.danger { background: var(--danger-bg); }
-.urgent-item-icon.warn { background: var(--warning-bg); }
-.urgent-item-body { flex: 1; min-width: 0; }
-.urgent-item-title { font-size: 12px; font-weight: 700; color: var(--text); }
-.urgent-item-detail { font-size: 10px; margin-top: 1px; }
-.urgent-item-detail.danger { color: var(--danger); font-weight: 600; }
-.urgent-item-detail.muted { color: var(--text-muted); }
-.urgent-btn {
-  padding: 8px 14px; border-radius: 999px;
-  font-size: 11px; font-weight: 700;
-  flex-shrink: 0; min-height: 36px;
-}
-.urgent-btn.primary {
-  background: var(--primary-gradient); color: #fff;
-  box-shadow: var(--primary-shadow);
-}
-.urgent-btn.secondary {
-  background: var(--surface); color: var(--text-sub);
-  border: 1.5px solid var(--border);
-}
+      /* ─── URGENT ACTIONS (ต้องทำวันนี้) ─── */
+      .urgent-card {
+        margin: 0 16px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .urgent-header {
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .urgent-header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--text);
+      }
+      .urgent-header-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--danger-bg);
+        color: var(--danger);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+      .urgent-count {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--danger-bg);
+        color: var(--danger);
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .urgent-item {
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .urgent-item:last-child {
+        border-bottom: none;
+      }
+      .urgent-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .urgent-item-icon.danger {
+        background: var(--danger-bg);
+      }
+      .urgent-item-icon.warn {
+        background: var(--warning-bg);
+      }
+      .urgent-item-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .urgent-item-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .urgent-item-detail {
+        font-size: 10px;
+        margin-top: 1px;
+      }
+      .urgent-item-detail.danger {
+        color: var(--danger);
+        font-weight: 600;
+      }
+      .urgent-item-detail.muted {
+        color: var(--text-muted);
+      }
+      .urgent-btn {
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+        min-height: 36px;
+      }
+      .urgent-btn.primary {
+        background: var(--primary-gradient);
+        color: #fff;
+        box-shadow: var(--primary-shadow);
+      }
+      .urgent-btn.secondary {
+        background: var(--surface);
+        color: var(--text-sub);
+        border: 1.5px solid var(--border);
+      }
 
-/* ─── LABEL ─── */
-.variant-label {
-  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  background: #2E2A2E; color: #fff; padding: 10px 24px;
-  border-radius: 16px 16px 0 0; font-size: 12px; font-weight: 600;
-  z-index: 999; letter-spacing: 0.5px;
-}
-</style>
-</head>
-<body>
-
-<div class="phone">
-
-  <!-- STATUS BAR -->
-  <div class="status-bar">
-    <span class="status-time">9:41</span>
-    <span class="status-icons">●●●● · WiFi 🔋</span>
-  </div>
-
-  <!-- HEADER: Title + Owner Avatar -->
-  <div class="diary-header">
-    <div class="header-left">
-      <div class="header-greeting">สมุดบันทึก</div>
-      <div class="header-title">ไดอารี่ ของ<em>นายท่าน</em> 📒</div>
-    </div>
-    <a class="owner-avatar-link" href="/profile" title="โปรไฟล์เจ้าของ">
-      <div class="owner-avatar-inner">👤</div>
-    </a>
-  </div>
-
-  <div class="scroll-area">
-
-    <!-- PET FILTER CHIPS (multi-select, overflows) -->
-    <div class="pet-chips-wrap">
-      <div class="pet-chips" id="chipScroll">
-        <button class="pet-chip active" onclick="toggleChip(this)">
-          ทั้งหมด
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐕</span> บาลู
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐱</span> มิโล
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐕</span> ขนมปัง
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐹</span> ถั่วงอก
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐰</span> โมจิ
-        </button>
-        <button class="pet-chip" onclick="toggleChip(this)">
-          <span class="chip-avatar">🐦</span> ฟ้าใส
-        </button>
+      /* ─── LABEL ─── */
+      .variant-label {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2e2a2e;
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 16px 16px 0 0;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 999;
+        letter-spacing: 0.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <!-- STATUS BAR -->
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <span class="status-icons">●●●● · WiFi 🔋</span>
       </div>
-      <div class="fade-hint-left" id="fadeLeft"></div>
-      <div class="fade-hint-right"></div>
-    </div>
 
-    <!-- ═══ สุขภาพน้อง ๆ ═══ -->
-    <div class="pet-health-row">
-      <div class="pet-health-header">
-        <div class="pet-health-title">🐾 สุขภาพน้อง ๆ</div>
-        <button class="pet-health-link">จัดการ ›</button>
-      </div>
-      <div class="pet-health-grid">
-        <div class="pet-health-bubble">
-          <div class="pet-bubble-avatar"><div class="pet-bubble-avatar-inner">🐕</div></div>
-          <div class="pet-bubble-name">บาลู</div>
-          <div class="pet-bubble-breed">เฟรนช์ บูลด๊อก · 2 ปี</div>
-          <span class="pet-bubble-status warn">⚠️ ต้องหยดยา</span>
+      <!-- HEADER: Title + Owner Avatar -->
+      <div class="diary-header">
+        <div class="header-left">
+          <div class="header-greeting">สมุดบันทึก</div>
+          <div class="header-title">ไดอารี่ ของ<em>นายท่าน</em> 📒</div>
         </div>
-        <div class="pet-health-bubble">
-          <div class="pet-bubble-avatar"><div class="pet-bubble-avatar-inner">🐱</div></div>
-          <div class="pet-bubble-name">มิโล</div>
-          <div class="pet-bubble-breed">แมวไทย · 1 ปี</div>
-          <span class="pet-bubble-status ok">💚 ทุกอย่างโอเค</span>
-        </div>
+        <a class="owner-avatar-link" href="/profile" title="โปรไฟล์เจ้าของ">
+          <div class="owner-avatar-inner">👤</div>
+        </a>
       </div>
-    </div>
 
-    <!-- ═══ ต้องทำวันนี้ ═══ -->
-    <div class="urgent-card">
-      <div class="urgent-header">
-        <div class="urgent-header-left">
-          <div class="urgent-header-icon">⚠️</div>
-          ต้องทำวันนี้
+      <div class="scroll-area">
+        <!-- PET FILTER CHIPS (multi-select, overflows) -->
+        <div class="pet-chips-wrap">
+          <div class="pet-chips" id="chipScroll">
+            <button class="pet-chip active" onclick="toggleChip(this)">ทั้งหมด</button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐕</span> บาลู
+            </button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐱</span> มิโล
+            </button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐕</span> ขนมปัง
+            </button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐹</span> ถั่วงอก
+            </button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐰</span> โมจิ
+            </button>
+            <button class="pet-chip" onclick="toggleChip(this)">
+              <span class="chip-avatar">🐦</span> ฟ้าใส
+            </button>
+          </div>
+          <div class="fade-hint-left" id="fadeLeft"></div>
+          <div class="fade-hint-right"></div>
         </div>
-        <span class="urgent-count">2 รายการ</span>
-      </div>
-      <div class="urgent-item">
-        <div class="urgent-item-icon danger">💊</div>
-        <div class="urgent-item-body">
-          <div class="urgent-item-title">หยดยาเห็บหมัดให้บาลู</div>
-          <div class="urgent-item-detail danger">เลยกำหนด 2 วัน</div>
-        </div>
-        <button class="urgent-btn primary">ทำตอนนี้</button>
-      </div>
-      <div class="urgent-item">
-        <div class="urgent-item-icon warn">⚖️</div>
-        <div class="urgent-item-body">
-          <div class="urgent-item-title">ชั่งน้ำหนักบาลู</div>
-          <div class="urgent-item-detail muted">ครบ 30 วัน — ควรบันทึกใหม่</div>
-        </div>
-        <button class="urgent-btn secondary">บันทึก</button>
-      </div>
-    </div>
 
-    <!-- ═══ วันนี้ ═══ -->
-    <div class="day-group">
-      <span class="day-label">วันนี้ · 14 พ.ค.</span>
-      <span class="day-line"></span>
-    </div>
-
-    <div class="tl">
-
-      <!-- CARD 1: Diary entry with photo -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon diary">📸</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">เดินเล่นสวนลุม</span>
-              <span class="tl-time">16:30</span>
+        <!-- ═══ สุขภาพน้อง ๆ ═══ -->
+        <div class="pet-health-row">
+          <div class="pet-health-header">
+            <div class="pet-health-title">🐾 สุขภาพน้อง ๆ</div>
+            <button class="pet-health-link">จัดการ ›</button>
+          </div>
+          <div class="pet-health-grid">
+            <div class="pet-health-bubble">
+              <div class="pet-bubble-avatar"><div class="pet-bubble-avatar-inner">🐕</div></div>
+              <div class="pet-bubble-name">บาลู</div>
+              <div class="pet-bubble-breed">เฟรนช์ บูลด๊อก · 2 ปี</div>
+              <span class="pet-bubble-status warn">⚠️ ต้องหยดยา</span>
             </div>
-            <div class="tl-detail">วิ่งไล่นกพิราบสนุกมาก ไม่ยอมกลับบ้าน 😂</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 บาลู</span>
-              <span class="tl-tag mood">😆 แฮปปี้มาก</span>
+            <div class="pet-health-bubble">
+              <div class="pet-bubble-avatar"><div class="pet-bubble-avatar-inner">🐱</div></div>
+              <div class="pet-bubble-name">มิโล</div>
+              <div class="pet-bubble-breed">แมวไทย · 1 ปี</div>
+              <span class="pet-bubble-status ok">💚 ทุกอย่างโอเค</span>
             </div>
           </div>
         </div>
-        <div class="tl-photo">🌳🐕</div>
-      </div>
 
-      <!-- CARD 2: Vaccine (enriched with photo + caption) -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon vaccine">💉</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">ฉีดวัคซีน DHPPi+L</span>
-              <span class="tl-time">10:00</span>
+        <!-- ═══ ต้องทำวันนี้ ═══ -->
+        <div class="urgent-card">
+          <div class="urgent-header">
+            <div class="urgent-header-left">
+              <div class="urgent-header-icon">⚠️</div>
+              ต้องทำวันนี้
             </div>
-            <div class="tl-detail">คลินิกรักหมา · ดร.สมชาย</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 บาลู</span>
-              <span class="tl-tag ok">✓ สำเร็จ</span>
+            <span class="urgent-count">2 รายการ</span>
+          </div>
+          <div class="urgent-item">
+            <div class="urgent-item-icon danger">💊</div>
+            <div class="urgent-item-body">
+              <div class="urgent-item-title">หยดยาเห็บหมัดให้บาลู</div>
+              <div class="urgent-item-detail danger">เลยกำหนด 2 วัน</div>
+            </div>
+            <button class="urgent-btn primary">ทำตอนนี้</button>
+          </div>
+          <div class="urgent-item">
+            <div class="urgent-item-icon warn">⚖️</div>
+            <div class="urgent-item-body">
+              <div class="urgent-item-title">ชั่งน้ำหนักบาลู</div>
+              <div class="urgent-item-detail muted">ครบ 30 วัน — ควรบันทึกใหม่</div>
+            </div>
+            <button class="urgent-btn secondary">บันทึก</button>
+          </div>
+        </div>
+
+        <!-- ═══ วันนี้ ═══ -->
+        <div class="day-group">
+          <span class="day-label">วันนี้ · 14 พ.ค.</span>
+          <span class="day-line"></span>
+        </div>
+
+        <div class="tl">
+          <!-- CARD 1: Diary entry with photo -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon diary">📸</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">เดินเล่นสวนลุม</span>
+                  <span class="tl-time">16:30</span>
+                </div>
+                <div class="tl-detail">วิ่งไล่นกพิราบสนุกมาก ไม่ยอมกลับบ้าน 😂</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 บาลู</span>
+                  <span class="tl-tag mood">😆 แฮปปี้มาก</span>
+                </div>
+              </div>
+            </div>
+            <div class="tl-photo">🌳🐕</div>
+          </div>
+
+          <!-- CARD 2: Vaccine (enriched with photo + caption) -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon vaccine">💉</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">ฉีดวัคซีน DHPPi+L</span>
+                  <span class="tl-time">10:00</span>
+                </div>
+                <div class="tl-detail">คลินิกรักหมา · ดร.สมชาย</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 บาลู</span>
+                  <span class="tl-tag ok">✓ สำเร็จ</span>
+                </div>
+              </div>
+            </div>
+            <div class="tl-photo">💉🐕😭</div>
+            <div class="tl-caption">"ร้องเสียงดังมาก แต่ก็ผ่านไปได้นะลูก 🥺"</div>
+          </div>
+        </div>
+
+        <!-- ═══ เมื่อวาน ═══ -->
+        <div class="day-group">
+          <span class="day-label">เมื่อวาน · 13 พ.ค.</span>
+          <span class="day-line"></span>
+        </div>
+
+        <div class="tl">
+          <!-- CARD 3: Weight log with enrich prompt -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon weight">⚖️</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">ชั่งน้ำหนัก · 4.2 กก.</span>
+                  <span class="tl-time">09:15</span>
+                </div>
+                <div class="tl-detail">+0.1 กก. จากครั้งก่อน</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐱 มิโล</span>
+                  <span class="tl-tag ok">📈 ปกติ</span>
+                </div>
+                <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 4: Diary text only (no photo) -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon diary">📝</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">มิโลนอนกอดหมอนใหม่</span>
+                  <span class="tl-time">08:20</span>
+                </div>
+                <div class="tl-detail">ไม่ยอมลุกเลยตั้งแต่เช้า 😴 น่ารักมาก</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐱 มิโล</span>
+                  <span class="tl-tag mood">😴 ง่วงนอน</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="tl-photo">💉🐕😭</div>
-        <div class="tl-caption">"ร้องเสียงดังมาก แต่ก็ผ่านไปได้นะลูก 🥺"</div>
-      </div>
 
-    </div>
-
-    <!-- ═══ เมื่อวาน ═══ -->
-    <div class="day-group">
-      <span class="day-label">เมื่อวาน · 13 พ.ค.</span>
-      <span class="day-line"></span>
-    </div>
-
-    <div class="tl">
-
-      <!-- CARD 3: Weight log with enrich prompt -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon weight">⚖️</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">ชั่งน้ำหนัก · 4.2 กก.</span>
-              <span class="tl-time">09:15</span>
-            </div>
-            <div class="tl-detail">+0.1 กก. จากครั้งก่อน</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐱 มิโล</span>
-              <span class="tl-tag ok">📈 ปกติ</span>
-            </div>
-            <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
-          </div>
+        <!-- ═══ สัปดาห์นี้ ═══ -->
+        <div class="day-group">
+          <span class="day-label">สัปดาห์นี้</span>
+          <span class="day-line"></span>
         </div>
-      </div>
 
-      <!-- CARD 4: Diary text only (no photo) -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon diary">📝</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">มิโลนอนกอดหมอนใหม่</span>
-              <span class="tl-time">08:20</span>
-            </div>
-            <div class="tl-detail">ไม่ยอมลุกเลยตั้งแต่เช้า 😴 น่ารักมาก</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐱 มิโล</span>
-              <span class="tl-tag mood">😴 ง่วงนอน</span>
+        <div class="tl">
+          <!-- CARD 5: Parasite treatment -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon parasite">💊</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">กินยาถ่ายพยาธิ</span>
+                  <span class="tl-time">10 พ.ค. · 19:00</span>
+                </div>
+                <div class="tl-detail">Drontal Plus · ครั้งถัดไป 12 ส.ค.</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 ขนมปัง</span>
+                  <span class="tl-tag ok">✓ ครบรอบ</span>
+                </div>
+                <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-    </div>
-
-    <!-- ═══ สัปดาห์นี้ ═══ -->
-    <div class="day-group">
-      <span class="day-label">สัปดาห์นี้</span>
-      <span class="day-line"></span>
-    </div>
-
-    <div class="tl">
-
-      <!-- CARD 5: Parasite treatment -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon parasite">💊</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">กินยาถ่ายพยาธิ</span>
-              <span class="tl-time">10 พ.ค. · 19:00</span>
+          <!-- CARD 6: Grooming with inline thumbnail -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon shower">🚿</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">อาบน้ำตัดขน</span>
+                  <span class="tl-time">7 พ.ค. · 14:00</span>
+                </div>
+                <div class="tl-detail">Pet Grooming Studio · ตัดขนทั้งตัว + เล็บ</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 บาลู</span>
+                  <span class="tl-tag ok">✨ สะอาด</span>
+                </div>
+                <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
+              </div>
             </div>
-            <div class="tl-detail">Drontal Plus · ครั้งถัดไป 12 ส.ค.</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 ขนมปัง</span>
-              <span class="tl-tag ok">✓ ครบรอบ</span>
-            </div>
-            <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
           </div>
-        </div>
-      </div>
 
-      <!-- CARD 6: Grooming with inline thumbnail -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon shower">🚿</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">อาบน้ำตัดขน</span>
-              <span class="tl-time">7 พ.ค. · 14:00</span>
-            </div>
-            <div class="tl-detail">Pet Grooming Studio · ตัดขนทั้งตัว + เล็บ</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 บาลู</span>
-              <span class="tl-tag ok">✨ สะอาด</span>
-            </div>
-            <div class="tl-enrich">📸 เพิ่มรูปหรือข้อความไหม?</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 7: Vet visit -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon vet">🏥</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">ตรวจสุขภาพประจำปี</span>
-              <span class="tl-time">6 พ.ค. · 11:00</span>
-            </div>
-            <div class="tl-detail">คลินิกรักหมา · ดร.สมชาย · ผลตรวจเลือดปกติ</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 บาลู</span>
-              <span class="tl-tag ok">✓ ปกติ</span>
+          <!-- CARD 7: Vet visit -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon vet">🏥</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">ตรวจสุขภาพประจำปี</span>
+                  <span class="tl-time">6 พ.ค. · 11:00</span>
+                </div>
+                <div class="tl-detail">คลินิกรักหมา · ดร.สมชาย · ผลตรวจเลือดปกติ</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 บาลู</span>
+                  <span class="tl-tag ok">✓ ปกติ</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-    </div>
+        <!-- ═══ เดือนก่อน ═══ -->
+        <div class="day-group">
+          <span class="day-label">เมษายน 2569</span>
+          <span class="day-line"></span>
+        </div>
 
-    <!-- ═══ เดือนก่อน ═══ -->
-    <div class="day-group">
-      <span class="day-label">เมษายน 2569</span>
-      <span class="day-line"></span>
-    </div>
-
-    <div class="tl">
-
-      <!-- CARD 8: Birthday diary with photo -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon diary">🎂</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">สุขสันต์วันเกิด 3 ขวบ!</span>
-              <span class="tl-time">28 เม.ย. · 18:00</span>
+        <div class="tl">
+          <!-- CARD 8: Birthday diary with photo -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon diary">🎂</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">สุขสันต์วันเกิด 3 ขวบ!</span>
+                  <span class="tl-time">28 เม.ย. · 18:00</span>
+                </div>
+                <div class="tl-detail">ได้เค้กหมาเป็นของขวัญ กินหมดภายใน 30 วินาที 🎉</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐕 ขนมปัง</span>
+                  <span class="tl-tag mood">🥳 ตื่นเต้น</span>
+                </div>
+              </div>
             </div>
-            <div class="tl-detail">ได้เค้กหมาเป็นของขวัญ กินหมดภายใน 30 วินาที 🎉</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐕 ขนมปัง</span>
-              <span class="tl-tag mood">🥳 ตื่นเต้น</span>
+            <div class="tl-photo">🎂🐕🎉</div>
+          </div>
+
+          <!-- CARD 9: Weight log -->
+          <div class="tl-card">
+            <div class="tl-row">
+              <div class="tl-icon weight">⚖️</div>
+              <div class="tl-content">
+                <div class="tl-title-row">
+                  <span class="tl-title">ชั่งน้ำหนัก · 4.1 กก.</span>
+                  <span class="tl-time">25 เม.ย. · 09:00</span>
+                </div>
+                <div class="tl-detail">คงที่จากครั้งก่อน</div>
+                <div class="tl-tags">
+                  <span class="tl-tag pet">🐱 มิโล</span>
+                  <span class="tl-tag ok">✓ ปกติ</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="tl-photo">🎂🐕🎉</div>
-      </div>
 
-      <!-- CARD 9: Weight log -->
-      <div class="tl-card">
-        <div class="tl-row">
-          <div class="tl-icon weight">⚖️</div>
-          <div class="tl-content">
-            <div class="tl-title-row">
-              <span class="tl-title">ชั่งน้ำหนัก · 4.1 กก.</span>
-              <span class="tl-time">25 เม.ย. · 09:00</span>
+        <!-- TIMELINE END -->
+        <div class="tl-end">
+          <div class="te-mascot">🐾</div>
+          เริ่มบันทึกไดอารี่ตั้งแต่เมษายน 2569<br />
+          <strong>รวม 9 บันทึก · 3 นายท่าน</strong>
+        </div>
+      </div>
+      <!-- /scroll-area -->
+
+      <!-- FAB -->
+      <div class="fab" onclick="toggleSheet()">+</div>
+
+      <!-- ACTION SHEET -->
+      <div class="action-sheet-overlay" id="actionSheet" onclick="toggleSheet()">
+        <div class="action-sheet" onclick="event.stopPropagation()">
+          <div class="action-sheet-handle"></div>
+          <div class="action-sheet-title">บันทึกอะไรวันนี้? 📝</div>
+          <div class="action-grid">
+            <div class="action-item">
+              <span class="ai-icon">📸</span><span class="ai-label">ไดอารี่</span>
             </div>
-            <div class="tl-detail">คงที่จากครั้งก่อน</div>
-            <div class="tl-tags">
-              <span class="tl-tag pet">🐱 มิโล</span>
-              <span class="tl-tag ok">✓ ปกติ</span>
+            <div class="action-item">
+              <span class="ai-icon">💉</span><span class="ai-label">วัคซีน</span>
+            </div>
+            <div class="action-item">
+              <span class="ai-icon">💊</span><span class="ai-label">ถ่ายพยาธิ</span>
+            </div>
+            <div class="action-item">
+              <span class="ai-icon">⚖️</span><span class="ai-label">ชั่งน้ำหนัก</span>
+            </div>
+            <div class="action-item">
+              <span class="ai-icon">🚿</span><span class="ai-label">อาบน้ำตัดขน</span>
+            </div>
+            <div class="action-item">
+              <span class="ai-icon">🏥</span><span class="ai-label">พบหมอ</span>
             </div>
           </div>
         </div>
       </div>
+    </div>
+    <!-- /phone -->
 
+    <div class="variant-label">
+      F — Custom (D2 POPS Balanced tone + Notebook layout + Notification-style timeline)
     </div>
 
-    <!-- TIMELINE END -->
-    <div class="tl-end">
-      <div class="te-mascot">🐾</div>
-      เริ่มบันทึกไดอารี่ตั้งแต่เมษายน 2569<br>
-      <strong>รวม 9 บันทึก · 3 นายท่าน</strong>
-    </div>
+    <script>
+      // Fade hints: show left fade when scrolled
+      const chipScroll = document.getElementById("chipScroll");
+      const fadeLeft = document.getElementById("fadeLeft");
+      if (chipScroll && fadeLeft) {
+        chipScroll.addEventListener("scroll", () => {
+          fadeLeft.classList.toggle("visible", chipScroll.scrollLeft > 8);
+        });
+      }
 
-  </div><!-- /scroll-area -->
+      function toggleChip(chip) {
+        const allChip = document.querySelector(".pet-chip");
+        if (chip === allChip) {
+          document.querySelectorAll(".pet-chip").forEach((c) => c.classList.remove("active"));
+          allChip.classList.add("active");
+        } else {
+          allChip.classList.remove("active");
+          chip.classList.toggle("active");
+          const anyActive =
+            document.querySelectorAll(".pet-chip.active:not(:first-child)").length > 0;
+          if (!anyActive) allChip.classList.add("active");
+        }
+      }
 
-  <!-- FAB -->
-  <div class="fab" onclick="toggleSheet()">+</div>
-
-  <!-- ACTION SHEET -->
-  <div class="action-sheet-overlay" id="actionSheet" onclick="toggleSheet()">
-    <div class="action-sheet" onclick="event.stopPropagation()">
-      <div class="action-sheet-handle"></div>
-      <div class="action-sheet-title">บันทึกอะไรวันนี้? 📝</div>
-      <div class="action-grid">
-        <div class="action-item"><span class="ai-icon">📸</span><span class="ai-label">ไดอารี่</span></div>
-        <div class="action-item"><span class="ai-icon">💉</span><span class="ai-label">วัคซีน</span></div>
-        <div class="action-item"><span class="ai-icon">💊</span><span class="ai-label">ถ่ายพยาธิ</span></div>
-        <div class="action-item"><span class="ai-icon">⚖️</span><span class="ai-label">ชั่งน้ำหนัก</span></div>
-        <div class="action-item"><span class="ai-icon">🚿</span><span class="ai-label">อาบน้ำตัดขน</span></div>
-        <div class="action-item"><span class="ai-icon">🏥</span><span class="ai-label">พบหมอ</span></div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /phone -->
-
-<div class="variant-label">F — Custom (D2 POPS Balanced tone + Notebook layout + Notification-style timeline)</div>
-
-<script>
-// Fade hints: show left fade when scrolled
-const chipScroll = document.getElementById('chipScroll');
-const fadeLeft = document.getElementById('fadeLeft');
-if (chipScroll && fadeLeft) {
-  chipScroll.addEventListener('scroll', () => {
-    fadeLeft.classList.toggle('visible', chipScroll.scrollLeft > 8);
-  });
-}
-
-function toggleChip(chip) {
-  const allChip = document.querySelector('.pet-chip');
-  if (chip === allChip) {
-    document.querySelectorAll('.pet-chip').forEach(c => c.classList.remove('active'));
-    allChip.classList.add('active');
-  } else {
-    allChip.classList.remove('active');
-    chip.classList.toggle('active');
-    const anyActive = document.querySelectorAll('.pet-chip.active:not(:first-child)').length > 0;
-    if (!anyActive) allChip.classList.add('active');
-  }
-}
-
-function toggleSheet() {
-  const sheet = document.getElementById('actionSheet');
-  sheet.classList.toggle('visible');
-  const fab = document.querySelector('.fab');
-  if (sheet.classList.contains('visible')) {
-    fab.textContent = '×';
-    fab.style.transform = 'rotate(45deg)';
-  } else {
-    fab.textContent = '+';
-    fab.style.transform = '';
-  }
-}
-</script>
-
-</body>
+      function toggleSheet() {
+        const sheet = document.getElementById("actionSheet");
+        sheet.classList.toggle("visible");
+        const fab = document.querySelector(".fab");
+        if (sheet.classList.contains("visible")) {
+          fab.textContent = "×";
+          fab.style.transform = "rotate(45deg)";
+        } else {
+          fab.textContent = "+";
+          fab.style.transform = "";
+        }
+      }
+    </script>
+  </body>
 </html>

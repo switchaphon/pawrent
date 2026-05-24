@@ -120,9 +120,7 @@ export default async function PawrentPublicPage({ params }: Props) {
             {pet.name}
           </h1>
           {pet.breed && (
-            <p style={{ fontSize: "14px", color: "#6B6560", fontWeight: 600 }}>
-              {pet.breed}
-            </p>
+            <p style={{ fontSize: "14px", color: "#6B6560", fontWeight: 600 }}>{pet.breed}</p>
           )}
           <p
             style={{
@@ -170,10 +168,7 @@ export default async function PawrentPublicPage({ params }: Props) {
         </div>
 
         {/* Footer */}
-        <div
-          className="flex flex-col items-center gap-1"
-          style={{ marginTop: "auto" }}
-        >
+        <div className="flex flex-col items-center gap-1" style={{ marginTop: "auto" }}>
           <p style={{ fontSize: "12px", fontWeight: 700, color: "#6B6560" }}>
             Pawrent · Part of POPS
           </p>

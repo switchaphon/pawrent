@@ -41,10 +41,7 @@ export default function DiaryLoading() {
 
         {/* Timeline card skeletons */}
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="bg-surface border border-border rounded-2xl shadow-soft p-4"
-          >
+          <div key={i} className="bg-surface border border-border rounded-2xl shadow-soft p-4">
             <div className="flex items-center gap-3 mb-3">
               <span className="skeleton rounded-full w-9 h-9 flex-shrink-0" aria-hidden />
               <div className="flex-1 space-y-1.5">
@@ -52,9 +49,7 @@ export default function DiaryLoading() {
                 <span className="skeleton block rounded-full h-2 w-20" aria-hidden />
               </div>
             </div>
-            {i === 1 && (
-              <span className="skeleton block rounded-xl h-[160px] w-full" aria-hidden />
-            )}
+            {i === 1 && <span className="skeleton block rounded-xl h-[160px] w-full" aria-hidden />}
           </div>
         ))}
 
@@ -62,10 +57,7 @@ export default function DiaryLoading() {
         <span className="skeleton block rounded-full h-2.5 w-20 ml-1 mt-2" aria-hidden />
 
         {[4, 5].map((i) => (
-          <div
-            key={i}
-            className="bg-surface border border-border rounded-2xl shadow-soft p-4"
-          >
+          <div key={i} className="bg-surface border border-border rounded-2xl shadow-soft p-4">
             <div className="flex items-center gap-3">
               <span className="skeleton rounded-full w-9 h-9 flex-shrink-0" aria-hidden />
               <div className="flex-1 space-y-1.5">

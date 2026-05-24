@@ -77,11 +77,7 @@ function groupByYear(logs: ParasiteLog[]): GroupedByYear[] {
           ),
         }));
 
-      const brands = [
-        ...new Set(
-          yearLogs.map((l) => l.medicine_name ?? "").filter(Boolean)
-        ),
-      ];
+      const brands = [...new Set(yearLogs.map((l) => l.medicine_name ?? "").filter(Boolean))];
 
       return { year, months, count: yearLogs.length, brands };
     });
@@ -148,9 +144,7 @@ export function ParasiteBottomSheet({
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pb-3 shrink-0">
-          <span className="text-[14px] font-bold text-text-main">
-            ประวัติ {medicineName}
-          </span>
+          <span className="text-[14px] font-bold text-text-main">ประวัติ {medicineName}</span>
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-lg bg-surface-alt border border-border flex items-center justify-center text-text-muted"
@@ -180,7 +174,9 @@ export function ParasiteBottomSheet({
                 </button>
                 <span className="text-[16px] font-extrabold text-text-main min-w-[50px] text-center">
                   {activeGroup
-                    ? String(activeGroup.year + 543).slice(-2).padStart(2, "0") +
+                    ? String(activeGroup.year + 543)
+                        .slice(-2)
+                        .padStart(2, "0") +
                       " (" +
                       activeGroup.year +
                       ")"

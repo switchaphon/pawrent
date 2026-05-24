@@ -21,16 +21,18 @@ import { ParasiteCard } from "@/components/pets/ParasiteCard";
 import { ParasiteBottomSheet } from "@/components/pets/ParasiteBottomSheet";
 import { HealthRecordsCard } from "@/components/pets/HealthRecordsCard";
 import { MemoriesZone } from "@/components/pets/MemoriesZone";
-import {
-  getPets,
-  getPetWithDetails,
-  getPetPhotos,
-  uploadPetGalleryImage,
-} from "@/lib/db";
+import { getPets, getPetWithDetails, getPetPhotos, uploadPetGalleryImage } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { imageFileSchema } from "@/lib/validations";
 import { sortByDOB } from "@/lib/pet-utils";
-import type { Pet, Vaccination, ParasiteLog, HealthEvent, PetPhoto, DiaryEntry } from "@/lib/types/pets";
+import type {
+  Pet,
+  Vaccination,
+  ParasiteLog,
+  HealthEvent,
+  PetPhoto,
+  DiaryEntry,
+} from "@/lib/types/pets";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
@@ -104,35 +106,38 @@ function PetsContent() {
     }
   }, []);
 
-  const fetchPets = useCallback(async (preserveSelection = false) => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await getPets(user.id);
-    const sortedPets = sortByDOB(data || []);
-    setPets(sortedPets);
+  const fetchPets = useCallback(
+    async (preserveSelection = false) => {
+      if (!user) return;
+      setLoading(true);
+      const { data } = await getPets(user.id);
+      const sortedPets = sortByDOB(data || []);
+      setPets(sortedPets);
 
-    if (sortedPets.length > 0) {
-      const currentPetId = selectedPet?.id;
-      let petToSelect: Pet | undefined;
+      if (sortedPets.length > 0) {
+        const currentPetId = selectedPet?.id;
+        let petToSelect: Pet | undefined;
 
-      if (petIdFromUrl) {
-        petToSelect = sortedPets.find((p) => p.id === petIdFromUrl);
-      }
-      if (!petToSelect && preserveSelection && currentPetId) {
-        petToSelect = sortedPets.find((p) => p.id === currentPetId);
-      }
-      if (!petToSelect) {
-        petToSelect = sortedPets[0];
-      }
+        if (petIdFromUrl) {
+          petToSelect = sortedPets.find((p) => p.id === petIdFromUrl);
+        }
+        if (!petToSelect && preserveSelection && currentPetId) {
+          petToSelect = sortedPets.find((p) => p.id === currentPetId);
+        }
+        if (!petToSelect) {
+          petToSelect = sortedPets[0];
+        }
 
-      setSelectedPet(petToSelect);
-      await fetchPetDetails(petToSelect.id);
-    } else {
-      setSelectedPet(null);
-    }
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, petIdFromUrl, fetchPetDetails]);
+        setSelectedPet(petToSelect);
+        await fetchPetDetails(petToSelect.id);
+      } else {
+        setSelectedPet(null);
+      }
+      setLoading(false);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [user, petIdFromUrl, fetchPetDetails]
+  );
 
   useEffect(() => {
     fetchPets();
@@ -168,9 +173,7 @@ function PetsContent() {
       })
       .slice(0, 1)
       .forEach((p) => {
-        const days = Math.ceil(
-          (Date.now() - new Date(p.next_due_date).getTime()) / 86400000
-        );
+        const days = Math.ceil((Date.now() - new Date(p.next_due_date).getTime()) / 86400000);
         urgentItems.push({
           id: `para-${p.id}`,
           type: "parasite_overdue",
@@ -209,7 +212,9 @@ function PetsContent() {
 
       const photoId = `${Date.now()}`;
       const { data: photoUrl, error: uploadError } = await uploadPetGalleryImage(
-        file, selectedPet.id, photoId
+        file,
+        selectedPet.id,
+        photoId
       );
       if (uploadError || !photoUrl) return;
 
@@ -292,13 +297,26 @@ function PetsContent() {
       <main className="px-0 py-4 max-w-md mx-auto space-y-3.5">
         {/* Dialogs */}
         {showAddVaccine && selectedPet && (
-          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <button type="button" aria-label="ปิด" tabIndex={-1} onClick={() => setShowAddVaccine(false)} className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <button
+              type="button"
+              aria-label="ปิด"
+              tabIndex={-1}
+              onClick={() => setShowAddVaccine(false)}
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            />
             <div className="relative max-w-sm w-full">
               <AddVaccineForm
                 petId={selectedPet.id}
                 petSpecies={selectedPet.species}
-                onSuccess={() => { setShowAddVaccine(false); fetchPetDetails(selectedPet.id); }}
+                onSuccess={() => {
+                  setShowAddVaccine(false);
+                  fetchPetDetails(selectedPet.id);
+                }}
                 onCancel={() => setShowAddVaccine(false)}
               />
             </div>
@@ -306,13 +324,26 @@ function PetsContent() {
         )}
 
         {showAddParasiteLog && selectedPet && (
-          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <button type="button" aria-label="ปิด" tabIndex={-1} onClick={() => setShowAddParasiteLog(false)} className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <button
+              type="button"
+              aria-label="ปิด"
+              tabIndex={-1}
+              onClick={() => setShowAddParasiteLog(false)}
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            />
             <div className="relative max-w-sm w-full">
               <AddParasiteLogForm
                 petId={selectedPet.id}
                 petSpecies={selectedPet.species}
-                onSuccess={() => { setShowAddParasiteLog(false); fetchPetDetails(selectedPet.id); }}
+                onSuccess={() => {
+                  setShowAddParasiteLog(false);
+                  fetchPetDetails(selectedPet.id);
+                }}
                 onCancel={() => setShowAddParasiteLog(false)}
               />
             </div>
@@ -323,13 +354,20 @@ function PetsContent() {
           <ImageCropper
             imageSrc={photoToCrop}
             onCropComplete={handlePhotoUpload}
-            onCancel={() => { setShowPhotoCropper(false); setPhotoToCrop(null); }}
+            onCancel={() => {
+              setShowPhotoCropper(false);
+              setPhotoToCrop(null);
+            }}
             aspectRatio={1}
             cropShape="rect"
           />
         )}
 
-        <PetIdCardModal pet={selectedPet ?? { id: "", name: "" }} open={showIdCard && !!selectedPet} onClose={() => setShowIdCard(false)} />
+        <PetIdCardModal
+          pet={selectedPet ?? { id: "", name: "" }}
+          open={showIdCard && !!selectedPet}
+          onClose={() => setShowIdCard(false)}
+        />
 
         <ParasiteBottomSheet
           open={bsOpen}
@@ -342,15 +380,25 @@ function PetsContent() {
           <div className="px-4">
             <EditPetForm
               pet={selectedPet}
-              onSuccess={() => { setShowEditPet(false); fetchPets(true); }}
+              onSuccess={() => {
+                setShowEditPet(false);
+                fetchPets(true);
+              }}
               onCancel={() => setShowEditPet(false)}
-              onDelete={() => { setShowEditPet(false); setSelectedPet(null); fetchPets(); }}
+              onDelete={() => {
+                setShowEditPet(false);
+                setSelectedPet(null);
+                fetchPets();
+              }}
             />
           </div>
         ) : showAddPet ? (
           <div className="px-4">
             <CreatePetForm
-              onSuccess={() => { setShowAddPet(false); fetchPets(); }}
+              onSuccess={() => {
+                setShowAddPet(false);
+                fetchPets();
+              }}
               onCancel={() => setShowAddPet(false)}
             />
           </div>
@@ -415,10 +463,7 @@ function PetsContent() {
                 />
 
                 {/* Zone 4: Health Records */}
-                <HealthRecordsCard
-                  healthEvents={healthEvents}
-                  isMemorial={isMemorial}
-                />
+                <HealthRecordsCard healthEvents={healthEvents} isMemorial={isMemorial} />
 
                 {/* Zone 6: Memories */}
                 <MemoriesZone

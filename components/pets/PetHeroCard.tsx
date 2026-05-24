@@ -1,73 +1,65 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Image from 'next/image'
-import {
-  SquarePen,
-  Cpu,
-  IdCard,
-  PawPrint,
-  ChevronDown,
-  Cake,
-  Weight,
-} from 'lucide-react'
-import type { Pet } from '@/lib/types/pets'
+import { useState } from "react";
+import Image from "next/image";
+import { SquarePen, Cpu, IdCard, PawPrint, ChevronDown, Cake, Weight } from "lucide-react";
+import type { Pet } from "@/lib/types/pets";
 
 function calculateAge(dob: string | null): string {
-  if (!dob) return 'ไม่ระบุอายุ'
-  const birth = new Date(dob)
-  const now = new Date()
+  if (!dob) return "ไม่ระบุอายุ";
+  const birth = new Date(dob);
+  const now = new Date();
   const totalMonths =
-    (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
-  const y = Math.floor(totalMonths / 12)
-  const m = totalMonths % 12
-  if (y === 0) return `${m} เดือน`
-  if (m === 0) return `${y} ปี`
-  return `${y} ปี ${m} เดือน`
+    (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  const y = Math.floor(totalMonths / 12);
+  const m = totalMonths % 12;
+  if (y === 0) return `${m} เดือน`;
+  if (m === 0) return `${y} ปี`;
+  return `${y} ปี ${m} เดือน`;
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function formatSex(sex: string | null, neutered?: boolean | null): string {
-  if (!sex) return '—'
-  const base = sex === 'male' || sex === 'ผู้' ? 'ผู้' : 'เมีย'
-  return neutered ? `${base} (ทำหมันแล้ว)` : base
+  if (!sex) return "—";
+  const base = sex === "male" || sex === "ผู้" ? "ผู้" : "เมีย";
+  return neutered ? `${base} (ทำหมันแล้ว)` : base;
 }
 
 interface PetHeroCardProps {
-  pet: Pet
-  onEdit: () => void
-  onShowIdCard: () => void
+  pet: Pet;
+  onEdit: () => void;
+  onShowIdCard: () => void;
 }
 
 export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
-  const [infoOpen, setInfoOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false);
 
-  const age = calculateAge(pet.date_of_birth)
-  const isMemorial = pet.status === 'memorial'
+  const age = calculateAge(pet.date_of_birth);
+  const isMemorial = pet.status === "memorial";
 
   const breedLine = [pet.breed, pet.sex ? formatSex(pet.sex, pet.neutered) : null, pet.color]
     .filter(Boolean)
-    .join(' · ')
+    .join(" · ");
 
   const infoRows: { label: string; value: string }[] = [
-    { label: 'ชื่อ', value: pet.name },
-    { label: 'ประเภท', value: pet.species ?? '—' },
-    { label: 'สายพันธุ์', value: pet.breed ?? '—' },
-    { label: 'เพศ', value: formatSex(pet.sex, pet.neutered) },
-    { label: 'วันเกิด', value: formatDate(pet.date_of_birth) },
-    { label: 'อายุ', value: age },
-    { label: 'น้ำหนัก', value: pet.weight_kg ? `${pet.weight_kg} กก.` : '—' },
-    { label: 'สี/ลาย', value: pet.color ?? '—' },
-    { label: 'ไมโครชิป', value: pet.microchip_number ?? 'ยังไม่ลงทะเบียน' },
-  ]
+    { label: "ชื่อ", value: pet.name },
+    { label: "ประเภท", value: pet.species ?? "—" },
+    { label: "สายพันธุ์", value: pet.breed ?? "—" },
+    { label: "เพศ", value: formatSex(pet.sex, pet.neutered) },
+    { label: "วันเกิด", value: formatDate(pet.date_of_birth) },
+    { label: "อายุ", value: age },
+    { label: "น้ำหนัก", value: pet.weight_kg ? `${pet.weight_kg} กก.` : "—" },
+    { label: "สี/ลาย", value: pet.color ?? "—" },
+    { label: "ไมโครชิป", value: pet.microchip_number ?? "ยังไม่ลงทะเบียน" },
+  ];
 
   return (
     <section
@@ -80,10 +72,12 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
           role="status"
           className="flex items-center gap-2 px-5 py-2.5 bg-surface-alt border-b border-border-subtle"
         >
-          <span aria-hidden className="text-base">🌟</span>
+          <span aria-hidden className="text-base">
+            🌟
+          </span>
           <span className="text-[12px] font-semibold text-text-muted">
             กลับดาว
-            {pet.memorial_date ? ` · ${formatDate(pet.memorial_date)}` : ''}
+            {pet.memorial_date ? ` · ${formatDate(pet.memorial_date)}` : ""}
           </span>
         </div>
       )}
@@ -107,7 +101,9 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
                   sizes="96px"
                 />
               ) : (
-                <span aria-hidden className="text-[44px]">🐾</span>
+                <span aria-hidden className="text-[44px]">
+                  🐾
+                </span>
               )}
             </div>
           </div>
@@ -143,7 +139,9 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
               <span>{age}</span>
               {pet.weight_kg && (
                 <>
-                  <span aria-hidden className="mx-0.5">·</span>
+                  <span aria-hidden className="mx-0.5">
+                    ·
+                  </span>
                   <Weight className="w-3 h-3 flex-shrink-0" aria-hidden />
                   <span>{pet.weight_kg} กก.</span>
                 </>
@@ -154,9 +152,7 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center gap-1 text-[12px] text-text-muted">
                 <Cpu className="w-3 h-3 flex-shrink-0" aria-hidden />
-                <code className="font-mono text-[12px]">
-                  {pet.microchip_number ?? 'ไม่มีรหัส'}
-                </code>
+                <code className="font-mono text-[12px]">{pet.microchip_number ?? "ไม่มีรหัส"}</code>
               </div>
               <button
                 type="button"
@@ -179,10 +175,10 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
         aria-expanded={infoOpen}
         aria-controls="pet-hero-collapsible"
         className={[
-          'w-full flex items-center justify-between px-5 py-3',
-          'border-t border-border-subtle cursor-pointer select-none',
-          'transition-colors active:bg-surface-alt',
-        ].join(' ')}
+          "w-full flex items-center justify-between px-5 py-3",
+          "border-t border-border-subtle cursor-pointer select-none",
+          "transition-colors active:bg-surface-alt",
+        ].join(" ")}
       >
         <div className="flex items-center gap-2">
           <div
@@ -198,9 +194,9 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
         <ChevronDown
           aria-hidden
           className={[
-            'w-[14px] h-[14px] text-text-muted transition-transform duration-[250ms]',
-            infoOpen ? 'rotate-180' : '',
-          ].join(' ')}
+            "w-[14px] h-[14px] text-text-muted transition-transform duration-[250ms]",
+            infoOpen ? "rotate-180" : "",
+          ].join(" ")}
         />
       </button>
 
@@ -210,9 +206,9 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
         role="region"
         aria-label="ข้อมูลประจำตัว"
         className={[
-          'overflow-hidden transition-all duration-300 ease-in-out',
-          infoOpen ? 'max-h-[900px]' : 'max-h-0',
-        ].join(' ')}
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          infoOpen ? "max-h-[900px]" : "max-h-0",
+        ].join(" ")}
       >
         <div className="px-5 pb-4">
           {infoRows.map(({ label, value }) => (
@@ -229,5 +225,5 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
         </div>
       </div>
     </section>
-  )
+  );
 }

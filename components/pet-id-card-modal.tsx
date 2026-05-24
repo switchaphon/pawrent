@@ -129,7 +129,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
 
       {/* Card area */}
       <div className="relative z-10 flex flex-col items-center gap-5 w-full max-w-sm">
-
         {/* Loading completion */}
         {loadingCompletion && (
           <div className="flex items-center gap-2 text-white/70 text-sm">

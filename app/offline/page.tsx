@@ -11,7 +11,9 @@ export default function OfflinePage() {
         </div>
       </div>
       <h1 className="text-xl font-extrabold text-text-main mb-2">คุณออฟไลน์อยู่</h1>
-      <p className="text-sm text-text-muted mb-6">กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง</p>
+      <p className="text-sm text-text-muted mb-6">
+        กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง
+      </p>
       <button
         onClick={() => window.location.reload()}
         className="h-11 px-6 bg-gradient-to-br from-primary to-primary-light text-white text-sm font-bold rounded-full shadow-primary active:scale-95 transition-transform"

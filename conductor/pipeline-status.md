@@ -5,10 +5,10 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP    | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
-| ------ | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
-| PRP-16 | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
-| v2-PetProfile | review | G5 | awaiting-human | feature/v2-pet-profile-6zone | 2026-05-24 |
+| PRP           | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
+| ------------- | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
+| PRP-16        | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
+| v2-PetProfile | review  | G5   | awaiting-human           | feature/v2-pet-profile-6zone                                                | 2026-05-24   |
 
 ### Morning continuation (Option A — stacked PRs)
 
@@ -166,19 +166,19 @@ all run in a single focused session once the image exists.
 
 ## Completed Pipelines
 
-| PRP      | Started    | Completed  | Commits                                                                    |
-| -------- | ---------- | ---------- | -------------------------------------------------------------------------- |
-| Phase1.5 | 2026-05-18 | 2026-05-18 | feat: Phase 1.5 UI state patterns — D2 empty, loading, error, toast, modal |
-| v2-Diary | 2026-05-18 | 2026-05-18 | feat: Phase 2A unified timeline diary — 4 APIs, page, FAB, day grouping |
+| PRP        | Started    | Completed  | Commits                                                                       |
+| ---------- | ---------- | ---------- | ----------------------------------------------------------------------------- |
+| Phase1.5   | 2026-05-18 | 2026-05-18 | feat: Phase 1.5 UI state patterns — D2 empty, loading, error, toast, modal    |
+| v2-Diary   | 2026-05-18 | 2026-05-18 | feat: Phase 2A unified timeline diary — 4 APIs, page, FAB, day grouping       |
 | v2-ID-Card | 2026-05-18 | 2026-05-18 | feat: Phase 2B virtual pet ID card — PNG, flip modal, QR, completion, webhook |
-| PRP-12   | 2026-04-20 | 2026-04-20 | feat(prp-12): pet health passport, line reminders, weight tracking         |
-| PRP-06   | 2026-04-20 | 2026-04-20 | feat(prp-06): line push notifications with geospatial targeting            |
-| PRP-05   | 2026-04-20 | 2026-04-20 | feat(prp-05): found pet reporting, sightings, and contact bridge           |
-| PRP-04.2 | 2026-04-13 | 2026-04-20 | feat(voice): voice recording for pet recall in lost wizard                 |
-| PRP-04.1 | 2026-04-13 | 2026-04-20 | feat(poster): A4 PDF poster and JPEG share card generation                 |
-| PRP-04   | 2026-04-13 | 2026-04-14 | feat(post): lost pet reporting flow — PRs #11-#17, UAT verified            |
-| PRP-03.1 | 2026-04-13 | 2026-04-13 | refactor: rename SOS infrastructure to pet_reports                         |
-| PRP-03   | 2026-04-12 | 2026-04-12 | feat(postgis): add geospatial infrastructure                               |
-| PRP-02   | 2026-04-12 | 2026-04-12 | feat(rich-menu): line rich menu, webhook handler, and navigation shell     |
-| PRP-01c  | 2026-04-11 | 2026-04-11 | feat(auth): extract real line email for auth users with synthetic fallback |
-| PRP-01   | 2026-04-10 | 2026-04-10 | feat(auth): implement LINE LIFF auth                                       |
+| PRP-12     | 2026-04-20 | 2026-04-20 | feat(prp-12): pet health passport, line reminders, weight tracking            |
+| PRP-06     | 2026-04-20 | 2026-04-20 | feat(prp-06): line push notifications with geospatial targeting               |
+| PRP-05     | 2026-04-20 | 2026-04-20 | feat(prp-05): found pet reporting, sightings, and contact bridge              |
+| PRP-04.2   | 2026-04-13 | 2026-04-20 | feat(voice): voice recording for pet recall in lost wizard                    |
+| PRP-04.1   | 2026-04-13 | 2026-04-20 | feat(poster): A4 PDF poster and JPEG share card generation                    |
+| PRP-04     | 2026-04-13 | 2026-04-14 | feat(post): lost pet reporting flow — PRs #11-#17, UAT verified               |
+| PRP-03.1   | 2026-04-13 | 2026-04-13 | refactor: rename SOS infrastructure to pet_reports                            |
+| PRP-03     | 2026-04-12 | 2026-04-12 | feat(postgis): add geospatial infrastructure                                  |
+| PRP-02     | 2026-04-12 | 2026-04-12 | feat(rich-menu): line rich menu, webhook handler, and navigation shell        |
+| PRP-01c    | 2026-04-11 | 2026-04-11 | feat(auth): extract real line email for auth users with synthetic fallback    |
+| PRP-01     | 2026-04-10 | 2026-04-10 | feat(auth): implement LINE LIFF auth                                          |

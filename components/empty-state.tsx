@@ -32,20 +32,13 @@ export function EmptyState({
       )}
     >
       {icon ? (
-        <div className={isFull ? "mascot-halo" : "mascot-halo-xs"}>
-          {icon}
-        </div>
+        <div className={isFull ? "mascot-halo" : "mascot-halo-xs"}>{icon}</div>
       ) : emoji ? (
         <div aria-hidden className={isFull ? "mascot-halo" : "mascot-halo-xs"}>
           {emoji}
         </div>
       ) : null}
-      <h3
-        className={cn(
-          "font-extrabold text-text-main",
-          isFull ? "text-[14px]" : "text-[12px]"
-        )}
-      >
+      <h3 className={cn("font-extrabold text-text-main", isFull ? "text-[14px]" : "text-[12px]")}>
         {title}
       </h3>
       {description && (
