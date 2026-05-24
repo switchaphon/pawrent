@@ -279,7 +279,8 @@ describe("Alert Detail Page", () => {
     render(<AlertDetail />);
     await waitFor(() => {
       // Age should be calculated and displayed
-      expect(screen.getByText(/ปี|year|เดือน|month/i)).toBeInTheDocument();
+      const ageElements = screen.getAllByText(/ปี|year|เดือน|month/i);
+      expect(ageElements.length).toBeGreaterThan(0);
     });
   });
 
