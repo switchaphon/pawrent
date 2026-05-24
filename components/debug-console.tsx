@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 export function DebugConsole() {
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (process.env.NODE_ENV === "development") {
       import("vconsole").then(({ default: VConsole }) => {
         new VConsole();
       });

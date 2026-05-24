@@ -3,6 +3,7 @@ import { petSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
+const getLimiter = createRateLimiter(60, "1 m");
 const postLimiter = createRateLimiter(10, "1 m");
 const putLimiter = createRateLimiter(20, "1 m");
 const deleteLimiter = createRateLimiter(10, "1 m");
@@ -15,6 +16,23 @@ async function getAuthUser(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   return user ? { user, supabase } : null;
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await getAuthUser(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(getLimiter, auth.user.id);
+  if (rateLimited) return rateLimited;
+
+  const { data, error } = await auth.supabase
+    .from("pets")
+    .select("*")
+    .eq("owner_id", auth.user.id)
+    .order("created_at", { ascending: true });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
 }
 
 export async function POST(request: NextRequest) {

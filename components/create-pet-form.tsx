@@ -152,7 +152,7 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
       )}
 
       <Card className="p-6 rounded-2xl">
-        <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-text-main mb-6 flex items-center gap-2">
           <PawPrint className="w-5 h-5 text-primary" />
           Add New Pet
         </h2>
@@ -178,7 +178,7 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
               <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
             </label>
           </div>
-          <p className="text-xs text-center text-muted-foreground">Tap to add & crop photo</p>
+          <p className="text-xs text-center text-text-muted">Tap to add & crop photo</p>
 
           {/* Name */}
           <div className="space-y-2">
@@ -227,7 +227,7 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
                   className={`flex-1 h-12 rounded-xl border-2 font-medium transition-colors ${
                     formData.sex === sex
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-gray-200 bg-white text-foreground hover:border-gray-300"
+                      : "border-border bg-surface text-text-main hover:border-border"
                   }`}
                 >
                   {sex === "Male" ? "♂" : "♀"} {sex}
@@ -244,7 +244,7 @@ export function CreatePetForm({ onSuccess, onCancel }: CreatePetFormProps) {
               aria-checked={formData.neutered}
               onClick={() => setFormData({ ...formData, neutered: !formData.neutered })}
               className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                formData.neutered ? "bg-primary border-primary text-white" : "border-gray-300"
+                formData.neutered ? "bg-primary border-primary text-white" : "border-border"
               }`}
             >
               {formData.neutered && <span className="text-sm">✓</span>}

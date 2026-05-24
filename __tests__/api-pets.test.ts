@@ -1,5 +1,5 @@
 /**
- * Integration tests for /api/pets (POST, PUT, DELETE).
+ * Integration tests for /api/pets (GET, POST, PUT, DELETE).
  *
  * Strategy: vi.mock the @/lib/supabase-api module so every test controls
  * exactly what Supabase returns. The route handlers are imported directly
@@ -73,7 +73,7 @@ vi.mock("@/lib/supabase-api", () => ({
 }));
 
 // Import route handlers AFTER the mock is in place.
-import { POST, PUT, DELETE } from "@/app/api/pets/route";
+import { GET, POST, PUT, DELETE } from "@/app/api/pets/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -356,5 +356,114 @@ describe("DELETE /api/pets", () => {
     const req = makeRequest("DELETE", { petId: VALID_UUID });
     const res = await DELETE(req);
     expect(res.status).toBe(500);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/pets — returns all pets owned by the authenticated user
+// ---------------------------------------------------------------------------
+
+describe("GET /api/pets", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+  });
+
+  function makeGetRequest(withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/pets", {
+      method: "GET",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  it("should return 401 when no Authorization header is present", async () => {
+    const req = makeGetRequest(false);
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 401 when the token resolves to no user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
+    const req = makeGetRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("should return an array of pets for the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    const pets = [
+      { id: VALID_UUID, owner_id: "user-1", name: "Luna" },
+      { id: ANOTHER_UUID, owner_id: "user-1", name: "Max" },
+    ];
+
+    // GET path: from("pets").select("*").eq("owner_id", id).order(...)
+    const orderMock = vi.fn().mockResolvedValue({ data: pets, error: null });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom.mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toHaveLength(2);
+    expect(json[0].name).toBe("Luna");
+    expect(json[1].name).toBe("Max");
+  });
+
+  it("should return an empty array when the user has no pets", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom.mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual([]);
+  });
+
+  it("should filter by owner_id (not return other users' pets)", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    const capturedEqArgs: Array<[string, unknown]> = [];
+    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eqMock = vi.fn((...args: [string, unknown]) => {
+      capturedEqArgs.push(args);
+      return { order: orderMock };
+    });
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom.mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest();
+    await GET(req);
+
+    // The route must filter by owner_id equal to the authenticated user's ID
+    const ownerFilter = capturedEqArgs.find(([key]) => key === "owner_id");
+    expect(ownerFilter).toBeDefined();
+    expect(ownerFilter?.[1]).toBe("user-1");
+  });
+
+  it("should return 500 when Supabase returns a database error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    const orderMock = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: "Connection failed" } });
+    const eqMock = vi.fn(() => ({ order: orderMock }));
+    const selectMock = vi.fn(() => ({ eq: eqMock }));
+    mockFrom.mockReturnValueOnce({ select: selectMock });
+
+    const req = makeGetRequest();
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Connection failed");
   });
 });

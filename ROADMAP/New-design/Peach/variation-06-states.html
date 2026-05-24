@@ -1,0 +1,1106 @@
+<!--
+  ============================================================
+  Pawrent V6+D2 — State Patterns Reference
+  ============================================================
+
+  Purpose:
+  Reference document (not a single app screen). Shows empty,
+  loading, error, toast, and confirmation-modal patterns so
+  engineers can copy them across all Pawrent screens.
+
+  Design System:
+  - Layout base: variation-06.html (V6 hybrid — pill shapes
+    on vertical card stack)
+  - Tone: D2 POPS Balanced (see DESIGN-TOKENS-D2-pops-balanced.md)
+  - Warm stone background, coral-amber primary, neutral pills,
+    warm charcoal text (no pure black)
+
+  Rules (from D2 tokens):
+  - No black anywhere (use #2E2A2E warm charcoal)
+  - POPS tri-color gradient is emotional-spots only:
+    mascot halos, success celebrations, active selectors
+  - Primary coral→amber gradient is for primary CTAs
+  - Neutral stone pills for inert chips
+  - WCAG AA contrast; 44x44px minimum touch targets
+  - Thai language only (Noto Sans Thai 400/600/700/800)
+
+  Layout:
+  - Mobile-first 390px; responsive grid on tablet+ so state
+    examples sit side-by-side for quick reference
+  - Each example is a labeled mini phone frame (260x400px)
+  - Section headings ~18px bold, centered with divider
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pawrent V6+D2 — State Patterns Reference</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { thai: ['"Noto Sans Thai"', 'sans-serif'] },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    :root {
+      /* Primary */
+      --primary: #FF8263;
+      --primary-light: #FFA563;
+      --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+
+      /* POPS brand gradient (emotional spots only) */
+      --accent-brand: #F06FA8;
+      --accent-yellow: #FFCB6B;
+      --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+
+      /* Surface / background */
+      --bg-start: #FAF7F2;
+      --bg-end: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface-alt: #EDEDE8;
+
+      /* Text */
+      --text: #2E2A2E;
+      --text-muted: #6B6560;
+      --text-subtle: #3D3935;
+
+      /* Semantic */
+      --success: #4C6B3C;
+      --success-bg: #EDF0EA;
+      --warning: #B8730A;
+      --warning-bg: #FFF3D9;
+      --danger: #D32F2F;
+      --danger-bg: #FFEBEE;
+      --info: #1565C0;
+      --info-bg: #E3F2FD;
+
+      /* Borders */
+      --border: #E8E2D8;
+      --border-subtle: #F0EDE6;
+
+      /* Radius */
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+
+      /* Shadows */
+      --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+      --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
+      --shadow-primary: 0 4px 14px rgba(255,130,99,0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+
+    /* ── Reusable utility classes ─────────────────────── */
+
+    .surface { background: var(--surface); }
+    .text-main { color: var(--text); }
+    .text-muted-c { color: var(--text-muted); }
+    .text-subtle-c { color: var(--text-subtle); }
+
+    .border-card { border: 1px solid var(--border); }
+    .shadow-soft-c { box-shadow: var(--shadow-soft); }
+    .shadow-primary-c { box-shadow: var(--shadow-primary); }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: #FFFFFF;
+      font-weight: 700;
+      border-radius: var(--radius-pill);
+      min-height: 44px;
+      padding: 0 24px;
+      box-shadow: var(--shadow-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text-muted);
+      font-weight: 600;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-pill);
+      min-height: 44px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--primary);
+      font-weight: 700;
+      border-radius: var(--radius-pill);
+      min-height: 44px;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #FFFFFF;
+      font-weight: 700;
+      border-radius: var(--radius-pill);
+      min-height: 44px;
+      padding: 0 24px;
+      box-shadow: 0 4px 14px rgba(211,47,47,0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    /* Mini phone frame: a simulated mobile container for a pattern */
+    .phone-frame {
+      width: 100%;
+      max-width: 260px;
+      height: 400px;
+      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      position: relative;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch {
+      height: 24px;
+      background: var(--surface-alt);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .phone-body {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+    }
+
+    /* Mascot halo: large POPS-gradient circle used for emotional moments */
+    .mascot-halo {
+      width: 88px;
+      height: 88px;
+      border-radius: 9999px;
+      background: var(--pops-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: var(--shadow-glow);
+      margin-bottom: 16px;
+    }
+
+    .mascot-halo-sm {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: var(--pops-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--shadow-glow);
+      margin-bottom: 12px;
+    }
+
+    .icon-circle-danger {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: var(--danger-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+      border: 2px solid #F8D7DA;
+    }
+
+    .icon-circle-warning {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: var(--warning-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 12px;
+      border: 2px solid #F3E3B5;
+    }
+
+    /* Empty/error heading + body */
+    .state-heading {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .state-body {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      max-width: 220px;
+    }
+
+    /* Skeleton shimmer animation (pulse only; no JS) */
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: calc(200px + 100%) 0; }
+    }
+
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--surface-alt) 0%,
+        #F5F2EC 50%,
+        var(--surface-alt) 100%
+      );
+      background-size: 200px 100%;
+      background-repeat: no-repeat;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    .skeleton-circle {
+      border-radius: 9999px;
+    }
+
+    /* Spinner dot ring (pure CSS) */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #FFFFFF;
+      border-radius: 9999px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .spinner-primary {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(255,130,99,0.2);
+      border-top-color: var(--primary);
+      border-radius: 9999px;
+      animation: spin 0.9s linear infinite;
+    }
+
+    /* Pill input (D2 style) */
+    .pill-input {
+      height: 44px;
+      border-radius: var(--radius-pill);
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .pill-input-error {
+      border-color: var(--danger);
+      background: #FFF9F9;
+    }
+
+    /* Toast surface */
+    .toast {
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow-soft);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .toast-success {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid #C7D6BE;
+    }
+
+    .toast-error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid #F3C6C8;
+    }
+
+    .toast-info {
+      background: var(--info-bg);
+      color: var(--info);
+      border: 1px solid #B6D4EC;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: relative;
+      background: rgba(46, 42, 46, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border-radius: var(--radius-lg);
+      padding: 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 420px;
+      overflow: hidden;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 20px 18px;
+      box-shadow: 0 12px 32px rgba(46,42,46,0.18);
+      width: 100%;
+      max-width: 260px;
+      text-align: center;
+    }
+
+    /* Section heading block */
+    .section-heading {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* Label above each mini phone */
+    .example-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-subtle);
+      margin-bottom: 12px;
+    }
+
+    .example-label .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: var(--primary-gradient);
+    }
+
+    /* Grid of phone frames: auto-fit, min 260px */
+    .phone-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 28px;
+      justify-items: center;
+    }
+
+    /* Divider between sections */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 768px;
+      margin: 48px auto 24px;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-divider .pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-subtle);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body class="font-thai">
+
+  <!-- ============================================================
+       PAGE HEADER
+       ============================================================ -->
+  <header class="max-w-[768px] mx-auto px-4 pt-10 pb-6 text-center">
+    <div class="inline-flex items-center gap-2 bg-white border border-[color:var(--border)] rounded-full px-4 py-1.5 mb-4 shadow-[var(--shadow-soft)]">
+      <span class="w-2 h-2 rounded-full" style="background: var(--pops-gradient);"></span>
+      <span class="text-[11px] font-bold text-[color:var(--text-subtle)] tracking-wider">REFERENCE · V6 + D2</span>
+    </div>
+    <h1 class="text-[22px] md:text-[26px] font-extrabold text-[color:var(--text)] leading-tight">
+      V6+D2 · State Patterns Reference
+    </h1>
+    <p class="text-[13px] text-[color:var(--text-muted)] mt-2 leading-relaxed max-w-md mx-auto">
+      Use these patterns consistently across all screens
+    </p>
+    <div class="mt-4 inline-flex flex-wrap gap-2 justify-center">
+      <span class="text-[10px] font-semibold rounded-full px-3 py-1" style="background: var(--surface-alt); color: var(--text-subtle);">Empty</span>
+      <span class="text-[10px] font-semibold rounded-full px-3 py-1" style="background: var(--surface-alt); color: var(--text-subtle);">Loading</span>
+      <span class="text-[10px] font-semibold rounded-full px-3 py-1" style="background: var(--surface-alt); color: var(--text-subtle);">Error</span>
+      <span class="text-[10px] font-semibold rounded-full px-3 py-1" style="background: var(--surface-alt); color: var(--text-subtle);">Toast</span>
+      <span class="text-[10px] font-semibold rounded-full px-3 py-1" style="background: var(--surface-alt); color: var(--text-subtle);">Modal</span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SECTION 1 — EMPTY STATES
+       ============================================================ -->
+  <div class="section-divider">
+    <span class="pill">01 · Empty States</span>
+  </div>
+  <section class="max-w-[1100px] mx-auto px-4">
+    <h2 class="section-heading">Empty States</h2>
+    <p class="section-sub">Friendly mascot + clear next action</p>
+
+    <div class="phone-grid mt-8">
+
+      <!-- ── 1a. No pets registered ──────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>1a. No pets registered</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="mascot-halo">🐾</div>
+            <p class="state-heading">ยังไม่มีน้องในระบบ</p>
+            <p class="state-body">เพิ่มสัตว์เลี้ยงตัวแรกเพื่อเริ่มใช้งาน Pawrent</p>
+            <button class="btn-primary" style="min-height: 44px;">
+              เพิ่มน้องตัวแรก 🐕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 1b. No posts in feed ────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>1b. No posts in feed</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="mascot-halo">🔍</div>
+            <p class="state-heading">ยังไม่มีประกาศในพื้นที่นี้</p>
+            <p class="state-body">ลองเพิ่มรัศมีค้นหาเป็น 10 km</p>
+            <button class="btn-outline" style="min-height: 44px;">
+              ขยายรัศมี
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 1c. No notifications ────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>1c. No notifications</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="mascot-halo">🔔</div>
+            <p class="state-heading">ยังไม่มีแจ้งเตือน</p>
+            <p class="state-body">เราจะแจ้งเมื่อมีความเคลื่อนไหว</p>
+            <!-- intentionally no button -->
+            <div class="flex gap-1.5 mt-1">
+              <span class="w-1.5 h-1.5 rounded-full" style="background: var(--border);"></span>
+              <span class="w-1.5 h-1.5 rounded-full" style="background: var(--border);"></span>
+              <span class="w-1.5 h-1.5 rounded-full" style="background: var(--border);"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 1d. No photos in gallery ────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>1d. No photos in gallery</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="mascot-halo">📷</div>
+            <p class="state-heading">ยังไม่มีรูปของน้อง</p>
+            <p class="state-body">อัปโหลดรูปอย่างน้อย 3 รูปเพื่อใช้ในกรณีฉุกเฉิน</p>
+            <button class="btn-primary" style="min-height: 44px;">
+              อัปโหลดรูปแรก
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 1e. No search results ───────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>1e. No search results</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="mascot-halo">🕵️</div>
+            <p class="state-heading">ไม่พบสิ่งที่ค้นหา</p>
+            <p class="state-body">ลองใช้คำค้นหาอื่น หรือลดตัวกรอง</p>
+            <button class="btn-ghost" style="min-height: 44px;">
+              ล้างตัวกรอง
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 2 — LOADING STATES
+       ============================================================ -->
+  <div class="section-divider">
+    <span class="pill">02 · Loading States</span>
+  </div>
+  <section class="max-w-[1100px] mx-auto px-4">
+    <h2 class="section-heading">Loading States</h2>
+    <p class="section-sub">Shimmer skeletons + subtle progress indicators</p>
+
+    <div class="phone-grid mt-8">
+
+      <!-- ── 2a. Full page skeleton (pets-style stack) ───── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>2a. Full page skeleton</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding: 12px;">
+
+            <!-- Owner header skeleton (pill) -->
+            <div class="flex items-center gap-2.5 p-2 rounded-full mb-3" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+              <div class="skeleton skeleton-circle w-9 h-9"></div>
+              <div class="flex-1 space-y-1.5">
+                <div class="skeleton h-2.5 w-20"></div>
+                <div class="skeleton h-2 w-28"></div>
+              </div>
+            </div>
+
+            <!-- Pet selector row skeleton -->
+            <div class="flex justify-center gap-3 mb-3">
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="skeleton skeleton-circle w-11 h-11"></div>
+                <div class="skeleton h-2 w-8 rounded-full"></div>
+              </div>
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="skeleton skeleton-circle w-11 h-11"></div>
+                <div class="skeleton h-2 w-8 rounded-full"></div>
+              </div>
+              <div class="flex flex-col items-center gap-1.5">
+                <div class="skeleton skeleton-circle w-11 h-11"></div>
+                <div class="skeleton h-2 w-8 rounded-full"></div>
+              </div>
+            </div>
+
+            <!-- Card skeletons (3 cards) -->
+            <div class="space-y-2">
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="skeleton skeleton-circle w-7 h-7"></div>
+                  <div class="flex-1 space-y-1">
+                    <div class="skeleton h-2 w-20"></div>
+                    <div class="skeleton h-2 w-14"></div>
+                  </div>
+                </div>
+                <div class="skeleton h-1.5 w-full"></div>
+              </div>
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="skeleton skeleton-circle w-7 h-7"></div>
+                  <div class="flex-1 space-y-1">
+                    <div class="skeleton h-2 w-24"></div>
+                    <div class="skeleton h-2 w-16"></div>
+                  </div>
+                </div>
+                <div class="skeleton h-1.5 w-3/4"></div>
+              </div>
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="skeleton skeleton-circle w-7 h-7"></div>
+                  <div class="flex-1 space-y-1">
+                    <div class="skeleton h-2 w-20"></div>
+                    <div class="skeleton h-2 w-12"></div>
+                  </div>
+                </div>
+                <div class="skeleton h-1.5 w-2/3"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 2b. Inline list skeleton (notifications) ────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>2b. Inline list skeleton</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding: 14px;">
+            <div class="skeleton h-3 w-24 mb-3"></div>
+            <div class="space-y-2.5">
+              <!-- Row 1 -->
+              <div class="flex items-start gap-2.5 p-3 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="skeleton skeleton-circle w-9 h-9 shrink-0"></div>
+                <div class="flex-1 space-y-1.5">
+                  <div class="skeleton h-2.5 w-full"></div>
+                  <div class="skeleton h-2 w-3/4"></div>
+                  <div class="skeleton h-2 w-1/2"></div>
+                </div>
+              </div>
+              <!-- Row 2 -->
+              <div class="flex items-start gap-2.5 p-3 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="skeleton skeleton-circle w-9 h-9 shrink-0"></div>
+                <div class="flex-1 space-y-1.5">
+                  <div class="skeleton h-2.5 w-5/6"></div>
+                  <div class="skeleton h-2 w-2/3"></div>
+                  <div class="skeleton h-2 w-2/5"></div>
+                </div>
+              </div>
+              <!-- Row 3 -->
+              <div class="flex items-start gap-2.5 p-3 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="skeleton skeleton-circle w-9 h-9 shrink-0"></div>
+                <div class="flex-1 space-y-1.5">
+                  <div class="skeleton h-2.5 w-full"></div>
+                  <div class="skeleton h-2 w-4/5"></div>
+                  <div class="skeleton h-2 w-1/3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 2c. Button loading ──────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>2c. Button loading</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <p class="text-[11px] font-semibold mb-4" style="color: var(--text-muted);">ตัวอย่างปุ่มขณะส่ง</p>
+
+            <!-- Loading primary button (disabled visual) -->
+            <button class="btn-primary mb-3" style="min-width: 200px; opacity: 0.85; pointer-events: none;" disabled aria-busy="true">
+              <span class="spinner"></span>
+              <span>กำลังส่ง...</span>
+            </button>
+
+            <!-- Static compare: normal primary -->
+            <p class="text-[10px] mt-3 mb-2" style="color: var(--text-muted);">เทียบกับสถานะปกติ:</p>
+            <button class="btn-primary" style="min-width: 200px;">
+              ส่งประกาศ
+            </button>
+
+            <p class="text-[10px] mt-4 text-center" style="color: var(--text-muted); line-height: 1.6;">
+              ปุ่มจะถูก disable พร้อม<br>spinner + ข้อความบอกสถานะ
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 2d. Pull-to-refresh indicator ───────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>2d. Pull-to-refresh</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding-top: 12px;">
+
+            <!-- Top indicator -->
+            <div class="flex flex-col items-center gap-2 py-5 mb-2 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: var(--pops-gradient); box-shadow: var(--shadow-glow);">
+                <div class="spinner" style="border-color: rgba(255,255,255,0.4); border-top-color: #fff;"></div>
+              </div>
+              <p class="text-[11px] font-bold" style="color: var(--text);">กำลังโหลด...</p>
+              <p class="text-[9px]" style="color: var(--text-muted);">ดึงข้อมูลใหม่</p>
+            </div>
+
+            <!-- Suggestive content below (shows list context) -->
+            <div class="flex items-center gap-2 p-2.5 rounded-2xl opacity-50" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+              <div class="skeleton skeleton-circle w-7 h-7"></div>
+              <div class="flex-1 space-y-1">
+                <div class="skeleton h-2 w-3/4"></div>
+                <div class="skeleton h-1.5 w-1/2"></div>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center gap-2 p-2.5 rounded-2xl opacity-30" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+              <div class="skeleton skeleton-circle w-7 h-7"></div>
+              <div class="flex-1 space-y-1">
+                <div class="skeleton h-2 w-2/3"></div>
+                <div class="skeleton h-1.5 w-1/2"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 3 — ERROR STATES
+       ============================================================ -->
+  <div class="section-divider">
+    <span class="pill">03 · Error States</span>
+  </div>
+  <section class="max-w-[1100px] mx-auto px-4">
+    <h2 class="section-heading">Error States</h2>
+    <p class="section-sub">Clear cause + one obvious recovery action</p>
+
+    <div class="phone-grid mt-8">
+
+      <!-- ── 3a. Failed to load ─────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>3a. Failed to load</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="icon-circle-danger">
+              <span style="color: var(--danger);">⚠️</span>
+            </div>
+            <p class="state-heading">โหลดข้อมูลไม่สำเร็จ</p>
+            <p class="state-body">เกิดข้อผิดพลาด โปรดตรวจสอบการเชื่อมต่อ</p>
+            <button class="btn-primary" style="min-height: 44px;">
+              ลองใหม่อีกครั้ง
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 3b. Offline ────────────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>3b. Offline</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="icon-circle-warning">
+              <span>📡</span>
+            </div>
+            <p class="state-heading">ไม่พบสัญญาณอินเทอร์เน็ต</p>
+            <p class="state-body">บางฟีเจอร์อาจใช้งานไม่ได้</p>
+            <!-- no primary action; passive info -->
+            <div class="rounded-full px-3 py-1.5 inline-flex items-center gap-1.5" style="background: var(--surface-alt);">
+              <span style="color: var(--text-muted); font-size: 10px;">💾</span>
+              <span class="text-[10px] font-semibold" style="color: var(--text-muted);">แสดงข้อมูลที่บันทึกไว้ล่าสุด</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 3c. Permission denied ──────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>3c. Permission denied</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body">
+            <div class="icon-circle-danger">
+              <span>🔒</span>
+            </div>
+            <p class="state-heading">ไม่ได้รับอนุญาต</p>
+            <p class="state-body">กรุณาเข้าสู่ระบบ LINE เพื่อใช้งาน</p>
+            <button class="btn-primary" style="min-height: 44px; background: #06C755; box-shadow: 0 4px 14px rgba(6,199,85,0.3);">
+              เข้าสู่ระบบด้วย LINE
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 3d. Form validation (inline) ────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>3d. Form validation</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding-top: 20px;">
+
+            <p class="text-[11px] font-bold mb-3" style="color: var(--text);">ฟอร์มข้อมูลน้อง</p>
+
+            <!-- Invalid input -->
+            <label class="text-[10px] font-semibold mb-1" style="color: var(--text-muted);">ชื่อน้อง *</label>
+            <div class="pill-input pill-input-error mb-1.5">
+              <span style="color: var(--text-muted); font-size: 11px;">กรอกชื่อน้อง...</span>
+            </div>
+            <p class="text-[10px] font-semibold flex items-center gap-1" style="color: var(--danger);">
+              <span>⚠️</span>
+              <span>กรุณากรอกชื่อน้อง</span>
+            </p>
+
+            <!-- Healthy input below for contrast -->
+            <label class="text-[10px] font-semibold mt-4 mb-1" style="color: var(--text-muted);">พันธุ์</label>
+            <div class="pill-input">
+              <span style="font-size: 11px;">ชิวาวาผสม</span>
+            </div>
+
+            <!-- Disabled submit until fix -->
+            <button class="btn-primary mt-5" style="opacity: 0.5; pointer-events: none;" disabled>
+              บันทึก
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 4 — TOAST / SNACKBAR PATTERNS
+       ============================================================ -->
+  <div class="section-divider">
+    <span class="pill">04 · Toast / Snackbar</span>
+  </div>
+  <section class="max-w-[1100px] mx-auto px-4">
+    <h2 class="section-heading">Toast / Snackbar Patterns</h2>
+    <p class="section-sub">Quick, dismissible feedback — top or bottom float</p>
+
+    <div class="phone-grid mt-8">
+
+      <!-- ── 4a. Success toast ──────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>4a. Success toast</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding-top: 16px;">
+            <!-- Primary toast -->
+            <div class="toast toast-success">
+              <span style="font-size: 16px;">✅</span>
+              <span class="flex-1">บันทึกสำเร็จ</span>
+              <span class="text-[16px] leading-none" style="color: var(--success); opacity: 0.6;">×</span>
+            </div>
+
+            <!-- Context (faded content beneath) -->
+            <div class="mt-auto space-y-2 opacity-50">
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background: var(--success-bg);">💉</div>
+                  <div class="flex-1">
+                    <p class="text-[10px] font-bold">DHPP (5 in 1)</p>
+                    <p class="text-[9px]" style="color: var(--text-muted);">บันทึกล่าสุด</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[10px] mt-3 text-center" style="color: var(--text-muted); line-height: 1.6;">
+              สีเขียว · ไอคอน ✅ · พื้นผิว success-bg
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 4b. Error toast ────────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>4b. Error toast</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding-top: 16px;">
+            <div class="toast toast-error">
+              <span style="font-size: 16px;">❌</span>
+              <span class="flex-1">บันทึกไม่สำเร็จ</span>
+              <span class="text-[16px] leading-none" style="color: var(--danger); opacity: 0.6;">×</span>
+            </div>
+
+            <div class="mt-auto space-y-2 opacity-50">
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background: var(--danger-bg);">⚠️</div>
+                  <div class="flex-1">
+                    <p class="text-[10px] font-bold">ข้อมูลผิดพลาด</p>
+                    <p class="text-[9px]" style="color: var(--text-muted);">โปรดตรวจสอบ</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[10px] mt-3 text-center" style="color: var(--text-muted); line-height: 1.6;">
+              สีแดง · ไอคอน ❌ · พื้นผิว danger-bg
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 4c. Info toast ─────────────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>4c. Info toast</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="align-items: stretch; justify-content: flex-start; padding-top: 16px;">
+            <div class="toast toast-info">
+              <span style="font-size: 16px;">ℹ️</span>
+              <span class="flex-1">กำลังส่งประกาศ...</span>
+              <div class="spinner" style="border-color: rgba(21,101,192,0.3); border-top-color: var(--info);"></div>
+            </div>
+
+            <div class="mt-auto space-y-2 opacity-50">
+              <div class="p-2.5 rounded-2xl" style="background: var(--surface); box-shadow: var(--shadow-soft);">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background: var(--info-bg);">📡</div>
+                  <div class="flex-1">
+                    <p class="text-[10px] font-bold">ส่งถึงคนในรัศมี 3 km</p>
+                    <p class="text-[9px]" style="color: var(--text-muted);">รอสักครู่</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[10px] mt-3 text-center" style="color: var(--text-muted); line-height: 1.6;">
+              สีน้ำเงิน · ไอคอน ℹ️ · พื้นผิว info-bg
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION 5 — CONFIRMATION MODALS
+       ============================================================ -->
+  <div class="section-divider">
+    <span class="pill">05 · Confirmation Modals</span>
+  </div>
+  <section class="max-w-[1100px] mx-auto px-4 pb-16">
+    <h2 class="section-heading">Confirmation Modals</h2>
+    <p class="section-sub">Overlay dialogs — two actions, primary stands out</p>
+
+    <div class="phone-grid mt-8">
+
+      <!-- ── 5a. Destructive confirmation ────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>5a. Destructive confirmation</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="padding: 0; justify-content: center; background: transparent;">
+            <div class="modal-overlay w-full h-full" style="min-height: 100%; border-radius: 0;">
+              <div class="modal-card">
+                <div class="icon-circle-danger mx-auto">
+                  <span>🗑️</span>
+                </div>
+                <p class="text-[15px] font-extrabold mb-2" style="color: var(--text);">ลบสัตว์เลี้ยง?</p>
+                <p class="text-[11px] leading-relaxed mb-4" style="color: var(--text-muted);">
+                  ข้อมูลทั้งหมดของมะลิจะถูกลบ<br>และไม่สามารถกู้คืนได้
+                </p>
+                <div class="flex gap-2">
+                  <button class="btn-outline flex-1" style="min-height: 44px; padding: 0 12px;">
+                    ยกเลิก
+                  </button>
+                  <button class="btn-danger flex-[1.4]" style="min-height: 44px; padding: 0 12px;">
+                    ลบ
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 5b. Success confirmation ────────────────────── -->
+      <div class="flex flex-col items-center">
+        <span class="example-label"><span class="dot"></span>5b. Success confirmation</span>
+        <div class="phone-frame">
+          <div class="phone-notch">PHONE MOCKUP</div>
+          <div class="phone-body" style="padding: 0; justify-content: center; background: transparent;">
+            <div class="modal-overlay w-full h-full" style="min-height: 100%; border-radius: 0;">
+              <div class="modal-card">
+                <div class="mascot-halo-sm mx-auto">🎉</div>
+                <p class="text-[15px] font-extrabold mb-2" style="color: var(--text);">ส่งประกาศเรียบร้อย!</p>
+                <p class="text-[11px] leading-relaxed mb-4" style="color: var(--text-muted);">
+                  แจ้งให้คนในรัศมี 3 km แล้ว
+                </p>
+                <div class="flex gap-2">
+                  <button class="btn-outline flex-1" style="min-height: 44px; padding: 0 12px;">
+                    ปิด
+                  </button>
+                  <button class="btn-primary flex-[1.4]" style="min-height: 44px; padding: 0 12px;">
+                    แชร์
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer hint -->
+    <div class="max-w-md mx-auto mt-10 p-4 rounded-2xl border text-center" style="background: var(--surface); border-color: var(--border); box-shadow: var(--shadow-soft);">
+      <p class="text-[11px] font-bold mb-1" style="color: var(--text);">หมายเหตุสำหรับนักพัฒนา</p>
+      <p class="text-[10px] leading-relaxed" style="color: var(--text-muted);">
+        คัดลอก pattern ไปใช้ได้ทั้ง 5 หมวด ให้ใช้ token เดียวกับ D2 POPS Balanced<br>
+        POPS gradient ใช้เฉพาะจุดที่มี emotion (mascot, success) เท่านั้น
+      </p>
+    </div>
+
+  </section>
+
+</body>
+</html>

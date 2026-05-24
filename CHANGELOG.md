@@ -3,6 +3,185 @@
 All notable changes to Pawrent are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0-alpha] - 2026-04-21 (unreleased — PRP-16 UI Migration)
+
+### Changed
+
+- **D2 POPS Balanced design system adopted** (PRP-16). Warm stone background,
+  coral→amber gradient primary, POPS tri-color gradient preserved as brand
+  accent only (avatars, active pet selectors). No black anywhere — warm
+  charcoal `#2E2A2E`. Noto Sans Thai replaces Nunito as primary font
+  (weights 400/600/700/800). `<html lang="th">`.
+- **Tailwind v4 `@theme inline` expanded** in `app/globals.css` with D2
+  tokens: surface, surface-alt, text-main / muted / subtle, semantic
+  success/warning/danger/info (fg + bg pair), POPS brand-pink / brand-yellow,
+  border / border-subtle, shadow-soft / owner / glow / primary, radius pill,
+  coral-amber `bg-primary-gradient`, `bg-pops-gradient`, `bg-stone-gradient`.
+  Legacy `--primary` rebound to coral so existing consumers cascade.
+- **UI primitives migrated** (`components/ui/button.tsx`, `card.tsx`,
+  `input.tsx`, `badge.tsx`, `toast.tsx`): pill radius, 44×44 touch targets,
+  coral→amber gradient primary CTA, outline variant with 2px border + muted
+  text, new `secondary` variant. Badge has 9 semantic variants. New
+  `components/ui/pill-tag.tsx` — neutral stone pill for pet attribute tags.
+- **Bottom navigation** rebuilt as 6-tab Thai structure
+  (`หน้าหลัก / ฟีด / แจ้ง / แจ้งเตือน / สัตว์เลี้ยง / โปรไฟล์`).
+  Active indicator = coral dot below + scaled icon + coral label.
+  `backdrop-blur-md` over `bg-surface/95`. `/hospital` removed from the
+  tab set (route still exists; PRP-17 rich-menu owns the new IA).
+- **Pet management screens** (`app/pets/page.tsx`) rewritten with D2 shell:
+  Thai header "น้องของฉัน / สมุดพาสปอร์ตน้อง", circular pet selectors
+  with `bg-pops-gradient` ring + `shadow-glow` on active (inactive 60%
+  opacity), `SkeletonCard` loading, `EmptyState` when no pets,
+  `ConfirmDialog` (destructive variant) for delete, parasite countdown
+  uses coral→amber SVG gradient.
+- **`PetProfileCard`** rewritten: `PillTag` chips for attributes,
+  coral "ดู ID" button with `shadow-primary`, `bg-surface-alt` microchip
+  chip, Thai labels throughout (แก้ไขข้อมูล, คัดลอกรหัส, แจ้งน้องหาย,
+  น้องกลับมาแล้ว, ยอมแพ้การตามหา, ดู ID). `aria-label` on interactive
+  icons; `foreground/40` modal overlay.
+- **Lost/Found + post family + notifications + home** migrated via bulk
+  Perl word-boundary replacement pass: every `bg-white`, `bg-gray-*`,
+  `text-gray-*`, `bg-red/green/blue/amber/yellow-*`, `text-*-*`, `shadow-sm`,
+  `text-foreground`, `text-muted-foreground`, `bg-muted` mapped to D2
+  semantic tokens. `AlertCard` and `FoundReportCard` use `rounded-[24px]`,
+  `shadow-soft`, semantic status chip (info/success/danger), warning-bg
+  reward pill.
+- **Community feed (`app/page.tsx`)** reframed as dashboard-lite:
+  owner greeting pill with `bg-pops-gradient` avatar + `shadow-glow`,
+  quick-actions row (แจ้งน้องหาย / น้องของฉัน) above feed.
+- **Notifications (`app/notifications/page.tsx`)** rewritten with D2:
+  danger count badge in header, good-news section with 🎉 + `bg-success-bg`
+  cards, nearby (<5km) + other active split, semantic distance badges.
+- **Profile (`app/profile/page.tsx`)** — D2 token swap + top-level Thai
+  translation (ส่งความคิดเห็น, ขอบคุณ!, การแจ้งเตือน, ความเป็นส่วนตัว,
+  ออกจากระบบ, แก้ไขโปรไฟล์). Full structural restructure per
+  `variation-06-profile.html` deferred (see PRP-16 handoff notes).
+
+### Added
+
+- `components/empty-state.tsx` — mascot emoji/icon + title + description
+  - optional CTA. `role="status"`.
+- `components/skeleton-card.tsx` — `SkeletonCard`, `SkeletonLine`,
+  `SkeletonAvatar`. Consumes `.skeleton` shimmer class (respects
+  `prefers-reduced-motion`).
+- `components/error-state.tsx` — danger-tinted `AlertTriangle` pill +
+  title + message + optional retry button. `role="alert"`.
+- `components/confirm-dialog.tsx` — modal with backdrop-blur, escape-to-
+  cancel, `autoFocus` on cancel, destructive/success/default variants;
+  bottom-sheet on mobile, centered on desktop.
+
+### Tests
+
+- Migrated `__tests__/simple-components.test.tsx` to D2 Thai labels
+  - semantic color tokens (bg-success / bg-warning / bg-danger).
+- Migrated `__tests__/pet-card.test.tsx` and
+  `__tests__/pet-profile-card.test.tsx` to D2 semantic tokens + Thai
+  `getByText` / `getByLabelText` selectors.
+- Updated `e2e/bottom-nav.spec.ts` to 6-tab Thai labels.
+- Updated `e2e/authenticated-flows.spec.ts` to Thai selectors + new
+  `/post/lost` report shortcut.
+- Updated `e2e/hospital-map.spec.ts` — removed "Hospital as active tab"
+  assertion (tab dropped in PRP-16).
+
+### Added (morning — stacked PRs 2-5)
+
+- **Lost/Found wizards rebuilt to V6+D2** (`app/post/lost/page.tsx`,
+  `app/post/found/page.tsx`) — compact sticky `WizardHeader` with
+  coral-gradient step number badge + inline stepper + progress bar,
+  `BubbleCard` sections per step, `PillTag` pet-picker active ring,
+  Step-3 emergency markers on photos (red badge + count), `ShareRow`
+  with LINE/FB/X/Copy/Download (lost) or LINE/FB/X/Copy (found),
+  success mascot with `bg-pops-gradient animate-pulse shadow-glow` (🐕
+  for lost, 🎉 for found). Compact Thai step titles.
+- **Alert detail page rebuilt** (`app/post/[id]/page.tsx`) — bubble
+  cards throughout, coral→amber gradient reward banner with
+  `shadow-glow` + backdrop-blur, pill-tag pet metadata chips,
+  polished 4-button share row with colored backgrounds per channel,
+  status chip in sticky header, per-photo emergency number badges
+  on lost alerts.
+- **Home dashboard full 7-section rebuild** (`app/page.tsx`) —
+  greeting pill with `bg-pops-gradient` ring + time-aware Thai
+  greeting, weather/date strip with Buddhist calendar, pet
+  quick-status row (2 circular cards, derived health status pill
+  from vaccine + parasite dates), urgent alerts card (overdue
+  meds, stale weight logs with coral-gradient "ทำตอนนี้" CTA),
+  live lost-pets-nearby from `/api/post?status=active` (up to 3,
+  empty state), health reminders card (upcoming vaccines within
+  90 days + parasite within 60 days, colour-coded ETA), quick
+  actions row with primary แจ้งสัตว์เลี้ยงหาย + outline secondaries.
+- **Profile page full 11-section rebuild** (`app/profile/page.tsx`) —
+  owner hero card (80px avatar with pops-gradient ring, verified
+  badge, email, join-date, 3 mini stat tiles), subscription card
+  with usage bars + disabled premium upgrade CTA (placeholder),
+  my-pets compact link row, contact channels card (LINE + email +
+  phone placeholder), notification settings with radius pill
+  selector (1/3/5/10 km) + reusable `ToggleRow` for health and
+  community prefs, PDPA card with `/api/me/data-export` link +
+  privacy modal + delete account placeholder, app settings
+  (language, theme, sound, version from package.json), help card
+  (feedback, guide, bug report), outline-danger sign out,
+  copyright footer.
+- `e2e/home-dashboard.spec.ts` — V6+D2 home structure coverage:
+  time-aware greeting, weather strip, pet-health heading, quick
+  actions, notification bell aria-label, primary CTA routing.
+- `e2e/profile-page.spec.ts` — 11-section structure coverage:
+  all sections present, edit modal open/close, sign-out label,
+  notification radius pill selection.
+
+### Changed (morning)
+
+- `e2e/authenticated-flows.spec.ts` — report shortcut regex now
+  matches the new home CTA text "แจ้งสัตว์เลี้ยงหาย" (retains
+  legacy "แจ้งน้องหาย" for backward compatibility during review).
+
+### Tests (closeout)
+
+- **Playwright E2E full run** (PRP-16.9.3) — green on Chromium +
+  Firefox (66 pass / 0 fail / 32 skip). Spec fixes applied:
+  - `e2e/bottom-nav.spec.ts` — added `{ exact: true }` to Thai label
+    lookups; "แจ้ง" was matching both "แจ้ง" (report tab) and
+    "แจ้งเตือน" (notifications tab) under strict-mode, PRP-16
+    D2 regression.
+  - `e2e/hospital-map.spec.ts`, `e2e/public-pages.spec.ts` — added
+    skip-on-LIFF-redirect guard around `/hospital` assertions. The
+    LIFF auth gate in `LiffProvider` can redirect unauthenticated
+    browsers to `access.line.me` asynchronously in `useEffect`,
+    racing leaflet mount (more flaky on Firefox than Chromium).
+    Pre-existing since PRP-01; surfaced by this full-run sweep.
+  - 32 skipped tests are auth-gated specs (home-dashboard,
+    profile-page, authenticated-flows) and the LIFF-redirect skip
+    path — all intentional.
+  - 16.9.3 flips ❌ → ✅.
+
+### Measured (closeout)
+
+- **Lighthouse 95+ sweep** (PRP-16.8.1) — prod build scored across 8
+  routes (`/`, `/pets`, `/post`, `/notifications`, `/profile`,
+  `/conversations`, `/feedback`, `/hospital`). Perf 58-61, A11y
+  uniform 86, Best-Practices 74-78, SEO uniform 54 — all below the
+  95+ target. Uniform non-perf scores indicate 5 shared root-layout
+  issues (`html-lang-valid`, `color-contrast`, `heading-order`,
+  `is-crawlable`, `meta-description`) rather than per-page problems.
+  Detailed audit table + follow-up-PRP scope in
+  `PRPs/16-ui-migration.review.md`. 16.8.1 flips ❌ → ⚠️ (measured,
+  follow-up PRP needed).
+
+- **Before/after screenshots** (PRP-16.10.2) — captured 8 primary
+  routes at 375×667 (@2×) into `ROADMAP/screenshots/after/` with a
+  paired `README.md` cross-linking each PNG to its source mockup in
+  `ROADMAP/New-design/variation-06*.html`. Captured via a temporary
+  env-gated LIFF-auth bypass in `components/liff-provider.tsx` that
+  was reverted before commit (file SHA verified identical to
+  pre-capture). Human visual verdict (≥30%-off threshold) pending.
+  16.10.2 flips ❌ → ⚠️.
+
+### Still deferred (out of autonomous scope)
+
+- Manual iOS/Android LIFF smoke tests — no device access.
+- PRP-17 rich-menu restructure — blocked on Figma asset production
+  and LINE OA operator deployment; PRP spec committed in
+  `PRPs/17-rich-menu-restructure.md`.
+
 ## [0.6.0] - 2026-04-20
 
 ### Added

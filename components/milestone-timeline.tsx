@@ -22,7 +22,7 @@ const MILESTONE_ICONS: Record<string, string> = {
 export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
   if (milestones.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-sm text-gray-400">
+      <div className="flex items-center justify-center rounded-lg border border-dashed border-border p-8 text-sm text-text-muted">
         ยังไม่มี Milestone
       </div>
     );
@@ -45,14 +45,14 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
           </div>
 
           {/* Content */}
-          <div className="rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+          <div className="rounded-lg border border-gray-100 bg-surface p-3 shadow-soft">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-text-main">
                 {m.title ?? getMilestoneLabel(m.type)}
               </span>
-              <span className="text-xs text-gray-400">{formatDate(m.event_date)}</span>
+              <span className="text-xs text-text-muted">{formatDate(m.event_date)}</span>
             </div>
-            {m.note && <p className="mt-1 text-xs text-gray-500">{m.note}</p>}
+            {m.note && <p className="mt-1 text-xs text-text-muted">{m.note}</p>}
           </div>
         </div>
       ))}

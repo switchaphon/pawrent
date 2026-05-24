@@ -1,0 +1,516 @@
+<!--
+  ============================================================
+  Pawrent V6+D2: Home Dashboard (/)
+  ============================================================
+
+  Design Thesis:
+  "Bubble-shaped cards on a warm stone canvas. The home screen
+   is a quiet command center — owner greeting at top, pet
+   vitals at a glance, urgent action clearly surfaced, then
+   community signals and reminders folded below the fold.
+   Emotional moments (pet avatars, active states) carry the
+   POPS tri-color gradient; utility chrome stays neutral."
+
+  Framework Citations:
+  - NNG Aesthetic-Usability Effect: pill bubble forms feel
+    approachable, reduce anxiety on a status-heavy screen
+  - Gestalt Law of Proximity: one topic per card, stacked
+    vertically — scannable on a 390px LIFF viewport
+  - Apple HIG: grouped surfaces, 44x44pt touch targets
+  - Material Progressive Disclosure: summary on home,
+    tap through for detail (/pets, /post, /community)
+  - Fitts's Law: primary "แจ้งหาย" CTA sits in a sticky
+    action row just above the bottom nav — easy to reach
+  - WCAG AA: warm charcoal #2E2A2E on #FAF7F2 → 13.8:1
+
+  Hybrid Source Map:
+  - Base layout: V6 (bubble + vertical card stack)
+  - Palette: D2 POPS Balanced (coral primary, warm stone base)
+  - POPS tri-color gradient: pet avatar rings + community hero
+  - Primary buttons: coral→amber gradient (never pink)
+  - Pill tags: neutral stone #EDEDE8 (never pink)
+  - Text: warm charcoal #2E2A2E (never #000)
+
+  Token Summary (D2 POPS Balanced):
+  --primary:        #FF8263  (coral)
+  --primary-light:  #FFA563  (amber)
+  --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563)
+  --accent-brand:   #F06FA8  (softened POPS pink — accent only)
+  --accent-yellow:  #FFCB6B
+  --pops-gradient:  linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%)
+  --bg-start:       #FAF7F2  | --bg-end: #F5F1EA
+  --surface:        #FFFFFF  | --surface-alt: #EDEDE8
+  --text:           #2E2A2E  (warm charcoal — never #000)
+  --text-muted:     #6B6560  | --text-subtle: #3D3935
+  --success:        #4C6B3C  / bg #EDF0EA
+  --warning:        #B8730A  / bg #FFF3D9
+  --danger:         #D32F2F  / bg #FFEBEE
+  --info:           #1565C0  / bg #E3F2FD
+  --border:         #E8E2D8
+  Font: Noto Sans Thai (400, 600, 700, 800)
+  Radii: 12/16/24/9999
+  Shadows: soft / owner / glow / primary
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pawrent V6+D2: Home Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { thai: ['"Noto Sans Thai"', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#FF8263', light: '#FFA563' },
+            'brand-pink': '#F06FA8',
+            'brand-yellow': '#FFCB6B',
+            success: { DEFAULT: '#4C6B3C', bg: '#EDF0EA' },
+            warning: { DEFAULT: '#B8730A', bg: '#FFF3D9' },
+            danger: { DEFAULT: '#D32F2F', bg: '#FFEBEE' },
+            info: { DEFAULT: '#1565C0', bg: '#E3F2FD' },
+            surface: { DEFAULT: '#FFFFFF', alt: '#EDEDE8' },
+            txt: '#2E2A2E',
+            'txt-muted': '#6B6560',
+            'txt-subtle': '#3D3935',
+            border: '#E8E2D8',
+          },
+          borderRadius: {
+            'sm-r': '12px',
+            'md-r': '16px',
+            'lg-r': '24px',
+            'pill': '9999px',
+          },
+          boxShadow: {
+            'soft': '0 2px 8px rgba(0,0,0,0.06)',
+            'owner': '0 2px 10px rgba(46,42,46,0.08)',
+            'glow': '0 4px 16px rgba(255,146,133,0.3)',
+            'primary-g': '0 4px 14px rgba(255,130,99,0.3)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      /* Primary */
+      --primary: #FF8263;
+      --primary-light: #FFA563;
+      --primary-gradient: linear-gradient(135deg, #FF8263, #FFA563);
+
+      /* POPS brand accent (sparingly) */
+      --accent-brand: #F06FA8;
+      --accent-yellow: #FFCB6B;
+      --pops-gradient: linear-gradient(135deg, #F06FA8 0%, #FF9285 50%, #FFCB6B 100%);
+
+      /* Surface / background */
+      --bg-start: #FAF7F2;
+      --bg-end: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface-alt: #EDEDE8;
+
+      /* Text */
+      --text: #2E2A2E;
+      --text-muted: #6B6560;
+      --text-subtle: #3D3935;
+
+      /* Semantic */
+      --success: #4C6B3C;
+      --success-bg: #EDF0EA;
+      --warning: #B8730A;
+      --warning-bg: #FFF3D9;
+      --danger: #D32F2F;
+      --danger-bg: #FFEBEE;
+      --info: #1565C0;
+      --info-bg: #E3F2FD;
+
+      /* Borders */
+      --border: #E8E2D8;
+      --border-subtle: #F0EDE6;
+
+      /* Shadows */
+      --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-owner: 0 2px 10px rgba(46,42,46,0.08);
+      --shadow-glow: 0 4px 16px rgba(255,146,133,0.3);
+      --shadow-primary: 0 4px 14px rgba(255,130,99,0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Noto Sans Thai', system-ui, sans-serif;
+      background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 0; }
+
+    .primary-gradient { background: var(--primary-gradient); }
+    .pops-gradient    { background: var(--pops-gradient); }
+    .glass            { background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+    /* Ensure ≥44x44 touch targets on every tappable element */
+    button, a[role="button"] { min-height: 44px; }
+  </style>
+</head>
+<body class="font-thai">
+
+  <!-- ============================================================
+       SCREEN: / — Home Dashboard
+       ============================================================ -->
+
+  <div class="max-w-[390px] md:max-w-[768px] mx-auto min-h-screen relative pb-28 md:border-x md:border-[color:var(--border)]">
+
+    <!-- LINE Header placeholder -->
+    <div class="h-[44px] bg-gray-100 flex items-center justify-center">
+      <span class="text-[10px] text-txt-muted tracking-wider">LINE Header (44px)</span>
+    </div>
+
+    <!-- ── 1) Greeting Header (pill bubble — V6 owner style) ── -->
+    <div class="px-4 pt-4 pb-2">
+      <div class="bg-surface rounded-pill shadow-owner p-3 flex items-center gap-3 border border-[color:var(--border)]">
+        <!-- Owner avatar with POPS tri-color ring (emotional moment) -->
+        <div class="w-12 h-12 rounded-full pops-gradient p-[3px] shrink-0">
+          <div class="w-full h-full rounded-full bg-surface flex items-center justify-center text-2xl">
+            👤
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-extrabold text-txt truncate">สวัสดีตอนเย็น คุณนิว 👋</p>
+          <p class="text-[11px] text-txt-muted">วันนี้มีอะไรใหม่บ้าง?</p>
+        </div>
+        <button aria-label="การแจ้งเตือน" class="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center text-base text-txt-subtle relative">
+          🔔
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[color:var(--primary)]"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 2) Weather / Day Strip (thin pill) ── -->
+    <div class="px-4 pb-3">
+      <div class="bg-surface/70 backdrop-blur-sm rounded-pill px-4 py-2 flex items-center justify-between border border-[color:var(--border-subtle)]">
+        <div class="flex items-center gap-2 text-[11px] text-txt-subtle">
+          <span>☀️</span>
+          <span class="font-semibold">กรุงเทพฯ</span>
+          <span class="text-txt-muted">·</span>
+          <span class="font-semibold">32°C</span>
+          <span class="text-txt-muted">·</span>
+          <span>วันเสาร์ 18 เม.ย. 69</span>
+        </div>
+        <span class="text-[10px] text-txt-muted">🌤️ แดดจัด</span>
+      </div>
+    </div>
+
+    <!-- ── 3) Pet Quick-Status Bubble Row ── -->
+    <div class="px-4 pb-3">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-bold text-txt flex items-center gap-1">🐾 สุขภาพน้อง ๆ</p>
+        <a role="button" href="#" class="text-[11px] text-[color:var(--primary)] font-semibold h-6 min-h-0 flex items-center">จัดการ ›</a>
+      </div>
+      <div class="flex items-start gap-3">
+        <!-- มะลิ — ทุกอย่างโอเค -->
+        <a role="button" href="#" class="flex-1 bg-surface rounded-lg-r shadow-soft p-3 border border-[color:var(--border)] flex flex-col items-center text-center min-h-0">
+          <div class="w-[60px] h-[60px] rounded-full pops-gradient p-[3px] shadow-glow">
+            <div class="w-full h-full rounded-full bg-white flex items-center justify-center text-[28px]">
+              🐕
+            </div>
+          </div>
+          <p class="text-xs font-extrabold text-txt mt-2">มะลิ</p>
+          <p class="text-[10px] text-txt-muted">ชิวาวาผสม · 4 ปี</p>
+          <span class="mt-1.5 inline-flex items-center gap-1 bg-[color:var(--success-bg)] text-[color:var(--success)] rounded-pill px-2.5 py-0.5 text-[10px] font-bold">
+            💚 ทุกอย่างโอเค
+          </span>
+        </a>
+        <!-- เทา — ใกล้ฉีดวัคซีน -->
+        <a role="button" href="#" class="flex-1 bg-surface rounded-lg-r shadow-soft p-3 border border-[color:var(--border)] flex flex-col items-center text-center min-h-0">
+          <div class="w-[60px] h-[60px] rounded-full pops-gradient p-[3px] shadow-glow">
+            <div class="w-full h-full rounded-full bg-white flex items-center justify-center text-[28px]">
+              🐈
+            </div>
+          </div>
+          <p class="text-xs font-extrabold text-txt mt-2">เทา</p>
+          <p class="text-[10px] text-txt-muted">แมวไทย · 2 ปี</p>
+          <span class="mt-1.5 inline-flex items-center gap-1 bg-[color:var(--warning-bg)] text-[color:var(--warning)] rounded-pill px-2.5 py-0.5 text-[10px] font-bold">
+            ⚠️ ใกล้ฉีดวัคซีน
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── 4) Urgent Alerts Card (ต้องทำวันนี้) ── -->
+    <div class="px-4 pb-3">
+      <div class="bg-surface rounded-lg-r shadow-soft border border-[color:var(--border)] overflow-hidden">
+        <div class="px-4 py-3 flex items-center justify-between border-b border-[color:var(--border-subtle)]">
+          <p class="text-xs font-extrabold text-txt flex items-center gap-1.5">
+            <span class="w-6 h-6 rounded-full bg-[color:var(--danger-bg)] text-[color:var(--danger)] flex items-center justify-center text-xs">⚠️</span>
+            ต้องทำวันนี้
+          </p>
+          <span class="bg-[color:var(--danger-bg)] text-[color:var(--danger)] rounded-pill px-2 py-0.5 text-[10px] font-bold">2 รายการ</span>
+        </div>
+
+        <!-- Urgent item 1: Nexgard overdue -->
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-[color:var(--border-subtle)]">
+          <div class="w-10 h-10 rounded-full bg-[color:var(--danger-bg)] flex items-center justify-center shrink-0">
+            <span class="text-lg">💊</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt truncate">ฉีด Nexgard ให้มะลิ</p>
+            <p class="text-[10px] text-[color:var(--danger)] font-semibold">เลยกำหนด 2 วัน</p>
+          </div>
+          <button class="h-10 px-3 rounded-pill text-[11px] font-bold text-white primary-gradient shadow-primary-g shrink-0">
+            ทำตอนนี้
+          </button>
+        </div>
+
+        <!-- Urgent item 2: weigh-in due -->
+        <div class="px-4 py-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[color:var(--warning-bg)] flex items-center justify-center shrink-0">
+            <span class="text-lg">⚖️</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt truncate">ชั่งน้ำหนักมะลิ</p>
+            <p class="text-[10px] text-txt-muted">ครบ 30 วัน — ควรบันทึกใหม่</p>
+          </div>
+          <button class="h-10 px-3 rounded-pill text-[11px] font-bold text-[color:var(--text-subtle)] bg-white border-2 border-[color:var(--border)] shrink-0">
+            บันทึก
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 5) Lost Pets Nearby Card (community feed preview) ── -->
+    <div class="px-4 pb-3">
+      <div class="bg-surface rounded-lg-r shadow-soft border border-[color:var(--border)] overflow-hidden">
+        <div class="px-4 py-3 flex items-center justify-between border-b border-[color:var(--border-subtle)]">
+          <p class="text-xs font-extrabold text-txt flex items-center gap-1.5">
+            <span>🚨</span>
+            สัตว์หายในรัศมี 3 km
+          </p>
+          <a role="button" href="#" class="text-[11px] text-[color:var(--primary)] font-semibold h-6 min-h-0 flex items-center">ดูทั้งหมด ›</a>
+        </div>
+
+        <!-- Lost pet 1: มีนา -->
+        <a role="button" href="#" class="px-4 py-3 flex items-center gap-3 border-b border-[color:var(--border-subtle)]">
+          <!-- Photo placeholder with subtle gradient -->
+          <div class="w-14 h-14 rounded-md-r shrink-0 flex items-center justify-center text-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #FFD9C7, #FFC2A8);">
+            <span>🐈</span>
+            <div class="absolute top-0.5 left-0.5 bg-[color:var(--danger)] text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold">หาย</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <p class="text-xs font-extrabold text-txt truncate">มีนา</p>
+              <span class="bg-surface-alt text-txt-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">แมวไทย</span>
+            </div>
+            <p class="text-[10px] text-txt-muted truncate">📍 0.8 km · 2 ชม. ที่แล้ว</p>
+            <p class="text-[10px] text-txt-muted truncate">ซ.ลาดพร้าว 71 · สีส้มขาว</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <span class="inline-flex items-center gap-1 bg-[color:var(--warning-bg)] text-[color:var(--warning)] rounded-pill px-2 py-0.5 text-[10px] font-bold">
+              🎁 ฿1,500
+            </span>
+            <p class="text-[9px] text-[color:var(--primary)] mt-1 font-semibold">เห็นแล้ว ›</p>
+          </div>
+        </a>
+
+        <!-- Lost pet 2: ฟลุ๊ค -->
+        <a role="button" href="#" class="px-4 py-3 flex items-center gap-3 border-b border-[color:var(--border-subtle)]">
+          <div class="w-14 h-14 rounded-md-r shrink-0 flex items-center justify-center text-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #E8D4C0, #DBC4B0);">
+            <span>🐕</span>
+            <div class="absolute top-0.5 left-0.5 bg-[color:var(--danger)] text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold">หาย</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <p class="text-xs font-extrabold text-txt truncate">ฟลุ๊ค</p>
+              <span class="bg-surface-alt text-txt-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">ชิวาวา</span>
+            </div>
+            <p class="text-[10px] text-txt-muted truncate">📍 1.5 km · เมื่อวานนี้</p>
+            <p class="text-[10px] text-txt-muted truncate">แถวเอกมัย 12 · ปลอกคอสีฟ้า</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <span class="inline-flex items-center gap-1 bg-[color:var(--warning-bg)] text-[color:var(--warning)] rounded-pill px-2 py-0.5 text-[10px] font-bold">
+              🎁 ฿3,000
+            </span>
+            <p class="text-[9px] text-[color:var(--primary)] mt-1 font-semibold">เห็นแล้ว ›</p>
+          </div>
+        </a>
+
+        <!-- Lost pet 3: ต้าเหว่ย -->
+        <a role="button" href="#" class="px-4 py-3 flex items-center gap-3">
+          <div class="w-14 h-14 rounded-md-r shrink-0 flex items-center justify-center text-2xl relative overflow-hidden" style="background: linear-gradient(135deg, #D4C4B0, #C8B8A4);">
+            <span>🐕</span>
+            <div class="absolute top-0.5 left-0.5 bg-[color:var(--danger)] text-white rounded-pill px-1.5 py-0.5 text-[7px] font-bold">หาย</div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <p class="text-xs font-extrabold text-txt truncate">ต้าเหว่ย</p>
+              <span class="bg-surface-alt text-txt-subtle rounded-pill px-2 py-0.5 text-[9px] font-semibold">ปั๊ก</span>
+            </div>
+            <p class="text-[10px] text-txt-muted truncate">📍 2.3 km · 3 วันที่แล้ว</p>
+            <p class="text-[10px] text-txt-muted truncate">แถวรัชดา 19 · สีเหลืองทอง</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <span class="inline-flex items-center gap-1 bg-[color:var(--warning-bg)] text-[color:var(--warning)] rounded-pill px-2 py-0.5 text-[10px] font-bold">
+              🎁 ฿5,000
+            </span>
+            <p class="text-[9px] text-[color:var(--primary)] mt-1 font-semibold">เห็นแล้ว ›</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── 6) Health Reminders Card (นัดหมายสัปดาห์นี้) ── -->
+    <div class="px-4 pb-3">
+      <div class="bg-surface rounded-lg-r shadow-soft border border-[color:var(--border)] overflow-hidden">
+        <div class="px-4 py-3 flex items-center justify-between border-b border-[color:var(--border-subtle)]">
+          <p class="text-xs font-extrabold text-txt flex items-center gap-1.5">
+            <span>📅</span>
+            นัดหมายสัปดาห์นี้
+          </p>
+          <a role="button" href="#" class="text-[11px] text-[color:var(--primary)] font-semibold h-6 min-h-0 flex items-center">ดูปฏิทิน ›</a>
+        </div>
+
+        <!-- Reminder 1: DHPP Booster -->
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-[color:var(--border-subtle)]">
+          <div class="w-10 h-10 rounded-full bg-[color:var(--success-bg)] flex items-center justify-center shrink-0">
+            <span class="text-lg">💉</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">DHPP Booster · มะลิ</p>
+            <p class="text-[10px] text-txt-muted">ฉีดกระตุ้นทุก 12 เดือน</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[11px] font-extrabold text-txt">15 ธ.ค.</p>
+            <p class="text-[9px] text-[color:var(--success)] font-semibold">อีก 8 เดือน</p>
+          </div>
+        </div>
+
+        <!-- Reminder 2: Nexgard -->
+        <div class="px-4 py-3 flex items-center gap-3 border-b border-[color:var(--border-subtle)]">
+          <div class="w-10 h-10 rounded-full bg-[color:var(--warning-bg)] flex items-center justify-center shrink-0">
+            <span class="text-lg">🐛</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">Nexgard · เทา</p>
+            <p class="text-[10px] text-txt-muted">ยาป้องกันเห็บหมัด รายเดือน</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[11px] font-extrabold text-[color:var(--warning)]">22 เม.ย.</p>
+            <p class="text-[9px] text-[color:var(--warning)] font-semibold">อีก 4 วัน</p>
+          </div>
+        </div>
+
+        <!-- Reminder 3: Grooming (bonus row) -->
+        <div class="px-4 py-3 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[color:var(--info-bg)] flex items-center justify-center shrink-0">
+            <span class="text-lg">✂️</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-txt">ตัดขน · มะลิ</p>
+            <p class="text-[10px] text-txt-muted">Moshi Moshi Grooming · 14:00</p>
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-[11px] font-extrabold text-txt">25 เม.ย.</p>
+            <p class="text-[9px] text-[color:var(--info)] font-semibold">อีก 1 สัปดาห์</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 7) Community Highlight Card (success story) ── -->
+    <div class="px-4 pb-3">
+      <div class="rounded-lg-r shadow-soft border border-[color:var(--border)] overflow-hidden relative" style="background: linear-gradient(135deg, #FFF4EC 0%, #FFF9F0 100%);">
+        <!-- Tiny POPS gradient accent strip at top (brand callback) -->
+        <div class="absolute top-0 left-0 right-0 h-1 pops-gradient"></div>
+
+        <div class="p-4">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="text-sm">🎉</span>
+            <p class="text-xs font-extrabold text-txt">เรื่องเด่นจากเพื่อนบ้าน</p>
+          </div>
+
+          <div class="flex gap-3">
+            <!-- Story photo -->
+            <div class="w-20 h-20 rounded-md-r shrink-0 flex items-center justify-center text-3xl" style="background: linear-gradient(135deg, #FFD9C7, #FFC2A8);">
+              🐶
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] font-bold text-txt leading-snug">ลูกหมาของพี่สมใจกลับบ้านแล้ว! ขอบคุณทุกคนในชุมชนที่ช่วยตามหา 🐾❤️</p>
+              <p class="text-[10px] text-txt-muted mt-1 leading-relaxed truncate">"ใช้เวลาแค่ 6 ชั่วโมงก็เจอ ขอบคุณพี่ ๆ ในซอยมาก"</p>
+              <div class="flex items-center gap-3 mt-2">
+                <span class="inline-flex items-center gap-1 text-[10px] text-txt-subtle font-semibold">❤️ 248</span>
+                <span class="inline-flex items-center gap-1 text-[10px] text-txt-subtle font-semibold">💬 42</span>
+                <span class="inline-flex items-center gap-1 text-[10px] text-txt-muted">2 ชม.ที่แล้ว</span>
+              </div>
+            </div>
+          </div>
+
+          <a role="button" href="#" class="mt-3 w-full h-10 rounded-pill bg-surface border-2 border-[color:var(--border)] text-[11px] font-bold text-txt-subtle flex items-center justify-center gap-1">
+            อ่านเรื่องเต็ม ›
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 8) Quick Actions Row (3 bubble buttons) ── -->
+    <div class="px-4 pb-5">
+      <p class="text-xs font-bold text-txt mb-2 flex items-center gap-1">⚡ ทางลัด</p>
+      <div class="space-y-2">
+        <!-- Primary: แจ้งหาย -->
+        <button class="w-full h-12 rounded-pill text-sm font-extrabold text-white primary-gradient shadow-primary-g flex items-center justify-center gap-2">
+          📄 แจ้งสัตว์เลี้ยงหาย
+        </button>
+        <!-- Two outline buttons side by side -->
+        <div class="flex gap-2">
+          <button class="flex-1 h-11 rounded-pill bg-surface border-2 border-[color:var(--border)] text-[12px] font-bold text-txt-subtle flex items-center justify-center gap-1.5">
+            🔍 พบสัตว์จร
+          </button>
+          <button class="flex-1 h-11 rounded-pill bg-surface border-2 border-[color:var(--border)] text-[12px] font-bold text-txt-subtle flex items-center justify-center gap-1.5">
+            📷 เพิ่มรูปน้อง
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Bottom Nav — หน้าหลัก active ── -->
+    <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] md:max-w-[768px] glass border-t border-[color:var(--border-subtle)] px-2 pb-2 pt-1 z-50">
+      <div class="flex items-center justify-around">
+        <!-- Active: หน้าหลัก -->
+        <button aria-label="หน้าหลัก" aria-current="page" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center relative">
+          <span class="text-lg">🏠</span>
+          <span class="text-[9px] text-[color:var(--primary)] font-bold">หน้าหลัก</span>
+          <div class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-[color:var(--primary)]"></div>
+        </button>
+        <button aria-label="โพสต์" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center">
+          <span class="text-lg">📄</span>
+          <span class="text-[9px] text-txt-muted">โพสต์</span>
+        </button>
+        <button aria-label="ค้นหา" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center">
+          <span class="text-lg">🔍</span>
+          <span class="text-[9px] text-txt-muted">ค้นหา</span>
+        </button>
+        <button aria-label="แจ้งเตือน" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center relative">
+          <span class="text-lg">🔔</span>
+          <span class="text-[9px] text-txt-muted">แจ้งเตือน</span>
+          <span class="absolute top-0.5 right-2 w-1.5 h-1.5 rounded-full bg-[color:var(--danger)]"></span>
+        </button>
+        <button aria-label="สัตว์เลี้ยง" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center">
+          <span class="text-lg">🐾</span>
+          <span class="text-[9px] text-txt-muted">สัตว์เลี้ยง</span>
+        </button>
+        <button aria-label="โปรไฟล์" class="flex flex-col items-center gap-0.5 py-1 min-w-[48px] justify-center">
+          <span class="text-lg">👤</span>
+          <span class="text-[9px] text-txt-muted">โปรไฟล์</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

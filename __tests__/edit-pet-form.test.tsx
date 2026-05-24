@@ -90,6 +90,9 @@ const mockPet = {
   microchip_number: null,
   special_notes: null,
   photo_url: null,
+  pawrent_id: "PW-PET1TEST",
+  status: "active" as const,
+  memorial_date: null,
   created_at: "2024-01-01",
 };
 

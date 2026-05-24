@@ -154,22 +154,22 @@ async function generateShareCard(alert: AlertData): Promise<Buffer> {
 
       <!-- Pet name -->
       <text x="${width / 2}" y="250" text-anchor="middle"
-        font-family="sans-serif" font-weight="bold" font-size="56" fill="#222">
+        font-family="sans-serif" font-weight="bold" font-size="56" fill="#2E2A2E">
         ${escapeXml(`ชื่อ: ${alert.pet_name || "ไม่ระบุชื่อ"}`)}
       </text>
 
       <!-- Pet details -->
-      ${alert.pet_breed ? `<text x="${width / 2}" y="320" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#333">สายพันธุ์: ${escapeXml(alert.pet_breed)}</text>` : ""}
-      ${alert.pet_color ? `<text x="${width / 2}" y="370" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#333">สี: ${escapeXml(alert.pet_color)}</text>` : ""}
+      ${alert.pet_breed ? `<text x="${width / 2}" y="320" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#3D3935">สายพันธุ์: ${escapeXml(alert.pet_breed)}</text>` : ""}
+      ${alert.pet_color ? `<text x="${width / 2}" y="370" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#3D3935">สี: ${escapeXml(alert.pet_color)}</text>` : ""}
 
       <!-- Lost date -->
       <text x="${width / 2}" y="420" text-anchor="middle"
-        font-family="sans-serif" font-size="32" fill="#555">
+        font-family="sans-serif" font-size="32" fill="#6B6560">
         หายวันที่ ${lostDate}
       </text>
 
       <!-- Location -->
-      ${location ? `<text x="${width / 2}" y="470" text-anchor="middle" font-family="sans-serif" font-size="32" fill="#555">บริเวณ: ${location}</text>` : ""}
+      ${location ? `<text x="${width / 2}" y="470" text-anchor="middle" font-family="sans-serif" font-size="32" fill="#6B6560">บริเวณ: ${location}</text>` : ""}
 
       <!-- Reward banner -->
       ${
@@ -185,7 +185,7 @@ async function generateShareCard(alert: AlertData): Promise<Buffer> {
       }
 
       <!-- Contact phone -->
-      ${phoneText ? `<text x="${width / 2}" y="1040" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="40" fill="#222">${phoneText}</text>` : ""}
+      ${phoneText ? `<text x="${width / 2}" y="1040" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="40" fill="#2E2A2E">${phoneText}</text>` : ""}
 
       <!-- CTA -->
       <text x="${width / 2}" y="1300" text-anchor="middle"

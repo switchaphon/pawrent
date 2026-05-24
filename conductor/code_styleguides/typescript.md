@@ -3,6 +3,9 @@
 Reference these patterns before writing any code. These are the actual patterns
 in use in this codebase — not generic guidelines.
 
+For styling, design tokens, Tailwind v4 `@theme inline` conventions, and the
+D2 POPS Balanced semantic-token rule, see [`design-tokens.md`](./design-tokens.md).
+
 ---
 
 ## Route Handler Pattern

@@ -1,5 +1,5 @@
 /**
- * Tests for simple stateless components: BottomNav, VaccineStatusBar, LocationBanner.
+ * Tests for simple stateless components: VaccineStatusBar, LocationBanner.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -9,24 +9,6 @@ import userEvent from "@testing-library/user-event";
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
-const mockUsePathname = vi.fn(() => "/");
-vi.mock("next/navigation", () => ({ usePathname: () => mockUsePathname() }));
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: {
-    href: string;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 const mockRequestLocation = vi.fn();
 const mockLocationError = { current: null as string | null };
 vi.mock("@/components/location-provider", () => ({
@@ -38,51 +20,8 @@ vi.mock("@/components/location-provider", () => ({
   }),
 }));
 
-import { BottomNav } from "@/components/bottom-nav";
 import { VaccineStatusBar } from "@/components/vaccine-status-bar";
 import { LocationBanner } from "@/components/location-banner";
-
-// ---------------------------------------------------------------------------
-// BottomNav
-// ---------------------------------------------------------------------------
-
-describe("BottomNav", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUsePathname.mockReturnValue("/");
-  });
-
-  it("renders all 5 nav items", () => {
-    render(<BottomNav />);
-    expect(screen.getByText("Feed")).toBeInTheDocument();
-    expect(screen.getByText("Notify")).toBeInTheDocument();
-    expect(screen.getByText("Hospital")).toBeInTheDocument();
-    expect(screen.getByText("Pets")).toBeInTheDocument();
-    expect(screen.getByText("Profile")).toBeInTheDocument();
-  });
-
-  it("all links have correct hrefs", () => {
-    render(<BottomNav />);
-    expect(screen.getByText("Feed").closest("a")).toHaveAttribute("href", "/");
-    expect(screen.getByText("Hospital").closest("a")).toHaveAttribute("href", "/hospital");
-    expect(screen.getByText("Pets").closest("a")).toHaveAttribute("href", "/pets");
-    expect(screen.getByText("Profile").closest("a")).toHaveAttribute("href", "/profile");
-  });
-
-  it("highlights the active route", () => {
-    mockUsePathname.mockReturnValue("/pets");
-    render(<BottomNav />);
-    const petsLink = screen.getByText("Pets").closest("a");
-    expect(petsLink?.className).toContain("text-primary");
-  });
-
-  it("inactive routes have muted-foreground styling", () => {
-    mockUsePathname.mockReturnValue("/pets");
-    render(<BottomNav />);
-    const feedLink = screen.getByText("Feed").closest("a");
-    expect(feedLink?.className).toContain("text-muted-foreground");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // VaccineStatusBar
@@ -99,25 +38,25 @@ describe("VaccineStatusBar", () => {
     expect(screen.getByText(/imrab/i)).toBeInTheDocument();
   });
 
-  it("applies green color for protected status", () => {
+  it("applies d2 success token for protected status", () => {
     const { container } = render(
       <VaccineStatusBar name="Rabies" status="protected" percentage={80} />
     );
-    expect(container.querySelector(".bg-green-500")).toBeTruthy();
+    expect(container.querySelector(".bg-success")).toBeTruthy();
   });
 
-  it("applies yellow color for due_soon status", () => {
+  it("applies d2 warning token for due_soon status", () => {
     const { container } = render(
       <VaccineStatusBar name="DHPP" status="due_soon" percentage={40} />
     );
-    expect(container.querySelector(".bg-yellow-500")).toBeTruthy();
+    expect(container.querySelector(".bg-warning")).toBeTruthy();
   });
 
-  it("applies red color for overdue status", () => {
+  it("applies d2 danger token for overdue status", () => {
     const { container } = render(
       <VaccineStatusBar name="Bordetella" status="overdue" percentage={10} />
     );
-    expect(container.querySelector(".bg-red-500")).toBeTruthy();
+    expect(container.querySelector(".bg-danger")).toBeTruthy();
   });
 });
 

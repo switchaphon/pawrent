@@ -25,3 +25,6 @@ skills-lock.json
 
 # Supabase CLI temp artifacts
 supabase/.temp/
+
+# Pawrent Oracle brain (symlink to pawrent-oracle repo — source of truth lives there)
+ψ

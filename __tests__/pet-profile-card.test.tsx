@@ -1,12 +1,12 @@
 /**
  * Tests for PetProfileCard — complex display with callbacks and clipboard.
+ * Migrated to D2 UI (Thai labels, surface-alt tokens, aria-labels).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-// Mock child components
 vi.mock("@/components/photo-gallery", () => ({
   PhotoGallery: ({ onAddPhoto }: { onAddPhoto: () => void }) => (
     <div data-testid="photo-gallery">
@@ -40,6 +40,9 @@ const mockPet: Pet = {
   microchip_number: "123456789012345",
   special_notes: "Loves belly rubs",
   photo_url: "https://example.com/luna.jpg",
+  pawrent_id: "PW-PET1TEST",
+  status: "active",
+  memorial_date: null,
   created_at: "2024-01-01",
 };
 
@@ -59,32 +62,26 @@ describe("PetProfileCard", () => {
     expect(screen.getByText("Luna")).toBeInTheDocument();
   });
 
-  it("renders species and breed info", () => {
+  it("renders species and breed as pill tags", () => {
     render(<PetProfileCard {...defaultProps} />);
     expect(screen.getByText(/golden retriever/i)).toBeInTheDocument();
   });
 
   it("calls onEdit when edit button is clicked", async () => {
     render(<PetProfileCard {...defaultProps} />);
-    // Edit button is a small icon button near the pet name — find by class pattern
-    const buttons = screen.getAllByRole("button");
-    // The edit button has a Pencil icon and bg-gray-100 class
-    const editBtn = buttons.find(
-      (b) => b.className.includes("bg-gray-100") && b.className.includes("w-8")
-    );
-    expect(editBtn).toBeTruthy();
-    await userEvent.click(editBtn!);
+    const editBtn = screen.getByLabelText("แก้ไขข้อมูล");
+    await userEvent.click(editBtn);
     expect(defaultProps.onEdit).toHaveBeenCalled();
   });
 
   it("shows report button when no active report", () => {
     render(<PetProfileCard {...defaultProps} />);
-    expect(screen.getByText(/report lost pet/i)).toBeInTheDocument();
+    expect(screen.getByText("แจ้งน้องหาย")).toBeInTheDocument();
   });
 
   it("calls onReport when report button is clicked", async () => {
     render(<PetProfileCard {...defaultProps} />);
-    const reportBtn = screen.getByText(/report lost pet/i).closest("button")!;
+    const reportBtn = screen.getByText("แจ้งน้องหาย").closest("button")!;
     await userEvent.click(reportBtn);
     expect(defaultProps.onReport).toHaveBeenCalled();
   });
@@ -104,7 +101,7 @@ describe("PetProfileCard", () => {
       video_url: null,
     };
     render(<PetProfileCard {...defaultProps} activePetReport={alert} />);
-    expect(screen.getByText(/active report/i)).toBeInTheDocument();
+    expect(screen.getByText(/กำลังแจ้งหาย/)).toBeInTheDocument();
   });
 
   it("calls onPetFound when Pet Found button is clicked", async () => {
@@ -123,7 +120,7 @@ describe("PetProfileCard", () => {
       video_url: null,
     };
     render(<PetProfileCard {...defaultProps} activePetReport={alert} onPetFound={onPetFound} />);
-    const foundBtn = screen.getByText(/pet found/i).closest("button")!;
+    const foundBtn = screen.getByText("น้องกลับมาแล้ว!").closest("button")!;
     await userEvent.click(foundBtn);
     expect(onPetFound).toHaveBeenCalledWith("alert-1");
   });
@@ -133,14 +130,10 @@ describe("PetProfileCard", () => {
     Object.assign(navigator, { clipboard: { writeText } });
 
     render(<PetProfileCard {...defaultProps} />);
-    const copyBtn =
-      screen.getByText("123456789012345").closest("button") ||
-      screen.getAllByRole("button").find((b) => b.textContent?.includes("12345"));
-    if (copyBtn) {
-      await userEvent.click(copyBtn);
-      await waitFor(() => {
-        expect(writeText).toHaveBeenCalledWith("123456789012345");
-      });
-    }
+    const copyBtn = screen.getByLabelText("คัดลอกรหัส");
+    await userEvent.click(copyBtn);
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("123456789012345");
+    });
   });
 });

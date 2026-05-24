@@ -7,27 +7,15 @@ import type { LostPetAlert, AlertStatus } from "./types";
 
 function getStatusChip(status: AlertStatus, alertType: string) {
   if (status === "resolved_found" || status === "resolved_owner") {
-    return {
-      label: "กลับบ้านแล้ว",
-      className: "bg-blue-500 text-white",
-    };
+    return { label: "กลับบ้านแล้ว", className: "bg-info text-white" };
   }
   if (status === "resolved_other" || status === "expired") {
-    return {
-      label: "ปิดประกาศ",
-      className: "bg-gray-400 text-white",
-    };
+    return { label: "ปิดประกาศ", className: "bg-text-muted text-white" };
   }
   if (alertType === "found" || alertType === "stray") {
-    return {
-      label: "พบแล้ว",
-      className: "bg-green-500 text-white",
-    };
+    return { label: "พบแล้ว", className: "bg-success text-white" };
   }
-  return {
-    label: "หาย",
-    className: "bg-red-500 text-white",
-  };
+  return { label: "หาย", className: "bg-danger text-white" };
 }
 
 function getRelativeTimeThai(dateStr: string): string {
@@ -70,11 +58,10 @@ export function AlertCard({ alert }: AlertCardProps) {
   const sexLabel = getSexLabel(alert.pet_sex);
 
   return (
-    <Link href={`/post/${alert.id}`} className="block">
-      <div className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden active:scale-[0.98] transition-transform">
+    <Link href={`/post/${alert.id}`} className="block group">
+      <article className="bg-surface rounded-[24px] shadow-soft border border-border overflow-hidden active:scale-[0.98] group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all">
         <div className="flex">
-          {/* Photo */}
-          <div className="relative w-28 h-28 flex-shrink-0 bg-muted">
+          <div className="relative w-28 h-28 flex-shrink-0 bg-surface-alt">
             {photoUrl ? (
               <Image
                 src={photoUrl}
@@ -84,14 +71,13 @@ export function AlertCard({ alert }: AlertCardProps) {
                 sizes="112px"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl">
+              <div className="w-full h-full flex items-center justify-center text-3xl" aria-hidden>
                 {alert.pet_species === "cat" ? "🐱" : "🐕"}
               </div>
             )}
-            {/* Status chip */}
             <span
               className={cn(
-                "absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full",
+                "absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full",
                 chip.className
               )}
             >
@@ -99,42 +85,41 @@ export function AlertCard({ alert }: AlertCardProps) {
             </span>
           </div>
 
-          {/* Info */}
           <div className="flex-1 p-3 min-w-0">
             <div className="flex items-start justify-between gap-1">
-              <h3 className="font-bold text-foreground text-sm truncate">
+              <h3 className="font-bold text-text-main text-sm truncate">
                 {alert.pet_name || "ไม่ระบุชื่อ"}
               </h3>
               {distance && (
-                <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
+                <span className="text-[11px] text-text-muted whitespace-nowrap flex-shrink-0">
                   {distance}
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            <p className="text-xs text-text-muted mt-0.5 truncate">
               {[alert.pet_breed, sexLabel, alert.pet_color].filter(Boolean).join(" · ") ||
                 "ไม่ระบุสายพันธุ์"}
             </p>
 
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[11px] text-text-muted mt-1">
               {getRelativeTimeThai(alert.created_at)}
             </p>
 
             {alert.location_description && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                📍 {alert.location_description}
+              <p className="text-[11px] text-text-muted mt-0.5 truncate">
+                <span aria-hidden>📍</span> {alert.location_description}
               </p>
             )}
 
             {alert.reward_amount > 0 && (
-              <span className="inline-block mt-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                💰 รางวัล ฿{alert.reward_amount.toLocaleString()}
+              <span className="inline-block mt-1.5 text-[11px] font-bold text-warning bg-warning-bg px-2 py-0.5 rounded-full">
+                <span aria-hidden>💰</span> รางวัล ฿{alert.reward_amount.toLocaleString()}
               </span>
             )}
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }

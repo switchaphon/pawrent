@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=390, initial-scale=1, viewport-fit=cover" />
+<title>Pawrent · โปรไฟล์ — Variant B / Sticker Studio</title>
+<link rel="stylesheet" href="../shared/tokens.css" />
+<style>
+  :root { --page-bg: #fff5e6; --ink-hi: #2a1a1a; }
+  body { background: var(--page-bg); }
+  .screen { background: var(--page-bg); }
+
+  .page-head {
+    padding: 6px 16px 0;
+  }
+  .page-head__title {
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: 42px;
+    color: var(--color-pops-yellow);
+    -webkit-text-stroke: 2px var(--ink-hi);
+    text-shadow: 3px 3px 0 var(--ink-hi);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    display: inline-block;
+    transform: rotate(-2deg);
+  }
+
+  /* Owner banner */
+  .owner {
+    margin: 20px 16px 0;
+    padding: 20px;
+    border-radius: 28px;
+    border: 2px solid var(--ink-hi);
+    background:
+      radial-gradient(circle at 85% 30%, rgba(255,255,255,0.35), transparent 55%),
+      linear-gradient(135deg, var(--color-pops-pink), var(--color-pops-coral));
+    color: var(--color-white);
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    box-shadow: 5px 5px 0 var(--ink-hi);
+    position: relative;
+    overflow: hidden;
+  }
+  .owner::after {
+    content: "★";
+    position: absolute;
+    font-size: 100px;
+    bottom: -30px;
+    right: -14px;
+    color: var(--color-pops-yellow);
+    -webkit-text-stroke: 2px var(--ink-hi);
+    opacity: 0.4;
+  }
+  .owner__ava {
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+    border: 3px solid var(--ink-hi);
+    background: var(--color-pops-yellow);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: 40px;
+    color: var(--ink-hi);
+    flex-shrink: 0;
+    box-shadow: inset 0 4px 0 rgba(255,255,255,0.6);
+    position: relative;
+  }
+  .owner__ava::after {
+    content: "LINE";
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    background: #06C755;
+    color: var(--color-white);
+    font-family: var(--font-display);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: var(--weight-heavy);
+    border: 2px solid var(--ink-hi);
+  }
+  .owner__name {
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-lg);
+    line-height: 1.1;
+    position: relative;
+  }
+  .owner__sub {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    opacity: 0.92;
+    margin-top: 2px;
+    position: relative;
+  }
+  .owner__pack {
+    margin-top: 8px;
+    display: flex;
+    gap: 4px;
+    position: relative;
+  }
+  .owner__pack-ava {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    border: 2px solid var(--ink-hi);
+    background: var(--color-pops-yellow);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+  }
+  .owner__pack-count {
+    margin-left: 4px;
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-heavy);
+    align-self: center;
+  }
+
+  /* Plan meter — tile */
+  .plan {
+    margin: 18px 16px 0;
+    padding: 18px;
+    border-radius: 24px;
+    border: 2px solid var(--ink-hi);
+    background: var(--color-white);
+    box-shadow: 4px 4px 0 var(--ink-hi);
+  }
+  .plan__kicker {
+    display: inline-block;
+    background: var(--color-pops-yellow);
+    color: var(--ink-hi);
+    border: 2px solid var(--ink-hi);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: var(--weight-heavy);
+    letter-spacing: var(--tracking-wide);
+  }
+  .plan__title {
+    margin-top: 8px;
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-lg);
+    color: var(--ink-hi);
+  }
+  .plan__row {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    font-size: var(--text-xs);
+    color: var(--ink-hi);
+    font-weight: var(--weight-semibold);
+    align-items: baseline;
+  }
+  .plan__bar {
+    margin-top: 4px;
+    height: 10px;
+    border: 2px solid var(--ink-hi);
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.04);
+  }
+  .plan__bar__fill {
+    height: 100%;
+    background: var(--color-sage);
+  }
+  .plan__bar__fill--pink { background: var(--color-pops-pink); }
+  .plan__bar__fill--yellow { background: var(--color-pops-yellow); }
+  .plan__upgrade {
+    margin-top: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-pops-pink);
+    color: var(--color-white);
+    border: 2px solid var(--ink-hi);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-xs);
+    box-shadow: 2px 2px 0 var(--ink-hi);
+  }
+
+  /* Tape label */
+  .tape {
+    margin: 24px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tape__label {
+    background: var(--color-pops-coral);
+    color: var(--color-white);
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-md);
+    padding: 6px 14px;
+    border: 2px solid var(--ink-hi);
+    border-radius: 14px;
+    transform: rotate(-1deg);
+    box-shadow: 3px 3px 0 var(--ink-hi);
+  }
+  .tape__doodle {
+    flex: 1;
+    height: 3px;
+    background-image: repeating-linear-gradient(90deg, var(--ink-hi) 0 8px, transparent 8px 14px);
+  }
+
+  /* Settings stack */
+  .stack-card {
+    margin: 0 16px 10px;
+    background: var(--color-white);
+    border: 2px solid var(--ink-hi);
+    border-radius: 20px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    box-shadow: 2px 2px 0 var(--ink-hi);
+  }
+  .stack-card__ico {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    border: 2px solid var(--ink-hi);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+  }
+  .stack-card__ico--green { background: #06C755; color: var(--color-white); }
+  .stack-card__ico--pink { background: var(--color-pops-pink); color: var(--color-white); }
+  .stack-card__ico--yellow { background: var(--color-pops-yellow); color: var(--ink-hi); }
+  .stack-card__title {
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-sm);
+    color: var(--ink-hi);
+  }
+  .stack-card__desc {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-semibold);
+    color: var(--ink-hi);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .stack-card__value {
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-xs);
+    color: var(--color-pops-pink);
+    -webkit-text-stroke: 0.5px var(--ink-hi);
+  }
+  .toggle {
+    width: 44px;
+    height: 26px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.15);
+    border: 2px solid var(--ink-hi);
+    position: relative;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--color-white);
+    border: 2px solid var(--ink-hi);
+    box-sizing: border-box;
+    transition: left var(--dur-base);
+  }
+  .toggle--on { background: var(--color-pops-pink); }
+  .toggle--on::after { left: 18px; }
+
+  /* Radius selector */
+  .radius-card {
+    margin: 0 16px;
+    padding: 18px;
+    border-radius: 24px;
+    border: 2px solid var(--ink-hi);
+    background: var(--color-white);
+    box-shadow: 4px 4px 0 var(--ink-hi);
+  }
+  .radius-card__title {
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-md);
+    color: var(--ink-hi);
+  }
+  .radius-card__desc {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--ink-hi);
+    opacity: 0.7;
+    margin-top: 4px;
+  }
+  .radius-options {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .radius-option {
+    padding: 12px 4px;
+    border: 2px solid var(--ink-hi);
+    border-radius: 16px;
+    text-align: center;
+    background: var(--color-white);
+    color: var(--ink-hi);
+    font-weight: var(--weight-heavy);
+    font-size: var(--text-2xs);
+  }
+  .radius-option b {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    color: var(--ink-hi);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .radius-option--active {
+    background: var(--color-pops-pink);
+    color: var(--color-white);
+    transform: rotate(-2deg);
+    box-shadow: 2px 2px 0 var(--ink-hi);
+  }
+  .radius-option--active b { color: var(--color-white); }
+
+  /* Logout */
+  .logout {
+    margin: 28px 16px 12px;
+    padding: 14px;
+    text-align: center;
+    border: 2px dashed var(--color-burgundy);
+    border-radius: 18px;
+    font-family: var(--font-display);
+    font-weight: var(--weight-heavy);
+    color: var(--color-burgundy);
+    font-size: var(--text-sm);
+    background: var(--color-burgundy-50);
+  }
+  .legal {
+    font-size: var(--text-2xs);
+    color: var(--ink-hi);
+    opacity: 0.6;
+    text-align: center;
+    padding: 0 16px 12px;
+    font-weight: var(--weight-semibold);
+  }
+
+  .bottom-nav {
+    background: var(--color-white);
+    border-top: 3px solid var(--ink-hi);
+  }
+  .bottom-nav__item { color: var(--ink-hi); }
+  .bottom-nav__item[aria-current="page"] { color: var(--color-pops-pink); }
+  .bottom-nav__item[aria-current="page"]::after { background: var(--color-pops-pink); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="device">
+    <div class="device-inner">
+
+      <div class="status-bar">
+        <span>9:41</span>
+        <span class="status-bar__icons">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M2 11h3v6H2zm5-3h3v9H7zm5-3h3v12h-3zm5-3h3v15h-3z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden><path d="M5 12.55a11 11 0 0 1 14 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden><rect x="2" y="7" width="18" height="10" rx="2"/><rect x="4" y="9" width="13" height="6" rx="1" fill="currentColor"/></svg>
+        </span>
+      </div>
+
+      <div class="screen">
+
+        <header class="page-head">
+          <h1 class="page-head__title">สวัสดีทาส!</h1>
+        </header>
+
+        <!-- Owner card -->
+        <div class="owner">
+          <div class="owner__ava">น</div>
+          <div style="flex:1; position:relative;">
+            <div class="owner__name">ณัฐภูมิ เจริญสุข</div>
+            <div class="owner__sub">@natphum · เข้าร่วม พ.ย. 2024</div>
+            <div class="owner__pack">
+              <span class="owner__pack-ava">🐶</span>
+              <span class="owner__pack-ava" style="background: var(--color-pops-coral);">🐱</span>
+              <span class="owner__pack-ava" style="background: var(--color-pops-pink);">🐰</span>
+              <span class="owner__pack-count">3 นายท่าน · 184 บันทึก</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan -->
+        <div class="plan">
+          <span class="plan__kicker">★ PAWRENT FREE</span>
+          <div class="plan__title">แพลนทดลองใช้งาน</div>
+          <div class="plan__row">
+            <span>สัตว์เลี้ยง</span>
+            <span><b style="color: var(--color-pops-pink);">3</b> / 3 · เต็มแล้ว</span>
+          </div>
+          <div class="plan__bar"><span class="plan__bar__fill plan__bar__fill--pink" style="width: 100%"></span></div>
+          <div class="plan__row" style="margin-top: 12px;">
+            <span>รูปและบันทึก</span>
+            <span><b>184</b> / 500</span>
+          </div>
+          <div class="plan__bar"><span class="plan__bar__fill" style="width: 36.8%"></span></div>
+          <div class="plan__row" style="margin-top: 12px;">
+            <span>รัศมีเตือนสัตว์หาย</span>
+            <span><b>5 กม.</b></span>
+          </div>
+          <div class="plan__bar"><span class="plan__bar__fill plan__bar__fill--yellow" style="width: 50%"></span></div>
+          <a class="plan__upgrade" href="#">🚀 อัปเกรดเป็น Pro</a>
+        </div>
+
+        <!-- Contacts -->
+        <div class="tape">
+          <span class="tape__label">ช่องทางติดต่อ</span>
+          <span class="tape__doodle"></span>
+        </div>
+
+        <div class="stack-card">
+          <div class="stack-card__ico stack-card__ico--green">L</div>
+          <div>
+            <div class="stack-card__title">LINE · @natphum</div>
+            <div class="stack-card__desc">ช่องทางหลัก · รับแจ้งเตือนทันที</div>
+          </div>
+          <span class="stack-card__value">✓ เชื่อมแล้ว</span>
+        </div>
+        <div class="stack-card">
+          <div class="stack-card__ico" style="background: var(--color-pops-yellow);">✉️</div>
+          <div>
+            <div class="stack-card__title">อีเมล</div>
+            <div class="stack-card__desc">natphum@example.com</div>
+          </div>
+          <span>›</span>
+        </div>
+        <div class="stack-card">
+          <div class="stack-card__ico" style="background: var(--color-pops-coral); color: var(--color-white);">📞</div>
+          <div>
+            <div class="stack-card__title">เบอร์โทรศัพท์</div>
+            <div class="stack-card__desc">+66 81 234 5678</div>
+          </div>
+          <span>›</span>
+        </div>
+
+        <!-- Notifications -->
+        <div class="tape">
+          <span class="tape__label" style="background: var(--color-pops-yellow); color: var(--ink-hi);">การแจ้งเตือน</span>
+          <span class="tape__doodle"></span>
+        </div>
+
+        <div class="radius-card">
+          <div class="radius-card__title">รัศมีสัตว์หายใกล้คุณ</div>
+          <div class="radius-card__desc">เราจะ ping เมื่อมีสัตว์หายในระยะที่เลือก</div>
+          <div class="radius-options">
+            <div class="radius-option"><b>1</b>กม.</div>
+            <div class="radius-option"><b>3</b>กม.</div>
+            <div class="radius-option radius-option--active"><b>5</b>กม.</div>
+            <div class="radius-option"><b>10</b>กม.</div>
+          </div>
+        </div>
+
+        <div class="stack-card" style="margin-top: 10px;">
+          <div class="stack-card__ico stack-card__ico--pink">💉</div>
+          <div>
+            <div class="stack-card__title">เตือนวัคซีน / ถ่ายพยาธิ</div>
+            <div class="stack-card__desc">ล่วงหน้า 3 วัน · 1 วัน · วันเดียวกัน</div>
+          </div>
+          <span class="toggle toggle--on"></span>
+        </div>
+        <div class="stack-card">
+          <div class="stack-card__ico stack-card__ico--yellow">📓</div>
+          <div>
+            <div class="stack-card__title">ไดอารี่ประจำวัน</div>
+            <div class="stack-card__desc">21:30 · ผ่าน Line OA push</div>
+          </div>
+          <span class="toggle toggle--on"></span>
+        </div>
+        <div class="stack-card">
+          <div class="stack-card__ico" style="background: var(--color-sage); color: var(--color-white);">🌙</div>
+          <div>
+            <div class="stack-card__title">โหมดเงียบ</div>
+            <div class="stack-card__desc">22:00 – 07:00 · เฉพาะเร่งด่วน</div>
+          </div>
+          <span class="toggle toggle--on"></span>
+        </div>
+
+        <!-- Data & privacy -->
+        <div class="tape">
+          <span class="tape__label" style="background: var(--color-burgundy); color: var(--color-pops-yellow);">ข้อมูล & ความเป็นส่วนตัว</span>
+          <span class="tape__doodle"></span>
+        </div>
+
+        <div class="stack-card">
+          <div class="stack-card__ico" style="background: var(--color-burgundy); color: var(--color-pops-yellow);">📤</div>
+          <div>
+            <div class="stack-card__title">ส่งออกข้อมูลส่วนตัว (PDPA)</div>
+            <div class="stack-card__desc">รับ JSON ทั้งหมดใน 24 ชม.</div>
+          </div>
+          <span>›</span>
+        </div>
+        <div class="stack-card">
+          <div class="stack-card__ico" style="background: var(--color-burgundy); color: var(--color-white);">🗑️</div>
+          <div>
+            <div class="stack-card__title">ลบบัญชีทั้งหมด</div>
+            <div class="stack-card__desc">ข้อมูลนายท่านจะหายไปถาวร</div>
+          </div>
+          <span>›</span>
+        </div>
+
+        <a class="logout" href="#">ออกจากระบบ · ลาก่อนคุณน้ำ 👋</a>
+        <div class="legal">Pawrent by POPs · v0.3.1 · หนึ่งในครอบครัวผลิตภัณฑ์</div>
+
+      </div>
+
+      <nav class="bottom-nav" aria-label="เมนูหลัก">
+        <ul class="bottom-nav__list">
+          <li><a class="bottom-nav__item" href="home.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h3"/><path d="M19 10v10a1 1 0 0 1-1 1h-3"/><path d="M9 21v-6a3 3 0 0 1 6 0v6"/></svg>
+            <span>หน้าหลัก</span>
+          </a></li>
+          <li><a class="bottom-nav__item" href="post.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a2 2 0 0 1 2-2h14v18a2 2 0 0 1-2 2H4Zm0 0a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2"/><path d="M10 6h6M10 10h6M10 14h6"/></svg>
+            <span>ฟีด</span>
+          </a></li>
+          <li><a class="bottom-nav__item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+            <span>แจ้ง</span>
+          </a></li>
+          <li><a class="bottom-nav__item" href="notifications.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 1 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+            <span>แจ้งเตือน</span>
+          </a></li>
+          <li><a class="bottom-nav__item" href="pets.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="16.5" cy="15.5" r="2"/><circle cx="7.5" cy="15.5" r="2"/><path d="M8 15a4 4 0 0 1 8 0c0 2.2-1.8 4-4 4s-4-1.8-4-4Z"/></svg>
+            <span>สัตว์เลี้ยง</span>
+          </a></li>
+          <li><a class="bottom-nav__item" href="profile.html" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            <span>โปรไฟล์</span>
+          </a></li>
+        </ul>
+      </nav>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

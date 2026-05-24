@@ -1,0 +1,10 @@
+ψ
+ψ/
+.claude/
+PRPs/
+conductor/
+__tests__/
+e2e/
+*.test.ts
+*.test.tsx
+*.spec.ts

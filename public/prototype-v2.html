@@ -1,0 +1,1656 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Pawrent v2 — Prototype</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800;900&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        font-family: "Kanit", sans-serif;
+        background: #e8e2d8;
+        display: flex;
+        justify-content: center;
+        min-height: 100dvh;
+        align-items: flex-start;
+        padding: 20px 0 100px;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        outline: none;
+      }
+
+      /* ─── PHONE SHELL ─── */
+      .phone {
+        width: 390px;
+        min-height: 844px;
+        position: relative;
+        overflow: hidden;
+        background: var(--bg);
+        border-radius: 44px;
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.22),
+          0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      /* ─── THEME VARIABLES ─── */
+      .theme-notebook {
+        --bg: #faf6f0;
+        --bg-end: #faf6f0;
+        --surface: #ffffff;
+        --surface-alt: rgba(253, 188, 17, 0.1);
+        --border: #e8e2d9;
+        --shadow: 3px 3px 0 rgba(0, 0, 0, 0.04);
+        --text: #3d2b1f;
+        --text-heading: #7a0000;
+        --text-muted: #7a8668;
+        --text-sub: #999;
+        --primary: #f05e38;
+        --primary-gradient: linear-gradient(135deg, #f05e38, #ec2584);
+        --primary-shadow: 0 4px 12px rgba(240, 94, 56, 0.27);
+        --stat1-bg: rgba(253, 188, 17, 0.1);
+        --stat1-border: rgba(253, 188, 17, 0.25);
+        --stat1-text: #3d2b1f;
+        --stat2-bg: rgba(122, 134, 104, 0.07);
+        --stat2-border: rgba(122, 134, 104, 0.2);
+        --stat2-text: #3d2b1f;
+        --stat3-bg: rgba(236, 37, 132, 0.06);
+        --stat3-border: rgba(236, 37, 132, 0.13);
+        --stat3-text: #3d2b1f;
+        --stat4-bg: rgba(240, 94, 56, 0.06);
+        --stat4-border: rgba(240, 94, 56, 0.13);
+        --stat4-text: #3d2b1f;
+        --nav-active: #7a0000;
+        --nav-fab: linear-gradient(135deg, #f05e38, #ec2584);
+        --radius: 16px;
+        --radius-lg: 16px;
+        --hero-bg: transparent;
+        --hero-text: inherit;
+        --hero-radius: 0;
+        --avatar-ring: linear-gradient(135deg, #f05e38, #ec2584);
+        --success: #4c6b3c;
+        --success-bg: #edf0ea;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #d32f2f;
+        --danger-bg: #ffebee;
+        --pill-bg: rgba(253, 188, 17, 0.12);
+        --pill-text: #3d2b1f;
+        --family: new;
+      }
+      .theme-candy {
+        --bg: #fff5f0;
+        --bg-end: #fff5f0;
+        --surface: #ffffff;
+        --surface-alt: #fff;
+        --border: #f0ece6;
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        --text: #7a0000;
+        --text-heading: #7a0000;
+        --text-muted: #999;
+        --text-sub: #999;
+        --primary: #7a0000;
+        --primary-gradient: linear-gradient(135deg, #7a0000, #7a0000);
+        --primary-shadow: 0 6px 20px rgba(122, 0, 0, 0.2);
+        --stat1-bg: #ec2584;
+        --stat1-border: transparent;
+        --stat1-text: #fff;
+        --stat2-bg: #fdbc11;
+        --stat2-border: transparent;
+        --stat2-text: #7a0000;
+        --stat3-bg: #ffffff;
+        --stat3-border: #f0ece6;
+        --stat3-text: #7a0000;
+        --stat4-bg: #ffffff;
+        --stat4-border: #f0ece6;
+        --stat4-text: #7a0000;
+        --nav-active: #ec2584;
+        --nav-fab: linear-gradient(135deg, #ec2584, #f05e38);
+        --radius: 20px;
+        --radius-lg: 24px;
+        --hero-bg: linear-gradient(160deg, #ec2584, #f05e38 50%, #fdbc11);
+        --hero-text: #fff;
+        --hero-radius: 0 0 32px 32px;
+        --avatar-ring: linear-gradient(135deg, #ec2584, #f05e38, #fdbc11);
+        --success: #4c6b3c;
+        --success-bg: #edf0ea;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #d32f2f;
+        --danger-bg: #ffebee;
+        --pill-bg: #f9e8f0;
+        --pill-text: #7a0000;
+        --family: new;
+      }
+      .theme-mix {
+        --bg: #faf6f0;
+        --bg-end: #faf6f0;
+        --surface: #ffffff;
+        --surface-alt: rgba(253, 188, 17, 0.1);
+        --border: #e8e2d9;
+        --shadow: 3px 3px 0 rgba(0, 0, 0, 0.04);
+        --text: #3d2b1f;
+        --text-heading: #7a0000;
+        --text-muted: #7a8668;
+        --text-sub: #999;
+        --primary: #7a0000;
+        --primary-gradient: linear-gradient(135deg, #7a0000, #7a0000);
+        --primary-shadow: 0 6px 20px rgba(122, 0, 0, 0.2);
+        --stat1-bg: #ec2584;
+        --stat1-border: transparent;
+        --stat1-text: #fff;
+        --stat2-bg: #fdbc11;
+        --stat2-border: transparent;
+        --stat2-text: #7a0000;
+        --stat3-bg: #ffffff;
+        --stat3-border: #e8e2d9;
+        --stat3-text: #3d2b1f;
+        --stat4-bg: #ffffff;
+        --stat4-border: #e8e2d9;
+        --stat4-text: #3d2b1f;
+        --nav-active: #7a0000;
+        --nav-fab: linear-gradient(135deg, #f05e38, #ec2584);
+        --radius: 20px;
+        --radius-lg: 20px;
+        --hero-bg: linear-gradient(160deg, #ec2584, #f05e38 50%, #fdbc11);
+        --hero-text: #fff;
+        --hero-radius: 0 0 32px 32px;
+        --avatar-ring: linear-gradient(135deg, #f05e38, #ec2584);
+        --success: #4c6b3c;
+        --success-bg: #edf0ea;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #d32f2f;
+        --danger-bg: #ffebee;
+        --pill-bg: rgba(253, 188, 17, 0.12);
+        --pill-text: #3d2b1f;
+        --family: new;
+      }
+      .theme-d2 {
+        --bg: #faf7f2;
+        --bg-end: #f5f1ea;
+        --surface: #ffffff;
+        --surface-alt: #edede8;
+        --border: #e8e2d8;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        --text: #2e2a2e;
+        --text-heading: #2e2a2e;
+        --text-muted: #6b6560;
+        --text-sub: #6b6560;
+        --primary: #ff8263;
+        --primary-gradient: linear-gradient(135deg, #ff8263, #ffa563);
+        --primary-shadow: 0 4px 14px rgba(255, 130, 99, 0.3);
+        --stat1-bg: #ffffff;
+        --stat1-border: #e8e2d8;
+        --stat1-text: #2e2a2e;
+        --stat2-bg: #ffffff;
+        --stat2-border: #e8e2d8;
+        --stat2-text: #2e2a2e;
+        --stat3-bg: #ffffff;
+        --stat3-border: #e8e2d8;
+        --stat3-text: #2e2a2e;
+        --stat4-bg: #ffffff;
+        --stat4-border: #e8e2d8;
+        --stat4-text: #2e2a2e;
+        --avatar-ring: linear-gradient(135deg, #f06fa8 0%, #ff9285 50%, #ffcb6b 100%);
+        --success: #4c6b3c;
+        --success-bg: #edf0ea;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #d32f2f;
+        --danger-bg: #ffebee;
+        --pill-bg: #edede8;
+        --pill-text: #3d3935;
+        --nav-active: #ff8263;
+        --nav-fab: linear-gradient(135deg, #ff8263, #ffa563);
+        --radius: 16px;
+        --radius-lg: 24px;
+        --hero-bg: transparent;
+        --hero-text: inherit;
+        --hero-radius: 0;
+        --family: v6;
+      }
+      .theme-peach {
+        --bg: #fff4ed;
+        --bg-end: #ffeee0;
+        --surface: #ffffff;
+        --surface-alt: #f5ede3;
+        --border: #ffe0d0;
+        --shadow: 0 2px 8px rgba(92, 64, 51, 0.06);
+        --text: #5c4033;
+        --text-heading: #5c4033;
+        --text-muted: #9b7e6a;
+        --text-sub: #9b7e6a;
+        --primary: #ff9b85;
+        --primary-gradient: linear-gradient(135deg, #ff9b85, #e8835e);
+        --primary-shadow: 0 4px 14px rgba(232, 131, 94, 0.3);
+        --stat1-bg: #ffffff;
+        --stat1-border: #ffe0d0;
+        --stat1-text: #5c4033;
+        --stat2-bg: #ffffff;
+        --stat2-border: #ffe0d0;
+        --stat2-text: #5c4033;
+        --stat3-bg: #ffffff;
+        --stat3-border: #ffe0d0;
+        --stat3-text: #5c4033;
+        --stat4-bg: #ffffff;
+        --stat4-border: #ffe0d0;
+        --stat4-text: #5c4033;
+        --avatar-ring: linear-gradient(135deg, #ffd0be 0%, #ffb39c 50%, #ff9b85 100%);
+        --success: #5a8548;
+        --success-bg: #eef6eb;
+        --warning: #b8730a;
+        --warning-bg: #fff3d9;
+        --danger: #c5432e;
+        --danger-bg: #fbe5df;
+        --pill-bg: #f5ede3;
+        --pill-text: #7a5d4a;
+        --nav-active: #ff9b85;
+        --nav-fab: linear-gradient(135deg, #ff9b85, #e8835e);
+        --radius: 16px;
+        --radius-lg: 24px;
+        --hero-bg: transparent;
+        --hero-text: inherit;
+        --hero-radius: 0;
+        --family: v6;
+      }
+
+      /* ─── STATUS BAR ─── */
+      .status-bar {
+        height: 44px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 24px 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        position: relative;
+        z-index: 10;
+      }
+      .theme-candy .status-bar,
+      .theme-mix .status-bar {
+        color: #fff;
+      }
+      .status-bar .status-time {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .status-bar .status-icons {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+
+      /* ─── SCROLLABLE CONTENT ─── */
+      .screen {
+        display: none;
+        flex-direction: column;
+        overflow-y: auto;
+        min-height: 780px;
+        padding-bottom: 80px;
+      }
+      .screen.active {
+        display: flex;
+      }
+
+      /* ─── HERO (new family) ─── */
+      .hero-new {
+        background: var(--hero-bg);
+        border-radius: var(--hero-radius);
+        color: var(--hero-text);
+        padding: 20px 20px 24px;
+        position: relative;
+      }
+      .hero-new.no-hero {
+        padding: 16px 20px 0;
+        background: transparent;
+      }
+      .hero-title {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 2px;
+      }
+      .hero-sub {
+        font-size: 13px;
+        opacity: 0.8;
+      }
+      .hero-avatar-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .hero-pet-info {
+        flex: 1;
+      }
+      .hero-pet-name {
+        font-size: 26px;
+        font-weight: 900;
+      }
+      .hero-pet-breed {
+        font-size: 13px;
+        opacity: 0.75;
+        margin-top: 2px;
+      }
+      .hero-avatar-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--avatar-ring);
+        padding: 3px;
+        box-shadow: var(--primary-shadow);
+      }
+      .hero-avatar-circle .av-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #ccc;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+      }
+
+      /* ─── STAT GRID (new family) ─── */
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 16px 20px 0;
+      }
+      .stat-card {
+        background: var(--stat1-bg);
+        border: 1px solid var(--stat1-border);
+        border-radius: var(--radius);
+        padding: 14px 14px 12px;
+        box-shadow: var(--shadow);
+      }
+      .stat-card:nth-child(2) {
+        background: var(--stat2-bg);
+        border-color: var(--stat2-border);
+      }
+      .stat-card:nth-child(3) {
+        background: var(--stat3-bg);
+        border-color: var(--stat3-border);
+      }
+      .stat-card:nth-child(4) {
+        background: var(--stat4-bg);
+        border-color: var(--stat4-border);
+      }
+      .stat-card .sc-icon {
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+      .stat-card .sc-label {
+        font-size: 11px;
+        color: var(--stat1-text, var(--text-muted));
+        opacity: 0.85;
+      }
+      .stat-card:nth-child(2) .sc-label {
+        color: var(--stat2-text, var(--text-muted));
+        opacity: 0.85;
+      }
+      .stat-card:nth-child(3) .sc-label {
+        color: var(--stat3-text, var(--text-muted));
+        opacity: 0.85;
+      }
+      .stat-card:nth-child(4) .sc-label {
+        color: var(--stat4-text, var(--text-muted));
+        opacity: 0.85;
+      }
+      .stat-card .sc-value {
+        font-size: 15px;
+        font-weight: 700;
+        margin-top: 2px;
+        color: var(--stat1-text, var(--text));
+      }
+      .stat-card:nth-child(2) .sc-value {
+        color: var(--stat2-text, var(--text));
+      }
+      .stat-card:nth-child(3) .sc-value {
+        color: var(--stat3-text, var(--text));
+      }
+      .stat-card:nth-child(4) .sc-value {
+        color: var(--stat4-text, var(--text));
+      }
+
+      /* ─── CTA BUTTON ─── */
+      .cta-btn {
+        margin: 16px 20px 0;
+        background: var(--primary-gradient);
+        color: #fff;
+        border-radius: var(--radius-lg);
+        padding: 16px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        text-align: left;
+        box-shadow: var(--primary-shadow);
+        width: calc(100% - 40px);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .cta-btn span {
+        font-size: 22px;
+      }
+
+      /* ─── DIARY SCROLL (new family) ─── */
+      .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin: 20px 20px 10px;
+      }
+      .diary-scroll {
+        display: flex;
+        gap: 10px;
+        padding: 0 20px 16px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .diary-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .diary-chip {
+        flex-shrink: 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        width: 120px;
+        box-shadow: var(--shadow);
+      }
+      .diary-chip .dc-thumb {
+        font-size: 30px;
+        margin-bottom: 6px;
+      }
+      .diary-chip .dc-date {
+        font-size: 10px;
+        color: var(--text-sub);
+      }
+      .diary-chip .dc-cap {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 2px;
+        line-height: 1.3;
+      }
+      .diary-chip .dc-mood {
+        font-size: 10px;
+        color: var(--primary);
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      /* ─── V6 FAMILY: OWNER PILL ─── */
+      .owner-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 8px 14px 8px 8px;
+        margin: 16px 20px 0;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        width: fit-content;
+      }
+      .owner-pill .op-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--avatar-ring);
+        padding: 2px;
+        flex-shrink: 0;
+      }
+      .owner-pill .op-avatar .av-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #e0d5cc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+      .owner-pill .op-text {
+      }
+      .owner-pill .op-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-heading);
+      }
+      .owner-pill .op-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── V6 FAMILY: PET SELECTOR ─── */
+      .pet-selector {
+        display: flex;
+        gap: 14px;
+        padding: 14px 20px 0;
+      }
+      .pet-sel-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .pet-sel-item .ps-ring {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--border);
+        padding: 2px;
+        position: relative;
+      }
+      .pet-sel-item.active .ps-ring {
+        background: var(--avatar-ring);
+        box-shadow: var(--primary-shadow);
+      }
+      .pet-sel-item .ps-ring .av-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #d0c8c0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .pet-sel-item .ps-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .pet-sel-item.active .ps-name {
+        color: var(--nav-active);
+      }
+      .pet-sel-item.add .ps-ring {
+        background: var(--border);
+      }
+      .pet-sel-item.add .av-inner {
+        background: var(--surface);
+        font-size: 22px;
+        color: var(--text-muted);
+      }
+
+      /* ─── V6 FAMILY: PET INFO CARD ─── */
+      .pet-info-card {
+        margin: 14px 20px 0;
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .pet-card-top {
+        padding: 16px;
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+      }
+      .pet-card-top .pct-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--avatar-ring);
+        padding: 3px;
+        flex-shrink: 0;
+      }
+      .pet-card-top .pct-avatar .av-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #d0c8c0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+      }
+      .pet-card-top .pct-info {
+      }
+      .pet-card-top .pct-name {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text-heading);
+      }
+      .pet-card-top .pct-breed {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .pet-card-top .pct-age {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-top: 4px;
+      }
+      .pet-stat-row {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+      }
+      .pet-stat-cell {
+        flex: 1;
+        padding: 12px 14px;
+        border-right: 1px solid var(--border);
+      }
+      .pet-stat-cell:last-child {
+        border-right: none;
+      }
+      .pet-stat-cell .psc-label {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .pet-stat-cell .psc-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 2px;
+      }
+      .pet-stat-cell .psc-unit {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+
+      /* ─── V6 STAT ROWS ─── */
+      .v6-stats {
+        padding: 14px 20px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .v6-stat-row {
+        background: var(--surface);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .v6-stat-row .vsr-icon {
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .v6-stat-row .vsr-text {
+        flex: 1;
+      }
+      .v6-stat-row .vsr-label {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .v6-stat-row .vsr-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .v6-stat-row .vsr-pill {
+        background: var(--pill-bg);
+        color: var(--pill-text);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      /* ─── PET PROFILE PAGE ─── */
+      .profile-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px 20px 20px;
+      }
+      .profile-avatar-wrap {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: var(--avatar-ring);
+        padding: 4px;
+        box-shadow: var(--primary-shadow);
+      }
+      .profile-avatar-wrap .av-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #d0c8c0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 52px;
+      }
+      .profile-name {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--text-heading);
+        margin-top: 14px;
+      }
+      .profile-breed {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 0 20px;
+        margin-top: 4px;
+      }
+      .info-cell {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+      }
+      .info-cell .ic-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .info-cell .ic-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 3px;
+      }
+      .quick-actions {
+        display: flex;
+        gap: 8px;
+        padding: 16px 20px 0;
+      }
+      .qa-btn {
+        flex: 1;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 6px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .qa-btn span {
+        display: block;
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+      .tags-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 14px 20px 0;
+      }
+      .tag {
+        background: var(--pill-bg);
+        color: var(--pill-text);
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      /* ─── HEALTH PAGE ─── */
+      .passport-card {
+        margin: 16px 20px 0;
+        border-radius: var(--radius-lg);
+        background: var(--primary-gradient);
+        color: #fff;
+        padding: 20px;
+        box-shadow: var(--primary-shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .passport-card::before {
+        content: "🐾";
+        position: absolute;
+        right: -10px;
+        top: -10px;
+        font-size: 80px;
+        opacity: 0.12;
+        transform: rotate(-15deg);
+      }
+      .pc-title {
+        font-size: 12px;
+        font-weight: 600;
+        opacity: 0.8;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .pc-name {
+        font-size: 26px;
+        font-weight: 900;
+        margin-top: 4px;
+      }
+      .pc-row {
+        display: flex;
+        gap: 24px;
+        margin-top: 12px;
+      }
+      .pc-field .pcf-label {
+        font-size: 10px;
+        opacity: 0.7;
+      }
+      .pc-field .pcf-value {
+        font-size: 13px;
+        font-weight: 700;
+        margin-top: 1px;
+      }
+      .vaccine-timeline {
+        padding: 0 20px;
+        margin-top: 4px;
+      }
+      .vt-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 10px 0;
+        position: relative;
+      }
+      .vt-item:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        left: 7px;
+        top: 26px;
+        width: 2px;
+        height: calc(100% - 10px);
+        background: var(--border);
+      }
+      .vt-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 2px;
+        background: var(--text-muted);
+      }
+      .vt-dot.upcoming {
+        background: var(--primary);
+        box-shadow: 0 0 0 4px rgba(255, 130, 99, 0.2);
+      }
+      .vt-dot.done {
+        background: var(--success);
+      }
+      .vt-text {
+      }
+      .vt-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .vt-date {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
+      .vt-badge {
+        margin-left: auto;
+        font-size: 10px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 3px 8px;
+      }
+      .vt-badge.upcoming {
+        background: var(--warning-bg);
+        color: var(--warning);
+      }
+      .vt-badge.done {
+        background: var(--success-bg);
+        color: var(--success);
+      }
+      .weight-chart {
+        margin: 4px 20px 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      .wc-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 14px;
+      }
+      .bar-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        height: 60px;
+      }
+      .bar-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .bar {
+        border-radius: 4px 4px 0 0;
+        width: 100%;
+        background: var(--surface-alt);
+        border: 1px solid var(--border);
+        transition: height 0.3s;
+      }
+      .bar.active {
+        background: var(--primary-gradient);
+        border: none;
+      }
+      .bar-label {
+        font-size: 9px;
+        color: var(--text-muted);
+      }
+      .breed-note {
+        margin: 10px 20px 0;
+        background: var(--surface-alt);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .breed-note strong {
+        color: var(--text-heading);
+      }
+
+      /* ─── DIARY PAGE ─── */
+      .diary-month {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-heading);
+        padding: 20px 20px 12px;
+      }
+      .diary-entry {
+        margin: 0 20px 10px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .de-top {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        padding: 14px;
+      }
+      .de-thumb {
+        font-size: 40px;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface-alt);
+        border-radius: var(--radius);
+        flex-shrink: 0;
+      }
+      .de-content {
+      }
+      .de-date {
+        font-size: 10px;
+        color: var(--text-sub);
+      }
+      .de-caption {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+        margin-top: 2px;
+        line-height: 1.3;
+      }
+      .de-footer {
+        padding: 8px 14px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .de-mood {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--primary);
+      }
+      .de-likes {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      /* ─── BOTTOM NAV ─── */
+      .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 72px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 4px;
+        z-index: 100;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 8px 14px;
+        border-radius: var(--radius);
+        background: transparent;
+        flex: 1;
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+      }
+      .nav-item .nav-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-weight: 500;
+      }
+      .nav-item.active .nav-label {
+        color: var(--nav-active);
+        font-weight: 700;
+      }
+      .nav-item.active .nav-icon {
+        filter: none;
+      }
+      .nav-fab {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: var(--nav-fab);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        box-shadow: var(--primary-shadow);
+        flex-shrink: 0;
+        margin-bottom: 12px;
+      }
+
+      /* ─── VARIANT SWITCHER ─── */
+      .switcher {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        padding: 6px 8px;
+        z-index: 9999;
+        background: rgba(10, 10, 10, 0.9);
+        border-radius: 24px;
+        backdrop-filter: blur(10px);
+      }
+      .switcher button {
+        padding: 6px 10px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 700;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .switcher button.active {
+        background: #f05e38;
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(240, 94, 56, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="phone theme-notebook" id="app">
+      <!-- STATUS BAR -->
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor" opacity=".8">
+            <rect x="0" y="4" width="3" height="7" rx="1" />
+            <rect x="4.5" y="2.5" width="3" height="8.5" rx="1" />
+            <rect x="9" y="0.5" width="3" height="10.5" rx="1" />
+            <rect x="13.5" y="0.5" width="2.5" height="10.5" rx="1" opacity=".3" />
+          </svg>
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor" opacity=".8">
+            <path
+              d="M7.5 2.5C9.6 2.5 11.5 3.4 12.8 4.9L14.5 3.2C12.7 1.2 10.2 0 7.5 0S2.3 1.2.5 3.2L2.2 4.9C3.5 3.4 5.4 2.5 7.5 2.5Z"
+            />
+            <path
+              d="M7.5 5.5C8.9 5.5 10.1 6.1 11 7L12.7 5.3C11.3 3.9 9.5 3 7.5 3S3.7 3.9 2.3 5.3L4 7C4.9 6.1 6.1 5.5 7.5 5.5Z"
+            />
+            <circle cx="7.5" cy="10" r="1.5" />
+          </svg>
+          <svg width="25" height="11" viewBox="0 0 25 11" fill="currentColor">
+            <rect x="0" y="0.5" width="21" height="10" rx="3" opacity=".35" />
+            <rect
+              x="0.5"
+              y="1"
+              width="20"
+              height="9"
+              rx="2.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="0.5"
+              opacity=".35"
+            />
+            <rect x="1" y="1.5" width="16" height="8" rx="2" />
+            <rect x="22" y="3.5" width="2.5" height="4" rx="1.25" opacity=".4" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- ═══════════════ HOME SCREEN ═══════════════ -->
+      <div class="screen active" id="page-home">
+        <!-- FAMILY: new -->
+        <div data-family="new">
+          <!-- Hero (transparent for notebook, gradient for candy/mix) -->
+          <div class="hero-new">
+            <div class="hero-avatar-row">
+              <div class="hero-pet-info">
+                <div class="hero-title" style="color: var(--hero-text, var(--text-heading))">
+                  สวัสดี, พ่อบาลู 👋
+                </div>
+                <div class="hero-sub" style="color: var(--hero-text, var(--text-muted))">
+                  วันนี้บาลูเป็นยังไงบ้าง?
+                </div>
+                <div
+                  class="hero-pet-name"
+                  style="margin-top: 10px; color: var(--hero-text, var(--text-heading))"
+                >
+                  บาลู
+                </div>
+                <div class="hero-pet-breed" style="color: var(--hero-text, var(--text-muted))">
+                  เฟรนช์ บูลด็อก · 2 ปี 3 เดือน
+                </div>
+              </div>
+              <div class="hero-avatar-circle">
+                <div class="av-inner">🐶</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Grid -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="sc-icon">💉</div>
+              <div class="sc-label">วัคซีนถัดไป</div>
+              <div class="sc-value">อีก 12 วัน</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-icon">⚖️</div>
+              <div class="sc-label">น้ำหนัก</div>
+              <div class="sc-value">12.5 กก.</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-icon">🏥</div>
+              <div class="sc-label">นัดหมอ</div>
+              <div class="sc-value">28 พ.ค.</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-icon">🐛</div>
+              <div class="sc-label">ถ่ายพยาธิ</div>
+              <div class="sc-value">อีก 5 วัน</div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <button class="cta-btn">
+            <span>📸</span>
+            บันทึกวันนี้ของบาลู
+          </button>
+
+          <!-- Diary Section -->
+          <div class="section-title">ไดอารี่ล่าสุด</div>
+          <div class="diary-scroll">
+            <div class="diary-chip">
+              <div class="dc-thumb">🦮</div>
+              <div class="dc-date">13 พ.ค. 2569</div>
+              <div class="dc-cap">เดินเล่นสวนลุม</div>
+              <div class="dc-mood">😊 แฮปปี้มาก</div>
+            </div>
+            <div class="diary-chip">
+              <div class="dc-thumb">🍗</div>
+              <div class="dc-date">12 พ.ค. 2569</div>
+              <div class="dc-cap">กินข้าวหมดชามวันนี้</div>
+              <div class="dc-mood">😋 อร่อย</div>
+            </div>
+            <div class="diary-chip">
+              <div class="dc-thumb">🛁</div>
+              <div class="dc-date">10 พ.ค. 2569</div>
+              <div class="dc-cap">อาบน้ำตัดขน</div>
+              <div class="dc-mood">✨ สะอาด</div>
+            </div>
+            <div class="diary-chip">
+              <div class="dc-thumb">😴</div>
+              <div class="dc-date">9 พ.ค. 2569</div>
+              <div class="dc-cap">นอนทั้งวันเลย</div>
+              <div class="dc-mood">💤 ง่วงนอน</div>
+            </div>
+          </div>
+        </div>
+        <!-- /family:new -->
+
+        <!-- FAMILY: v6 -->
+        <div data-family="v6" style="display: none">
+          <!-- Owner Pill -->
+          <div class="owner-pill">
+            <div class="op-avatar"><div class="av-inner">🧑</div></div>
+            <div class="op-text">
+              <div class="op-name">คุณวิชาพล</div>
+              <div class="op-sub">เจ้าของ 2 ตัว</div>
+            </div>
+          </div>
+
+          <!-- Pet Selector -->
+          <div class="pet-selector">
+            <div class="pet-sel-item active">
+              <div class="ps-ring"><div class="av-inner">🐶</div></div>
+              <div class="ps-name">บาลู</div>
+            </div>
+            <div class="pet-sel-item">
+              <div class="ps-ring"><div class="av-inner">🐱</div></div>
+              <div class="ps-name">มิโล</div>
+            </div>
+            <div class="pet-sel-item add">
+              <div class="ps-ring"><div class="av-inner">＋</div></div>
+              <div class="ps-name">เพิ่ม</div>
+            </div>
+          </div>
+
+          <!-- Pet Info Card -->
+          <div class="pet-info-card">
+            <div class="pet-card-top">
+              <div class="pct-avatar"><div class="av-inner">🐶</div></div>
+              <div class="pct-info">
+                <div class="pct-name">บาลู</div>
+                <div class="pct-breed">เฟรนช์ บูลด็อก · ตัวผู้</div>
+                <div class="pct-age">2 ปี 3 เดือน</div>
+              </div>
+            </div>
+            <div class="pet-stat-row">
+              <div class="pet-stat-cell">
+                <div class="psc-label">น้ำหนัก</div>
+                <div class="psc-value">12.5 <span class="psc-unit">กก.</span></div>
+              </div>
+              <div class="pet-stat-cell">
+                <div class="psc-label">วัคซีนถัดไป</div>
+                <div class="psc-value">12 <span class="psc-unit">วัน</span></div>
+              </div>
+              <div class="pet-stat-cell">
+                <div class="psc-label">ถ่ายพยาธิ</div>
+                <div class="psc-value">5 <span class="psc-unit">วัน</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- V6 Stat Rows -->
+          <div class="v6-stats">
+            <div class="v6-stat-row">
+              <div class="vsr-icon">💉</div>
+              <div class="vsr-text">
+                <div class="vsr-label">วัคซีน</div>
+                <div class="vsr-value">ครั้งถัดไป 26 พ.ค.</div>
+              </div>
+              <div class="vsr-pill">อีก 12 วัน</div>
+            </div>
+            <div class="v6-stat-row">
+              <div class="vsr-icon">🏥</div>
+              <div class="vsr-text">
+                <div class="vsr-label">นัดหมอ</div>
+                <div class="vsr-value">คลินิกสัตว์รัก</div>
+              </div>
+              <div class="vsr-pill">28 พ.ค.</div>
+            </div>
+            <div class="v6-stat-row">
+              <div class="vsr-icon">🐛</div>
+              <div class="vsr-text">
+                <div class="vsr-label">ถ่ายพยาธิ</div>
+                <div class="vsr-value">ครบกำหนด 19 พ.ค.</div>
+              </div>
+              <div class="vsr-pill" style="background: var(--warning-bg); color: var(--warning)">
+                อีก 5 วัน
+              </div>
+            </div>
+            <div class="v6-stat-row">
+              <div class="vsr-icon">⚖️</div>
+              <div class="vsr-text">
+                <div class="vsr-label">น้ำหนักล่าสุด</div>
+                <div class="vsr-value">12.5 กก.</div>
+              </div>
+              <div class="vsr-pill">+0.2 เดือนนี้</div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <button class="cta-btn" style="margin-top: 14px">
+            <span>📸</span>
+            บันทึกวันนี้ของบาลู
+          </button>
+        </div>
+        <!-- /family:v6 -->
+      </div>
+      <!-- /page-home -->
+
+      <!-- ═══════════════ PET PROFILE ═══════════════ -->
+      <div class="screen" id="page-pet">
+        <div class="profile-header">
+          <div class="profile-avatar-wrap"><div class="av-inner">🐶</div></div>
+          <div class="profile-name">บาลู</div>
+          <div class="profile-breed">เฟรนช์ บูลด็อก · ตัวผู้</div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-cell">
+            <div class="ic-label">วันเกิด</div>
+            <div class="ic-value">14 ก.พ. 2567</div>
+          </div>
+          <div class="info-cell">
+            <div class="ic-label">น้ำหนัก</div>
+            <div class="ic-value">12.5 กก.</div>
+          </div>
+          <div class="info-cell">
+            <div class="ic-label">กรุ๊ปเลือด</div>
+            <div class="ic-value">DEA 1.1+</div>
+          </div>
+          <div class="info-cell">
+            <div class="ic-label">ไมโครชิป</div>
+            <div class="ic-value">985…4721</div>
+          </div>
+          <div class="info-cell">
+            <div class="ic-label">สี/ตำหนิ</div>
+            <div class="ic-value">ขาว-น้ำตาล</div>
+          </div>
+          <div class="info-cell">
+            <div class="ic-label">ทำหมัน</div>
+            <div class="ic-value">ยังไม่ได้ทำ</div>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="qa-btn"><span>💉</span>วัคซีน</button>
+          <button class="qa-btn"><span>⚖️</span>ชั่งน้ำหนัก</button>
+          <button class="qa-btn"><span>🐛</span>พยาธิ</button>
+          <button class="qa-btn"><span>📸</span>ไดอารี่</button>
+        </div>
+
+        <div class="section-title">นิสัย &amp; บุคลิก</div>
+        <div class="tags-row">
+          <div class="tag">🎾 ชอบเล่น</div>
+          <div class="tag">😴 นอนเก่ง</div>
+          <div class="tag">🐾 ขี้ตื่นเต้น</div>
+          <div class="tag">🍗 กินเก่ง</div>
+          <div class="tag">👶 รักเด็ก</div>
+          <div class="tag">🚗 ชอบนั่งรถ</div>
+        </div>
+      </div>
+      <!-- /page-pet -->
+
+      <!-- ═══════════════ HEALTH PAGE ═══════════════ -->
+      <div class="screen" id="page-health">
+        <div class="passport-card">
+          <div class="pc-title">e-Passport</div>
+          <div class="pc-name">บาลู</div>
+          <div class="pc-row">
+            <div class="pc-field">
+              <div class="pcf-label">สายพันธุ์</div>
+              <div class="pcf-value">เฟรนช์ บูลด็อก</div>
+            </div>
+            <div class="pc-field">
+              <div class="pcf-label">อายุ</div>
+              <div class="pcf-value">2 ปี 3 เดือน</div>
+            </div>
+            <div class="pc-field">
+              <div class="pcf-label">ไมโครชิป</div>
+              <div class="pcf-value">985…4721</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">ตารางวัคซีน</div>
+        <div class="vaccine-timeline">
+          <div class="vt-item">
+            <div class="vt-dot done"></div>
+            <div class="vt-text">
+              <div class="vt-name">วัคซีน 5 โรค (ครั้งที่ 3)</div>
+              <div class="vt-date">14 ก.พ. 2569</div>
+            </div>
+            <div class="vt-badge done">เสร็จแล้ว</div>
+          </div>
+          <div class="vt-item">
+            <div class="vt-dot upcoming"></div>
+            <div class="vt-text">
+              <div class="vt-name">วัคซีน 5 โรค (บูสเตอร์)</div>
+              <div class="vt-date">26 พ.ค. 2569</div>
+            </div>
+            <div class="vt-badge upcoming">อีก 12 วัน</div>
+          </div>
+          <div class="vt-item">
+            <div class="vt-dot"></div>
+            <div class="vt-text">
+              <div class="vt-name">วัคซีนพิษสุนัขบ้า</div>
+              <div class="vt-date">15 ก.ค. 2569</div>
+            </div>
+            <div class="vt-badge" style="background: var(--surface-alt); color: var(--text-muted)">
+              2 เดือน
+            </div>
+          </div>
+        </div>
+
+        <div class="weight-chart">
+          <div class="wc-title">น้ำหนัก 7 เดือนล่าสุด</div>
+          <div class="bar-row">
+            <div class="bar-wrap">
+              <div class="bar" style="height: 38px"></div>
+              <div class="bar-label">พ.ย.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar" style="height: 42px"></div>
+              <div class="bar-label">ธ.ค.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar" style="height: 44px"></div>
+              <div class="bar-label">ม.ค.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar" style="height: 46px"></div>
+              <div class="bar-label">ก.พ.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar" style="height: 48px"></div>
+              <div class="bar-label">มี.ค.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar" style="height: 50px"></div>
+              <div class="bar-label">เม.ย.</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar active" style="height: 54px"></div>
+              <div class="bar-label">พ.ค.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="breed-note">
+          <strong>มาตรฐานสายพันธุ์:</strong> เฟรนช์ บูลด็อก ตัวผู้ควรหนัก 9–14 กก. บาลูอยู่ในเกณฑ์ดี
+          ✓
+        </div>
+      </div>
+      <!-- /page-health -->
+
+      <!-- ═══════════════ DIARY PAGE ═══════════════ -->
+      <div class="screen" id="page-diary">
+        <div class="diary-month">พฤษภาคม 2569</div>
+
+        <div class="diary-entry">
+          <div class="de-top">
+            <div class="de-thumb">🦮</div>
+            <div class="de-content">
+              <div class="de-date">13 พ.ค. 2569 · เย็น</div>
+              <div class="de-caption">
+                เดินเล่นสวนลุมพินีเย็นนี้ บาลูแฮปปี้มากเลย วิ่งป่วนสวนเต็มที่
+              </div>
+            </div>
+          </div>
+          <div class="de-footer">
+            <div class="de-mood">😊 แฮปปี้มาก</div>
+            <div class="de-likes">❤️ 4</div>
+          </div>
+        </div>
+
+        <div class="diary-entry">
+          <div class="de-top">
+            <div class="de-thumb">🍗</div>
+            <div class="de-content">
+              <div class="de-date">12 พ.ค. 2569 · เที่ยง</div>
+              <div class="de-caption">กินข้าวหมดชามวันนี้ ดีใจมากที่กินเก่งขึ้น อาหารใหม่ได้ผล</div>
+            </div>
+          </div>
+          <div class="de-footer">
+            <div class="de-mood">😋 อร่อย</div>
+            <div class="de-likes">❤️ 7</div>
+          </div>
+        </div>
+
+        <div class="diary-entry">
+          <div class="de-top">
+            <div class="de-thumb">🛁</div>
+            <div class="de-content">
+              <div class="de-date">10 พ.ค. 2569 · บ่าย</div>
+              <div class="de-caption">
+                อาบน้ำตัดขนที่ร้านประจำ หน้าตาหล่อมากกกก คนเห็นต้องหยุดชม
+              </div>
+            </div>
+          </div>
+          <div class="de-footer">
+            <div class="de-mood">✨ สะอาดหมดจด</div>
+            <div class="de-likes">❤️ 12</div>
+          </div>
+        </div>
+
+        <div class="diary-entry">
+          <div class="de-top">
+            <div class="de-thumb">😴</div>
+            <div class="de-content">
+              <div class="de-date">9 พ.ค. 2569 · ทั้งวัน</div>
+              <div class="de-caption">นอนทั้งวันเลย อาจจะเหนื่อยจากเดินเล่นวันก่อน ปล่อยพักได้</div>
+            </div>
+          </div>
+          <div class="de-footer">
+            <div class="de-mood">💤 ง่วงนอน</div>
+            <div class="de-likes">❤️ 3</div>
+          </div>
+        </div>
+      </div>
+      <!-- /page-diary -->
+
+      <!-- ═══════════════ BOTTOM NAV ═══════════════ -->
+      <div class="bottom-nav">
+        <button class="nav-item active" onclick="goPage('home', this)">
+          <div class="nav-icon">🏠</div>
+          <div class="nav-label">หน้าหลัก</div>
+        </button>
+        <button class="nav-item" onclick="goPage('pet', this)">
+          <div class="nav-icon">🐾</div>
+          <div class="nav-label">สัตว์เลี้ยง</div>
+        </button>
+        <button class="nav-fab" onclick="goPage('diary', this)">📸</button>
+        <button class="nav-item" onclick="goPage('health', this)">
+          <div class="nav-icon">❤️‍🩹</div>
+          <div class="nav-label">สุขภาพ</div>
+        </button>
+        <button class="nav-item" onclick="goPage('diary', this)">
+          <div class="nav-icon">📔</div>
+          <div class="nav-label">ไดอารี่</div>
+        </button>
+      </div>
+    </div>
+    <!-- /app -->
+
+    <!-- VARIANT SWITCHER -->
+    <div class="switcher" id="switcher">
+      <button class="active" onclick="switchTheme('notebook', this)">A สมุดพก</button>
+      <button onclick="switchTheme('candy', this)">B Candy</button>
+      <button onclick="switchTheme('mix', this)">A+B Mix</button>
+      <button onclick="switchTheme('d2', this)">D2</button>
+      <button onclick="switchTheme('peach', this)">Peach</button>
+    </div>
+
+    <script>
+      var currentPage = "home";
+      var NEW_THEMES = ["notebook", "candy", "mix"];
+
+      function getFamily(theme) {
+        return NEW_THEMES.includes(theme) ? "new" : "v6";
+      }
+
+      function updateFamilySections(family) {
+        document.querySelectorAll("[data-family]").forEach(function (el) {
+          el.style.display = el.dataset.family === family ? "" : "none";
+        });
+      }
+
+      function switchTheme(theme, btn) {
+        var app = document.getElementById("app");
+        app.className = "phone theme-" + theme;
+
+        var family = getFamily(theme);
+        updateFamilySections(family);
+
+        document.querySelectorAll(".switcher button").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+
+        // Reset to home
+        goPage("home", document.querySelector(".nav-item"));
+      }
+
+      function goPage(page, btn) {
+        document.querySelectorAll(".screen").forEach(function (s) {
+          s.classList.remove("active");
+        });
+        var target = document.getElementById("page-" + page);
+        if (target) target.classList.add("active");
+
+        document.querySelectorAll(".nav-item").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        if (btn && btn.classList.contains("nav-item")) {
+          btn.classList.add("active");
+        }
+
+        // Scroll to top
+        var app = document.getElementById("app");
+        app.scrollTop = 0;
+
+        currentPage = page;
+      }
+
+      // Init
+      updateFamilySections("new");
+    </script>
+  </body>
+</html>

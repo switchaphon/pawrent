@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { uploadPetPhoto } from "@/lib/db";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ImageCropper } from "@/components/image-cropper";
 import { SearchableSelect } from "@/components/searchable-select";
-import { Camera, Loader2, X, Pencil } from "lucide-react";
+import { Camera, Loader2, X, Pencil, Star, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { Pet } from "@/lib/types";
 import { petSchema } from "@/lib/validations";
 import speciesData from "@/data/species.json";
@@ -32,8 +33,12 @@ function getBreedOptions(species: string): string[] {
   return breedsData.other || ["Mixed Breed", "Other"];
 }
 
-export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
+export function EditPetForm({ pet, onSuccess, onCancel, onDelete }: EditPetFormProps) {
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [memorializing, setMemorializing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMemorialConfirm, setShowMemorialConfirm] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(pet.photo_url);
   const [showCropper, setShowCropper] = useState(false);
@@ -153,12 +158,16 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
 
       <Card className="p-6 rounded-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h2 className="text-xl font-bold text-text-main flex items-center gap-2">
             <Pencil className="w-5 h-5 text-primary" />
             Edit Profile
           </h2>
           {onCancel && (
-            <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <button
+              onClick={onCancel}
+              aria-label="ปิด"
+              className="text-text-muted hover:text-text-main"
+            >
               <X className="w-5 h-5" />
             </button>
           )}
@@ -185,7 +194,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
             </label>
           </div>
-          <p className="text-xs text-center text-muted-foreground">Tap to change & crop photo</p>
+          <p className="text-xs text-center text-text-muted">Tap to change & crop photo</p>
 
           {/* Name */}
           <div className="space-y-2">
@@ -234,7 +243,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
                   className={`flex-1 h-12 rounded-xl border-2 font-medium transition-colors ${
                     formData.sex === sex
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-gray-200 bg-white text-foreground hover:border-gray-300"
+                      : "border-border bg-surface text-text-main hover:border-border"
                   }`}
                 >
                   {sex === "Male" ? "♂" : "♀"} {sex}
@@ -251,7 +260,7 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               aria-checked={formData.neutered}
               onClick={() => setFormData({ ...formData, neutered: !formData.neutered })}
               className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                formData.neutered ? "bg-primary border-primary text-white" : "border-gray-300"
+                formData.neutered ? "bg-primary border-primary text-white" : "border-border"
               }`}
             >
               {formData.neutered && <span className="text-sm">✓</span>}
@@ -346,7 +355,85 @@ export function EditPetForm({ pet, onSuccess, onCancel }: EditPetFormProps) {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
             </Button>
           </div>
+
+          {/* Memorial + Delete */}
+          {pet.status !== "memorial" && (
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMemorialConfirm(true)}
+                className="flex-1 py-3 text-sm font-semibold text-warning hover:bg-warning-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
+              >
+                <Star className="w-4 h-4" aria-hidden />
+                กลับดาว
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex-1 py-3 text-sm font-semibold text-danger hover:bg-danger-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
+              >
+                <Trash2 className="w-4 h-4" aria-hidden />
+                ลบประวัติน้อง
+              </button>
+            </div>
+          )}
         </form>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title={`ลบ ${pet.name}?`}
+          description="การลบจะเอาข้อมูลน้องและประวัติทั้งหมดออกอย่างถาวร ไม่สามารถย้อนกลับได้"
+          confirmLabel="ลบถาวร"
+          cancelLabel="ยกเลิก"
+          variant="destructive"
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await apiFetch("/api/pets", {
+                method: "DELETE",
+                body: JSON.stringify({ petId: pet.id }),
+              });
+              setShowDeleteConfirm(false);
+              onDelete?.();
+            } catch (error) {
+              console.error("Error deleting pet:", error);
+            } finally {
+              setDeleting(false);
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+          loading={deleting}
+        />
+
+        <ConfirmDialog
+          open={showMemorialConfirm}
+          title={`${pet.name} กลับดาวแล้ว?`}
+          description="น้องจะถูกบันทึกเป็นความทรงจำ ข้อมูลทั้งหมดจะยังคงอยู่ แต่จะไม่แสดงการแจ้งเตือนวัคซีนและยาอีกต่อไป"
+          confirmLabel="กลับดาว 🌟"
+          cancelLabel="ยกเลิก"
+          variant="default"
+          onConfirm={async () => {
+            setMemorializing(true);
+            try {
+              await apiFetch("/api/pets", {
+                method: "PUT",
+                body: JSON.stringify({
+                  petId: pet.id,
+                  status: "memorial",
+                  memorial_date: new Date().toISOString().split("T")[0],
+                }),
+              });
+              setShowMemorialConfirm(false);
+              onSuccess?.();
+            } catch (error) {
+              console.error("Error memorializing pet:", error);
+            } finally {
+              setMemorializing(false);
+            }
+          }}
+          onCancel={() => setShowMemorialConfirm(false)}
+          loading={memorializing}
+        />
       </Card>
     </>
   );

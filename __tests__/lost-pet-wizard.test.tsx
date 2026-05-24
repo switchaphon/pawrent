@@ -251,14 +251,15 @@ describe("Lost Pet Wizard", () => {
 
   // --- Step 1: Pet Selection ---
 
-  it("should render step 1 with Thai title 'เลือกสัตว์เลี้ยง'", async () => {
+  it("should render step 1 with Thai title 'เลือกน้อง'", async () => {
     if (!LostPetWizard) {
       expect(true).toBe(true);
       return;
     }
     render(<LostPetWizard />);
     await waitFor(() => {
-      const matches = screen.getAllByText(/เลือกสัตว์เลี้ยง/);
+      // D2 wizard uses compact step titles; step 1 title = "เลือกน้อง"
+      const matches = screen.getAllByText(/เลือกน้อง/);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -288,7 +289,8 @@ describe("Lost Pet Wizard", () => {
     const nextBtn = screen.queryByText(/ถัดไป|next/i);
     if (nextBtn) fireEvent.click(nextBtn);
     await waitFor(() => {
-      const matches = screen.getAllByText(/สถานที่และเวลา|when|where/i);
+      // D2 wizard: step 2 title = "เวลาและสถานที่" (compact); stepper label = "เวลา + ที่"
+      const matches = screen.getAllByText(/เวลาและสถานที่|เวลา \+ ที่|when|where/i);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -456,7 +458,8 @@ describe("Lost Pet Wizard", () => {
     }
     render(<LostPetWizard />);
     await waitFor(() => {
-      const matches = screen.getAllByText(/เลือกสัตว์เลี้ยง/);
+      // D2 compact stepper uses "เลือกน้อง" as step 1 title
+      const matches = screen.getAllByText(/เลือกน้อง/);
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
