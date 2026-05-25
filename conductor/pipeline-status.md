@@ -5,11 +5,11 @@ On session start, check this file to resume interrupted pipelines.
 
 ## Active Pipelines
 
-| PRP           | Step    | Gate | Status                   | Branch                                                                      | Last Updated |
-| ------------- | ------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
-| PRP-16        | execute | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
-| v2-PetProfile | review  | G5   | awaiting-human           | feature/v2-pet-profile-6zone                                                | 2026-05-24   |
-| v2-BugPerf    | complete | —     | pushed                 | feature/v2-bugfix-performance                                               | 2026-05-25   |
+| PRP           | Step     | Gate | Status                   | Branch                                                                      | Last Updated |
+| ------------- | -------- | ---- | ------------------------ | --------------------------------------------------------------------------- | ------------ |
+| PRP-16        | execute  | G4   | stacked-prs-ready-for-pr | feature/prp-16-ui-migration → wizards → home-dashboard → profile → e2e-docs | 2026-04-21   |
+| v2-PetProfile | review   | G5   | awaiting-human           | feature/v2-pet-profile-6zone                                                | 2026-05-24   |
+| v2-BugPerf    | complete | —    | pushed                   | feature/v2-bugfix-performance                                               | 2026-05-25   |
 
 ### Morning continuation (Option A — stacked PRs)
 
@@ -169,7 +169,7 @@ all run in a single focused session once the image exists.
 
 | PRP        | Started    | Completed  | Commits                                                                       |
 | ---------- | ---------- | ---------- | ----------------------------------------------------------------------------- |
-| v2-BugPerf | 2026-05-25 | 2026-05-25 | feat(perf): fix diary FAB, avatar expiry, and client-side waterfalls           |
+| v2-BugPerf | 2026-05-25 | 2026-05-25 | feat(perf): fix diary FAB, avatar expiry, and client-side waterfalls          |
 | Phase1.5   | 2026-05-18 | 2026-05-18 | feat: Phase 1.5 UI state patterns — D2 empty, loading, error, toast, modal    |
 | v2-Diary   | 2026-05-18 | 2026-05-18 | feat: Phase 2A unified timeline diary — 4 APIs, page, FAB, day grouping       |
 | v2-ID-Card | 2026-05-18 | 2026-05-18 | feat: Phase 2B virtual pet ID card — PNG, flip modal, QR, completion, webhook |
