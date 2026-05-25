@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Stethoscope, AlertTriangle, ChevronDown, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Stethoscope, AlertTriangle, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { HealthEvent } from "@/lib/types/pets";
 
 interface HealthRecordsCardProps {
@@ -104,9 +104,9 @@ export function HealthRecordsCard({
             <div className="text-[10px] text-text-muted mt-[1px]">ประวัติการรักษา</div>
           </div>
         </div>
-        <ChevronDown
-          className={`w-4 h-4 text-text-muted transition-transform duration-200 ${
-            open ? "rotate-180" : ""
+        <ChevronRight
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+            open ? "rotate-90 text-text-muted" : "text-border"
           }`}
           aria-hidden
         />
@@ -120,8 +120,8 @@ export function HealthRecordsCard({
       >
         {/* Event list */}
         {healthEvents.length === 0 ? (
-          <div className="px-4 pb-4 text-[12px] text-text-muted border-t border-border-subtle pt-3">
-            ยังไม่มีประวัติสุขภาพ
+          <div className="px-4 py-6 text-center">
+            <p className="text-[12px] text-text-muted">Coming soon</p>
           </div>
         ) : (
           <div>
@@ -194,14 +194,6 @@ export function HealthRecordsCard({
             })}
           </div>
         )}
-
-        {/* Coming soon footer */}
-        <div className="flex items-center gap-2 justify-center px-4 pt-[14px] pb-4 border-t border-border-subtle">
-          <Calendar className="w-3.5 h-3.5 text-text-muted shrink-0" aria-hidden />
-          <p className="text-[11px] text-text-muted text-center leading-[1.4]">
-            Health eDashboard — Coming soon: เชื่อมต่อกับระบบคลินิก
-          </p>
-        </div>
       </div>
     </div>
   );

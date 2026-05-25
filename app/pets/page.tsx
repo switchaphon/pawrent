@@ -37,7 +37,7 @@ import type {
   DiaryEntry,
 } from "@/lib/types/pets";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, BookOpen, Share2 } from "lucide-react";
 import Link from "next/link";
 
 function PetsContent() {
@@ -54,7 +54,9 @@ function PetsContent() {
   const [parasiteLogs, setParasiteLogs] = useState<ParasiteLog[]>([]);
   const [healthEvents, setHealthEvents] = useState<HealthEvent[]>([]);
   const [petPhotos, setPetPhotos] = useState<PetPhoto[]>([]);
-  const [weightHistory, setWeightHistory] = useState<{ weight: number; recorded_at: string }[]>([]);
+  const [weightHistory, setWeightHistory] = useState<{ weight_kg: number; measured_at: string }[]>(
+    []
+  );
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
 
   // UI state
@@ -179,7 +181,7 @@ function PetsContent() {
     const latestWeight = weightHistory[0];
     if (latestWeight) {
       const daysSince = Math.ceil(
-        (Date.now() - new Date(latestWeight.recorded_at).getTime()) / 86400000
+        (Date.now() - new Date(latestWeight.measured_at).getTime()) / 86400000
       );
       if (daysSince > 30) {
         urgentItems.push({
@@ -585,13 +587,15 @@ function PetsContent() {
                     href={`/pets/${selectedPet.id}/passport`}
                     className="flex-1 py-3 rounded-full text-sm font-semibold text-center flex items-center justify-center gap-1.5 bg-surface border-[1.5px] border-border text-text-muted min-h-[44px]"
                   >
-                    📖 พาสปอร์ต
+                    <BookOpen className="w-4 h-4" aria-hidden />
+                    พาสปอร์ต
                   </Link>
                   <button
                     type="button"
                     className="flex-1 py-3 rounded-full text-sm font-semibold text-center flex items-center justify-center gap-1.5 bg-surface border-[1.5px] border-border text-text-muted min-h-[44px]"
                   >
-                    🔗 แชร์
+                    <Share2 className="w-4 h-4" aria-hidden />
+                    แชร์
                   </button>
                 </div>
               </>

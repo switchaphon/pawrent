@@ -188,7 +188,7 @@ export function PetHeroCard({ pet, onEdit, onShowIdCard }: PetHeroCardProps) {
             <PawPrint className="w-[14px] h-[14px]" aria-hidden />
           </div>
           <span className="text-[13px] font-semibold text-text-subtle">
-            ข้อมูลประจำตัว{pet.name}
+            ข้อมูลประจำตัว {pet.name}
           </span>
         </div>
         <ChevronDown

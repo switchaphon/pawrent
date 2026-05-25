@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Bug, Plus, ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { Bug, Plus, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { ParasiteLog } from "@/lib/types/pets";
 
 interface ParasiteCardProps {
@@ -88,8 +88,11 @@ function MedicineGroup({
 
   return (
     <div className="border-b border-border-subtle last:border-b-0">
-      {/* Main item row */}
-      <div className="flex items-center gap-[14px] px-4 pt-[14px] pb-2">
+      {/* Main item row — tap anywhere to expand */}
+      <div
+        className="flex items-center gap-[14px] px-4 py-[10px] cursor-pointer active:bg-surface-alt transition-colors"
+        onClick={onToggle}
+      >
         {/* Countdown circle */}
         <div
           className={`w-12 h-12 rounded-full border-[3px] shrink-0 flex flex-col items-center justify-center ${CIRCLE_COLORS[status]}`}
@@ -109,23 +112,17 @@ function MedicineGroup({
           </div>
         </div>
 
-        {/* Status dot */}
-        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_COLORS[status]}`} aria-hidden />
+        {/* Status dot + chevron */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className={`w-1.5 h-1.5 rounded-full ${DOT_COLORS[status]}`} aria-hidden />
+          <ChevronRight
+            aria-hidden
+            className={`w-3.5 h-3.5 transition-transform duration-200 ${
+              isExpanded ? "rotate-90 text-text-muted" : "text-border"
+            }`}
+          />
+        </div>
       </div>
-
-      {/* Expand chevron hint */}
-      <button
-        onClick={onToggle}
-        className={`flex items-center justify-center w-full py-[6px] cursor-pointer select-none transition-colors ${
-          isExpanded ? "text-text-muted" : "text-border"
-        } hover:text-text-muted`}
-        aria-expanded={isExpanded}
-        aria-label={isExpanded ? "ซ่อนประวัติ" : "แสดงประวัติ"}
-      >
-        <ChevronDown
-          className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-        />
-      </button>
 
       {/* Inline history expand */}
       <div
