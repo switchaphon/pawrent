@@ -5,6 +5,7 @@ export const weightLogSchema = z.object({
   weight_kg: z.number().positive().max(200),
   measured_at: z.string().date().optional(),
   note: z.string().max(200).optional(),
+  photo_url: z.string().url().max(2048).optional(),
 });
 
 export const milestoneSchema = z.object({

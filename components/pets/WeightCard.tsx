@@ -12,6 +12,7 @@ interface WeightCardProps {
   latestWeight: WeightEntry | null;
   weightHistory: WeightEntry[];
   isMemorial: boolean;
+  onAddWeight?: () => void;
 }
 
 function formatDateShort(dateStr: string): string {
@@ -31,7 +32,7 @@ function isOlderThan30Days(dateStr: string): boolean {
   return now - recorded > 30 * 24 * 60 * 60 * 1000;
 }
 
-export function WeightCard({ latestWeight, weightHistory, isMemorial }: WeightCardProps) {
+export function WeightCard({ latestWeight, weightHistory, isMemorial, onAddWeight }: WeightCardProps) {
   const [chartOpen, setChartOpen] = useState(false);
 
   const showStaleReminder =
@@ -102,6 +103,7 @@ export function WeightCard({ latestWeight, weightHistory, isMemorial }: WeightCa
           </span>
           <button
             type="button"
+            onClick={onAddWeight}
             className="flex-shrink-0 px-[14px] py-[6px] rounded-full bg-warning text-white text-[11px] font-bold"
             aria-label="บันทึกน้ำหนัก"
           >

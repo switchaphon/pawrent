@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Stethoscope, AlertTriangle, ChevronDown, Calendar } from "lucide-react";
+import { Stethoscope, AlertTriangle, ChevronDown, Calendar, Pencil, Trash2 } from "lucide-react";
 import { HealthEvent } from "@/lib/types/pets";
 
 interface HealthRecordsCardProps {
   healthEvents: HealthEvent[];
   isMemorial: boolean;
+  onEditEvent?: (event: HealthEvent) => void;
+  onDeleteEvent?: (eventId: string) => void;
 }
 
 type BadgeVariant = "ok" | "warn" | "danger";
@@ -70,10 +72,12 @@ function formatThaiDate(dateStr: string): string {
 
 export function HealthRecordsCard({
   healthEvents,
-  // isMemorial will be used when clinic integration lands
   isMemorial: _,
+  onEditEvent,
+  onDeleteEvent,
 }: HealthRecordsCardProps) {
   const [open, setOpen] = useState(healthEvents.length > 0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
 
@@ -123,40 +127,62 @@ export function HealthRecordsCard({
           <div>
             {healthEvents.map((event) => {
               const cfg = EVENT_TYPE_CONFIG[event.event_type] ?? EVENT_TYPE_CONFIG.vet_visit;
+              const isExpanded = expandedId === event.id;
               return (
                 <div
                   key={event.id}
-                  className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border-subtle last:border-b-0"
+                  className="border-b border-border-subtle last:border-b-0 cursor-pointer active:bg-surface-alt transition-colors"
+                  onClick={() => setExpandedId(isExpanded ? null : event.id)}
                 >
-                  {/* Icon */}
-                  <div
-                    className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${cfg.iconClass}`}
-                    aria-hidden
-                  >
-                    {cfg.icon === "stethoscope" ? (
-                      <Stethoscope className="w-4 h-4" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4" />
-                    )}
-                  </div>
-
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold text-text-main">{event.title}</div>
-                    <div className="text-[11px] text-text-muted mt-[1px]">
-                      {formatThaiDate(event.event_date)}
-                      {event.description ? ` · ${event.description}` : ""}
+                  <div className="flex items-center gap-2.5 px-4 py-2.5">
+                    <div
+                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${cfg.iconClass}`}
+                      aria-hidden
+                    >
+                      {cfg.icon === "stethoscope" ? (
+                        <Stethoscope className="w-4 h-4" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4" />
+                      )}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold text-text-main">{event.title}</div>
+                      <div className="text-[11px] text-text-muted mt-[1px]">
+                        {formatThaiDate(event.event_date)}
+                        {event.description ? ` · ${event.description}` : ""}
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-[3px] rounded-full text-[10px] font-semibold shrink-0 ${
+                        BADGE_CLASS[cfg.badgeVariant]
+                      }`}
+                    >
+                      {cfg.badgeLabel}
+                    </span>
                   </div>
 
-                  {/* Badge */}
-                  <span
-                    className={`px-2 py-[3px] rounded-full text-[10px] font-semibold shrink-0 ${
-                      BADGE_CLASS[cfg.badgeVariant]
-                    }`}
-                  >
-                    {cfg.badgeLabel}
-                  </span>
+                  {isExpanded && (onEditEvent || onDeleteEvent) && (
+                    <div className="flex gap-2 px-4 pb-3">
+                      {onEditEvent && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onEditEvent(event); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-surface-alt text-[11px] font-semibold text-text-muted active:bg-border transition-colors"
+                        >
+                          <Pencil className="w-3 h-3" /> แก้ไข
+                        </button>
+                      )}
+                      {onDeleteEvent && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-danger-bg text-[11px] font-semibold text-danger active:bg-danger/20 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" /> ลบ
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

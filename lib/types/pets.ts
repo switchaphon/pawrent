@@ -46,6 +46,7 @@ export interface HealthEvent {
   title: string;
   description: string | null;
   event_date: string;
+  photo_url: string | null;
   attachment_urls: string[] | null;
   created_at: string;
 }
