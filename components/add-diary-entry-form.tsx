@@ -4,7 +4,10 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
-import { X, Loader2 } from "lucide-react";
+import { uploadPetPhoto } from "@/lib/db";
+import { imageFileSchema } from "@/lib/validations";
+import { X, Loader2, Camera } from "lucide-react";
+import Image from "next/image";
 
 interface AddDiaryEntryFormProps {
   petId?: string | null;
@@ -12,6 +15,8 @@ interface AddDiaryEntryFormProps {
   onSuccess: () => void;
   onCancel: () => void;
 }
+
+const MAX_PHOTOS = 4;
 
 function formatDateThai(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
@@ -25,12 +30,14 @@ function formatDateThai(dateStr: string): string {
 export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiaryEntryFormProps) {
   const today = new Date().toISOString().split("T")[0];
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPetId = petId ?? (pets.length === 1 ? pets[0].id : "");
 
   const [content, setContent] = useState("");
   const [entryDate, setEntryDate] = useState(today);
   const [selectedPetId, setSelectedPetId] = useState(resolvedPetId);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +47,29 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
   const handleDateChipClick = () => {
     dateInputRef.current?.showPicker?.();
     dateInputRef.current?.click();
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const remaining = MAX_PHOTOS - photos.length;
+    const toAdd = files.slice(0, remaining);
+
+    for (const file of toAdd) {
+      const valid = imageFileSchema.safeParse({ size: file.size, type: file.type });
+      if (!valid.success) {
+        setError(valid.error.issues[0].message);
+        continue;
+      }
+      setPhotos((prev) => [...prev, { file, preview: URL.createObjectURL(file) }]);
+    }
+    e.target.value = "";
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,12 +87,19 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
 
     setSaving(true);
     try {
+      let photoUrls: string[] | undefined;
+      if (photos.length > 0) {
+        const uploads = await Promise.all(photos.map((p) => uploadPetPhoto(p.file, selectedPetId)));
+        photoUrls = uploads.filter((u) => u.url).map((u) => u.url!);
+      }
+
       await apiFetch("/api/diary", {
         method: "POST",
         body: JSON.stringify({
           pet_id: selectedPetId,
           title: content.trim().slice(0, 50),
           caption: content.trim(),
+          photo_urls: photoUrls,
         }),
       });
       onSuccess();
@@ -104,8 +141,60 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
           </span>
         </div>
 
-        {/* Date chip row */}
-        <div className="flex items-center gap-2">
+        {/* Photo grid (up to 4) */}
+        <div>
+          {photos.length > 0 && (
+            <div
+              className={`grid gap-1.5 mb-2 ${photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+            >
+              {photos.map((photo, i) => (
+                <div
+                  key={i}
+                  className={`relative rounded-xl overflow-hidden bg-surface-alt ${
+                    photos.length === 1 ? "aspect-video" : "aspect-square"
+                  }`}
+                >
+                  <Image
+                    src={photo.preview}
+                    alt={`รูปที่ ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="180px"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center"
+                    aria-label="ลบรูป"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {photos.length < MAX_PHOTOS && (
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-alt border border-border text-xs text-text-muted hover:border-primary hover:text-primary transition-colors"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              เพิ่มรูป ({photos.length}/{MAX_PHOTOS})
+            </button>
+          )}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
+        </div>
+
+        {/* Date chip + pet chips row */}
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative inline-flex">
             <button
               type="button"
@@ -124,12 +213,10 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
               tabIndex={-1}
             />
           </div>
-        </div>
 
-        {/* Pet selector chips — only shown when multiple pets */}
-        {pets.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            {pets.map((pet) => (
+          {/* Pet selector chips — only shown when multiple pets */}
+          {pets.length > 1 &&
+            pets.map((pet) => (
               <button
                 key={pet.id}
                 type="button"
@@ -144,8 +231,7 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
                 {pet.name}
               </button>
             ))}
-          </div>
-        )}
+        </div>
 
         {/* Error */}
         {error && (

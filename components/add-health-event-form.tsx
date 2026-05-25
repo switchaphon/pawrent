@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
-import { X, Loader2, Stethoscope } from "lucide-react";
+import { uploadPetPhoto } from "@/lib/db";
+import { imageFileSchema } from "@/lib/validations";
+import { X, Loader2, Stethoscope, Camera } from "lucide-react";
+import Image from "next/image";
 
 interface AddHealthEventFormProps {
   petId: string;
@@ -56,8 +59,23 @@ export function AddHealthEventForm({
   const [eventDate, setEventDate] = useState(today);
   const [description, setDescription] = useState("");
   const [vetClinic, setVetClinic] = useState("");
+  const [photo, setPhoto] = useState<{ file: File; preview: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const valid = imageFileSchema.safeParse({ size: file.size, type: file.type });
+    if (!valid.success) {
+      setError(valid.error.issues[0].message);
+      return;
+    }
+    if (photo) URL.revokeObjectURL(photo.preview);
+    setPhoto({ file, preview: URL.createObjectURL(file) });
+    e.target.value = "";
+  };
 
   const showClinicField = CLINIC_TYPES.includes(eventType);
   const isValid = title.trim() !== "" && eventDate !== "";
@@ -95,6 +113,12 @@ export function AddHealthEventForm({
 
     setSaving(true);
     try {
+      let photoUrl: string | undefined;
+      if (photo) {
+        const { url } = await uploadPetPhoto(photo.file, petId);
+        if (url) photoUrl = url;
+      }
+
       await apiFetch("/api/health-events", {
         method: "POST",
         body: JSON.stringify({
@@ -103,6 +127,7 @@ export function AddHealthEventForm({
           title: title.trim(),
           event_date: eventDate,
           description: finalDescription || undefined,
+          photo_url: photoUrl,
         }),
       });
       onSuccess();
@@ -204,6 +229,49 @@ export function AddHealthEventForm({
             className="w-full px-4 py-3 border border-border rounded-xl bg-surface text-base text-text-main placeholder:text-muted-foreground resize-none focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 transition-[border-color,box-shadow]"
           />
           <p className="text-xs text-text-muted text-right">{description.length}/500</p>
+        </div>
+
+        {/* Photo (1 photo — receipt/proof) */}
+        <div className="space-y-2">
+          <Label>รูปใบเสร็จ/หลักฐาน</Label>
+          {photo ? (
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-alt">
+              <Image
+                src={photo.preview}
+                alt="รูปหลักฐาน"
+                fill
+                className="object-cover"
+                sizes="320px"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(photo.preview);
+                  setPhoto(null);
+                }}
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center"
+                aria-label="ลบรูป"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="w-full h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center gap-2 text-text-muted text-xs hover:border-primary hover:text-primary transition-colors"
+            >
+              <Camera className="w-4 h-4" />
+              ถ่ายรูปใบเสร็จ
+            </button>
+          )}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
         </div>
 
         {/* Error */}
