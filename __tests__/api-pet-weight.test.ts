@@ -47,7 +47,7 @@ vi.mock("@/lib/supabase-api", () => ({
   })),
 }));
 
-import { GET, POST } from "@/app/api/pet-weight/route";
+import { GET, POST, PUT, DELETE } from "@/app/api/pet-weight/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -325,6 +325,295 @@ describe("POST /api/pet-weight", () => {
 
     const req = makePostRequest(validBody);
     const res = await POST(req);
+    expect(res.status).toBe(500);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/pet-weight
+// PUT calls from() three times (by table name):
+//   1. from("pet_weight_logs").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("pet_weight_logs").update(data).eq("id", id).select().single()
+// ---------------------------------------------------------------------------
+
+describe("PUT /api/pet-weight", () => {
+  const LOG_ID = "wlog-001-0000-0000-000000000001";
+
+  const validPutBody = {
+    id: LOG_ID,
+    weight_kg: 6.1,
+  };
+
+  function makePutRequest(body: unknown, withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/pet-weight", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 without auth", async () => {
+    const req = makePutRequest(validPutBody, false);
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when id is missing from body", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    fromHandler = () => ({});
+    const req = makePutRequest({ weight_kg: 6.1 });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("returns 404 when weight log record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    // 1st from("pet_weight_logs") → lookup returns null
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      return buildOwnershipChain();
+    };
+
+    const req = makePutRequest(validPutBody);
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Weight log not found");
+  });
+
+  it("returns 404 when pet is not owned by the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    // 1st maybeSingle → record found
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    // 2nd maybeSingle → ownership check fails
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const ownerChain = buildOwnershipChain();
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (callCount === 2) {
+        return { select: vi.fn(() => ownerChain) };
+      }
+      return buildQueryChain();
+    };
+
+    const req = makePutRequest(validPutBody);
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Pet not found");
+  });
+
+  it("returns 200 with updated data on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const updated = { id: LOG_ID, weight_kg: 6.1, measured_at: "2026-04-10" };
+    const ownerChain = buildOwnershipChain();
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (callCount === 2) {
+        return { select: vi.fn(() => ownerChain) };
+      }
+      // update chain
+      const chain: Record<string, unknown> = {};
+      chain.eq = vi.fn(() => chain);
+      chain.select = vi.fn(() => chain);
+      chain.single = vi.fn().mockResolvedValue({ data: updated, error: null });
+      return { update: vi.fn(() => chain) };
+    };
+
+    const req = makePutRequest(validPutBody);
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.weight_kg).toBe(6.1);
+  });
+
+  it("returns 500 on DB update error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const ownerChain = buildOwnershipChain();
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (callCount === 2) {
+        return { select: vi.fn(() => ownerChain) };
+      }
+      const chain: Record<string, unknown> = {};
+      chain.eq = vi.fn(() => chain);
+      chain.select = vi.fn(() => chain);
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: { message: "update error" } });
+      return { update: vi.fn(() => chain) };
+    };
+
+    const req = makePutRequest(validPutBody);
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/pet-weight
+// DELETE calls from() three times (by table name):
+//   1. from("pet_weight_logs").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("pet_weight_logs").delete().eq("id", id)
+// ---------------------------------------------------------------------------
+
+describe("DELETE /api/pet-weight", () => {
+  const LOG_ID = "wlog-001-0000-0000-000000000001";
+
+  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
+    const url =
+      id !== null ? `http://localhost/api/pet-weight?id=${id}` : "http://localhost/api/pet-weight";
+    return new NextRequest(url, {
+      method: "DELETE",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 without auth", async () => {
+    const req = makeDeleteRequest(LOG_ID, false);
+    const res = await DELETE(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    fromHandler = () => ({});
+    const req = makeDeleteRequest(null);
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("returns 404 when weight log record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      return buildQueryChain();
+    };
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Weight log not found");
+  });
+
+  it("returns 200 with success true on deletion", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const ownerChain = buildOwnershipChain();
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (callCount === 2) {
+        return { select: vi.fn(() => ownerChain) };
+      }
+      // delete chain
+      return { delete: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })) };
+    };
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("returns 500 on DB delete error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "u1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const ownerChain = buildOwnershipChain();
+    let callCount = 0;
+    fromHandler = () => {
+      callCount++;
+      if (callCount === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (callCount === 2) {
+        return { select: vi.fn(() => ownerChain) };
+      }
+      return {
+        delete: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: { message: "delete error" } }),
+        })),
+      };
+    };
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
     expect(res.status).toBe(500);
   });
 });

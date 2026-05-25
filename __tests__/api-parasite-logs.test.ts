@@ -48,7 +48,8 @@ function buildOwnershipChain() {
 const ownershipChain = buildOwnershipChain();
 
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     return { select: vi.fn(() => ownershipChain) };
@@ -65,7 +66,7 @@ vi.mock("@/lib/supabase-api", () => ({
   })),
 }));
 
-import { GET, POST } from "@/app/api/parasite-logs/route";
+import { GET, POST, PUT, DELETE } from "@/app/api/parasite-logs/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -336,5 +337,281 @@ describe("GET /api/parasite-logs", () => {
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("Query timeout");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/parasite-logs
+// PUT calls from() three times:
+//   1. from("parasite_logs").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("parasite_logs").update(data).eq("id", id).select().single()
+// ---------------------------------------------------------------------------
+
+describe("PUT /api/parasite-logs", () => {
+  const LOG_ID = "log-0001-0000-0000-000000000001";
+
+  function makePutRequest(body: unknown, withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/parasite-logs", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function buildUpdateChain(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.select = vi.fn(() => chain);
+    chain.single = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  function buildFreshLookupChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildFreshOwnershipChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2)
+        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
+      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" }, false);
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id is missing from body", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makePutRequest({ medicine_name: "Bravecto" });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when parasite log record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFreshLookupChain({ data: null, error: null });
+      return {};
+    });
+
+    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Parasite log not found");
+  });
+
+  it("should return 404 when pet is not owned by the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2) return buildFreshOwnershipChain({ data: null, error: null });
+      return {};
+    });
+
+    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Pet not found");
+  });
+
+  it("should return 200 with updated data on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const updated = { id: LOG_ID, medicine_name: "Bravecto updated" };
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2)
+        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
+      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
+    });
+
+    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto updated" });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.id).toBe(LOG_ID);
+    expect(json.medicine_name).toBe("Bravecto updated");
+  });
+
+  it("should return 500 on DB update error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2)
+        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
+      return {
+        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
+      };
+    });
+
+    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("update failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/parasite-logs
+// DELETE calls from() three times:
+//   1. from("parasite_logs").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("parasite_logs").delete().eq("id", id)
+// ---------------------------------------------------------------------------
+
+describe("DELETE /api/parasite-logs", () => {
+  const LOG_ID = "log-0001-0000-0000-000000000001";
+
+  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
+    const url =
+      id !== null
+        ? `http://localhost/api/parasite-logs?id=${id}`
+        : "http://localhost/api/parasite-logs";
+    return new NextRequest(url, {
+      method: "DELETE",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  // Build a fresh lookup chain that does not share state with ownershipChain
+  function buildFreshLookupChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildFreshOwnershipChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildDeleteChain(result: { error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    // Default: step 1 returns record-not-found so tests can override via mockFrom
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2)
+        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
+      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makeDeleteRequest(LOG_ID, false);
+    const res = await DELETE(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeDeleteRequest(null);
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when parasite log record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFreshLookupChain({ data: null, error: null });
+      return {};
+    });
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Parasite log not found");
+  });
+
+  it("should return 200 with success true on deletion", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // Default from() mock covers this: lookup found → ownership ok → delete ok
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("should return 500 on DB delete error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    fromCallIndex = 0;
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1)
+        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
+      if (fromCallIndex === 2)
+        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
+      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
+    });
+
+    const req = makeDeleteRequest(LOG_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("delete failed");
   });
 });

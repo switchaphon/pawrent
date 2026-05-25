@@ -53,7 +53,8 @@ const ownershipChain = buildEqChain();
 //   1. from("pets").select("id").eq("id", pet_id).eq("owner_id", user_id).maybeSingle()
 //   2. from("diary_entries").insert({...}).select().single()
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     return { select: vi.fn(() => ownershipChain) };
@@ -71,7 +72,7 @@ vi.mock("@/lib/supabase-api", () => ({
 }));
 
 // Import route handler AFTER mocks are in place.
-import { POST } from "@/app/api/diary/route";
+import { POST, PUT, DELETE } from "@/app/api/diary/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -316,5 +317,257 @@ describe("POST /api/diary", () => {
     expect(insertCall.mood).toBeNull();
     expect(insertCall.photo_urls).toBeNull();
     expect(insertCall.user_id).toBe("user-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/diary
+// Diary PUT ownership is checked directly via user_id on the record — no pet join.
+// PUT calls from() twice:
+//   1. from("diary_entries").select("user_id").eq("id", id).maybeSingle()
+//      → checks existing.user_id === auth.user.id
+//   2. from("diary_entries").update(data).eq("id", id).select().single()
+// ---------------------------------------------------------------------------
+
+describe("PUT /api/diary", () => {
+  function makePutRequest(body: unknown, withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/diary", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  // Build an update chain: update().eq().select().single()
+  function buildUpdateChain(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.select = vi.fn(() => chain);
+    chain.single = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  // Build the lookup chain: select("user_id").eq("id", id).maybeSingle()
+  function buildLookupChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    // Default: 2-step from() for PUT
+    // 1st call → lookup returns entry owned by user-1
+    // 2nd call → update success
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        return buildLookupChain({ data: { user_id: "user-1" }, error: null });
+      }
+      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makePutRequest({ id: ENTRY_UUID, title: "Updated title" }, false);
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id is missing from body", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makePutRequest({ title: "Updated title" });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when diary entry is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // Override: lookup returns null
+    mockFrom.mockImplementationOnce(() => buildLookupChain({ data: null, error: null }));
+
+    const req = makePutRequest({ id: ENTRY_UUID, title: "Updated title" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Diary entry not found");
+  });
+
+  it("should return 404 when diary entry belongs to a different user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // Lookup returns entry owned by a different user
+    mockFrom.mockImplementationOnce(() =>
+      buildLookupChain({ data: { user_id: "other-user" }, error: null })
+    );
+
+    const req = makePutRequest({ id: ENTRY_UUID, title: "Updated title" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Diary entry not found");
+  });
+
+  it("should return 200 with updated data on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    const updated = {
+      id: ENTRY_UUID,
+      pet_id: VALID_PET_UUID,
+      user_id: "user-1",
+      title: "Updated title",
+      caption: null,
+      mood: "happy",
+      photo_urls: null,
+    };
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        return buildLookupChain({ data: { user_id: "user-1" }, error: null });
+      }
+      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
+    });
+
+    const req = makePutRequest({ id: ENTRY_UUID, title: "Updated title" });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.id).toBe(ENTRY_UUID);
+    expect(json.title).toBe("Updated title");
+  });
+
+  it("should return 500 on DB update error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        return buildLookupChain({ data: { user_id: "user-1" }, error: null });
+      }
+      return {
+        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
+      };
+    });
+
+    const req = makePutRequest({ id: ENTRY_UUID, title: "Updated title" });
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("update failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/diary
+// Diary DELETE ownership is checked directly via user_id on the record — no pet join.
+// DELETE calls from() twice:
+//   1. from("diary_entries").select("user_id").eq("id", id).maybeSingle()
+//      → checks existing.user_id === auth.user.id
+//   2. from("diary_entries").delete().eq("id", id)
+// ---------------------------------------------------------------------------
+
+describe("DELETE /api/diary", () => {
+  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
+    const url = id !== null ? `http://localhost/api/diary?id=${id}` : "http://localhost/api/diary";
+    return new NextRequest(url, {
+      method: "DELETE",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  function buildLookupChain(returnValue: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildDeleteChain(result: { error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    // Default: lookup returns owned entry, delete succeeds
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        return buildLookupChain({ data: { user_id: "user-1" }, error: null });
+      }
+      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makeDeleteRequest(ENTRY_UUID, false);
+    const res = await DELETE(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeDeleteRequest(null);
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when diary entry is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockFrom.mockImplementationOnce(() => buildLookupChain({ data: null, error: null }));
+
+    const req = makeDeleteRequest(ENTRY_UUID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Diary entry not found");
+  });
+
+  it("should return 200 with success true on deletion", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // Default from() mock handles this: lookup owned → delete success
+
+    const req = makeDeleteRequest(ENTRY_UUID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("should return 500 on DB delete error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        return buildLookupChain({ data: { user_id: "user-1" }, error: null });
+      }
+      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
+    });
+
+    const req = makeDeleteRequest(ENTRY_UUID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("delete failed");
   });
 });

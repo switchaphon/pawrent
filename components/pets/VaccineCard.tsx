@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Syringe, Plus, ChevronRight, ChevronLeft } from "lucide-react";
+import { Syringe, Plus, ChevronRight, ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { Vaccination } from "@/lib/types/pets";
 import { getCoreVaccineTypesBySpecies, matchesVaccineType } from "@/data/vaccines";
 
@@ -10,6 +10,8 @@ interface VaccineCardProps {
   petSpecies: string;
   isMemorial: boolean;
   onAddVaccine: () => void;
+  onEditVaccine?: (vax: Vaccination) => void;
+  onDeleteVaccine?: (vaxId: string) => void;
 }
 
 type StatusKey = "protected" | "due_soon" | "overdue";
@@ -73,9 +75,11 @@ interface VaxRowProps {
   allForType: Vaccination[];
   isExpanded: boolean;
   onToggle: () => void;
+  onEdit?: (vax: Vaccination) => void;
+  onDelete?: (vaxId: string) => void;
 }
 
-function VaxRow({ vax, allForType, isExpanded, onToggle }: VaxRowProps) {
+function VaxRow({ vax, allForType, isExpanded, onToggle, onEdit, onDelete }: VaxRowProps) {
   const [currentIdx, setCurrentIdx] = useState(allForType.length - 1);
 
   const cfg = STATUS_CONFIG[vax.status];
@@ -203,6 +207,35 @@ function VaxRow({ vax, allForType, isExpanded, onToggle }: VaxRowProps) {
                 <span className="text-[10px] text-text-muted">สถานที่</span>
                 <span className="text-[11px] font-semibold text-text-main">—</span>
               </div>
+
+              {(onEdit || onDelete) && (
+                <div className="flex gap-2 pt-2 mt-1 border-t border-border-subtle">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(activeDose);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-surface-alt text-[11px] font-semibold text-text-muted active:bg-border transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" /> แก้ไข
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(activeDose.id);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-danger-bg text-[11px] font-semibold text-danger active:bg-danger/20 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" /> ลบ
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -216,6 +249,8 @@ export function VaccineCard({
   petSpecies,
   isMemorial,
   onAddVaccine,
+  onEditVaccine,
+  onDeleteVaccine,
 }: VaccineCardProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -286,6 +321,8 @@ export function VaccineCard({
             allForType={allRecords}
             isExpanded={expandedId === key}
             onToggle={() => toggleExpand(key)}
+            onEdit={onEditVaccine}
+            onDelete={onDeleteVaccine}
           />
         ))
       )}

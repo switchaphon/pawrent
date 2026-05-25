@@ -8,6 +8,18 @@ const limiter = createRateLimiter(10, "1 m");
 const profileSchema = z.object({
   full_name: z.string().max(200).nullable().optional(),
   avatar_url: z.string().url().max(2048).nullable().optional(),
+  phone: z.string().max(20).nullable().optional(),
+  notification_prefs: z
+    .object({
+      vaccine: z.boolean().optional(),
+      parasite: z.boolean().optional(),
+      weight: z.boolean().optional(),
+      diary: z.boolean().optional(),
+      quiet_hours: z.boolean().optional(),
+      lost_pet_radius_km: z.number().int().min(1).max(50).optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 async function getAuthUser(request: NextRequest) {

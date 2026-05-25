@@ -66,3 +66,72 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: "Failed to create diary entry" }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }
+
+export async function PUT(request: NextRequest) {
+  const auth = await getAuthUser(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  if (rateLimited) return rateLimited;
+
+  const body = await request.json();
+  const { id, ...rest } = body;
+  if (!id || typeof id !== "string") {
+    return NextResponse.json({ error: "id is required" }, { status: 400 });
+  }
+
+  const updateSchema = diaryEntrySchema.omit({ pet_id: true }).partial();
+  const parsed = updateSchema.safeParse(rest);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
+
+  // Verify ownership via user_id directly
+  const { data: existing } = await auth.supabase
+    .from("diary_entries")
+    .select("user_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: "Diary entry not found" }, { status: 404 });
+  if (existing.user_id !== auth.user.id) {
+    return NextResponse.json({ error: "Diary entry not found" }, { status: 404 });
+  }
+
+  const { data, error } = await auth.supabase
+    .from("diary_entries")
+    .update(parsed.data)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await getAuthUser(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  if (rateLimited) return rateLimited;
+
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
+  // Verify ownership via user_id directly
+  const { data: existing } = await auth.supabase
+    .from("diary_entries")
+    .select("user_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!existing) return NextResponse.json({ error: "Diary entry not found" }, { status: 404 });
+  if (existing.user_id !== auth.user.id) {
+    return NextResponse.json({ error: "Diary entry not found" }, { status: 404 });
+  }
+
+  const { error } = await auth.supabase.from("diary_entries").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

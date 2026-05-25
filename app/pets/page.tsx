@@ -7,6 +7,9 @@ import { CreatePetForm } from "@/components/create-pet-form";
 import { EditPetForm } from "@/components/edit-pet-form";
 import { AddVaccineForm } from "@/components/add-vaccine-form";
 import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
+import { AddWeightForm } from "@/components/add-weight-form";
+import { AddHealthEventForm } from "@/components/add-health-event-form";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { SkeletonCard } from "@/components/skeleton-card";
 import { ImageCropper } from "@/components/image-cropper";
@@ -59,12 +62,17 @@ function PetsContent() {
   const [showEditPet, setShowEditPet] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
   const [showAddParasiteLog, setShowAddParasiteLog] = useState(false);
+  const [showAddWeight, setShowAddWeight] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
   const [showPhotoCropper, setShowPhotoCropper] = useState(false);
   const [photoToCrop, setPhotoToCrop] = useState<string | null>(null);
+  const [showAddHealthEvent, setShowAddHealthEvent] = useState(false);
+  const [healthEventDefaultType, setHealthEventDefaultType] = useState<string | undefined>();
   const [bsOpen, setBsOpen] = useState(false);
   const [bsMedicineName, setBsMedicineName] = useState("");
   const [bsLogs, setBsLogs] = useState<ParasiteLog[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ table: string; id: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const isMemorial = selectedPet?.status === "memorial";
 
@@ -180,7 +188,7 @@ function PetsContent() {
           title: `ชั่งน้ำหนัก${selectedPet.name}`,
           detail: `ครบ ${daysSince} วัน — ควรบันทึกใหม่`,
           severity: "warning",
-          onAction: () => {},
+          onAction: () => setShowAddWeight(true),
         });
       }
     }
@@ -240,6 +248,30 @@ function PetsContent() {
     setBsMedicineName(medicineName);
     setBsLogs(logs);
     setBsOpen(true);
+  };
+
+  const API_TABLE_MAP: Record<string, string> = {
+    vaccinations: "/api/vaccinations",
+    parasite_logs: "/api/parasite-logs",
+    pet_weight_logs: "/api/pet-weight",
+    health_events: "/api/health-events",
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!deleteConfirm || !selectedPet) return;
+    setDeleting(true);
+    try {
+      const endpoint = API_TABLE_MAP[deleteConfirm.table];
+      if (endpoint) {
+        await apiFetch(`${endpoint}?id=${deleteConfirm.id}`, { method: "DELETE" });
+        await fetchPetDetails(selectedPet.id);
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+    }
   };
 
   if (loading) {
@@ -328,6 +360,71 @@ function PetsContent() {
                   fetchPetDetails(selectedPet.id);
                 }}
                 onCancel={() => setShowAddParasiteLog(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {showAddHealthEvent && selectedPet && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <button
+              type="button"
+              aria-label="ปิด"
+              tabIndex={-1}
+              onClick={() => setShowAddHealthEvent(false)}
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            />
+            <div className="relative max-w-sm w-full">
+              <AddHealthEventForm
+                petId={selectedPet.id}
+                defaultType={healthEventDefaultType}
+                onSuccess={() => {
+                  setShowAddHealthEvent(false);
+                  fetchPetDetails(selectedPet.id);
+                }}
+                onCancel={() => setShowAddHealthEvent(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        <ConfirmDialog
+          open={!!deleteConfirm}
+          title="ลบรายการนี้?"
+          description="รายการนี้จะถูกลบถาวร ไม่สามารถย้อนกลับได้"
+          confirmLabel="ลบ"
+          cancelLabel="ยกเลิก"
+          variant="destructive"
+          onConfirm={handleDeleteRecord}
+          onCancel={() => setDeleteConfirm(null)}
+          loading={deleting}
+        />
+
+        {showAddWeight && selectedPet && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <button
+              type="button"
+              aria-label="ปิด"
+              tabIndex={-1}
+              onClick={() => setShowAddWeight(false)}
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            />
+            <div className="relative max-w-sm w-full">
+              <AddWeightForm
+                petId={selectedPet.id}
+                onSuccess={() => {
+                  setShowAddWeight(false);
+                  fetchPetDetails(selectedPet.id);
+                }}
+                onCancel={() => setShowAddWeight(false)}
               />
             </div>
           </div>
@@ -427,6 +524,7 @@ function PetsContent() {
                   latestWeight={weightHistory.length > 0 ? weightHistory[0] : null}
                   weightHistory={weightHistory}
                   isMemorial={isMemorial}
+                  onAddWeight={() => setShowAddWeight(true)}
                 />
 
                 {/* Zone 3b: Vaccines */}
@@ -435,6 +533,7 @@ function PetsContent() {
                   petSpecies={selectedPet.species || "dog"}
                   isMemorial={isMemorial}
                   onAddVaccine={() => setShowAddVaccine(true)}
+                  onDeleteVaccine={(id) => setDeleteConfirm({ table: "vaccinations", id })}
                 />
 
                 {/* Zone 3c: Parasites */}
@@ -443,10 +542,15 @@ function PetsContent() {
                   isMemorial={isMemorial}
                   onAddLog={() => setShowAddParasiteLog(true)}
                   onShowFullHistory={handleShowFullHistory}
+                  onDeleteLog={(id) => setDeleteConfirm({ table: "parasite_logs", id })}
                 />
 
                 {/* Zone 4: Health Records */}
-                <HealthRecordsCard healthEvents={healthEvents} isMemorial={isMemorial} />
+                <HealthRecordsCard
+                  healthEvents={healthEvents}
+                  isMemorial={isMemorial}
+                  onDeleteEvent={(id) => setDeleteConfirm({ table: "health_events", id })}
+                />
 
                 {/* Zone 6: Memories */}
                 <MemoriesZone

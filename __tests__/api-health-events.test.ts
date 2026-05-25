@@ -51,7 +51,8 @@ const ownershipChain = buildOwnershipChain();
 // The health-events route calls from("pets") for ownership check, then
 // from("health_events") for insert.
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     // First call: from("pets").select("id") → ownership chain
@@ -72,7 +73,7 @@ vi.mock("@/lib/supabase-api", () => ({
 }));
 
 // Import route handler AFTER mock is in place.
-import { POST } from "@/app/api/health-events/route";
+import { POST, PUT, DELETE } from "@/app/api/health-events/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -267,5 +268,252 @@ describe("POST /api/health-events", () => {
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("Failed to create health event");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/health-events
+// PUT calls from() three times:
+//   1. from("health_events").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("health_events").update(data).eq("id", id).select().single()
+// ---------------------------------------------------------------------------
+
+describe("PUT /api/health-events", () => {
+  const EVT_ID = "evt-0001-0000-0000-000000000001";
+
+  function makePutRequest(body: unknown, withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/health-events", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  function buildFirstFromChain() {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = mockMaybeSingle;
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildUpdateChain(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.select = vi.fn(() => chain);
+    chain.single = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFirstFromChain();
+      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
+      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" }, false);
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id is missing from body", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makePutRequest({ title: "Updated grooming" });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when health event record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Health event not found");
+  });
+
+  it("should return 404 when pet is not owned by the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Pet not found");
+  });
+
+  it("should return 200 with updated data on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+
+    const updated = {
+      id: EVT_ID,
+      pet_id: VALID_PET_UUID,
+      event_type: "grooming",
+      title: "Updated grooming",
+      event_date: "2025-06-15",
+    };
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFirstFromChain();
+      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
+      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
+    });
+
+    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.id).toBe(EVT_ID);
+    expect(json.title).toBe("Updated grooming");
+  });
+
+  it("should return 500 on DB update error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFirstFromChain();
+      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
+      return {
+        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
+      };
+    });
+
+    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("update failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/health-events
+// DELETE calls from() three times:
+//   1. from("health_events").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("health_events").delete().eq("id", id)
+// ---------------------------------------------------------------------------
+
+describe("DELETE /api/health-events", () => {
+  const EVT_ID = "evt-0001-0000-0000-000000000001";
+
+  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
+    const url =
+      id !== null
+        ? `http://localhost/api/health-events?id=${id}`
+        : "http://localhost/api/health-events";
+    return new NextRequest(url, {
+      method: "DELETE",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  function buildFirstFromChain() {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.maybeSingle = mockMaybeSingle;
+    return { select: vi.fn(() => chain) };
+  }
+
+  function buildDeleteChain(result: { error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFirstFromChain();
+      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
+      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makeDeleteRequest(EVT_ID, false);
+    const res = await DELETE(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeDeleteRequest(null);
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when health event record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makeDeleteRequest(EVT_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Health event not found");
+  });
+
+  it("should return 200 with success true on deletion", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+
+    const req = makeDeleteRequest(EVT_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("should return 500 on DB delete error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) return buildFirstFromChain();
+      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
+      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
+    });
+
+    const req = makeDeleteRequest(EVT_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("delete failed");
   });
 });

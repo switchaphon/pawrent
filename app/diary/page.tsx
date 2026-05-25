@@ -7,6 +7,11 @@ import { TriangleAlert, Syringe, Pill, Scale, User } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { DiaryFab } from "@/components/diary-fab";
+import { AddVaccineForm } from "@/components/add-vaccine-form";
+import { AddParasiteLogForm } from "@/components/add-parasite-log-form";
+import { AddWeightForm } from "@/components/add-weight-form";
+import { AddHealthEventForm } from "@/components/add-health-event-form";
+import { AddDiaryEntryForm } from "@/components/add-diary-entry-form";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth-token";
 import type { TimelineItem } from "@/app/api/diary/timeline/route";
@@ -346,12 +351,18 @@ export default function DiaryPage() {
   // Group timeline
   const groups = groupItems(items, now);
 
-  // FAB handler — placeholder; real navigation would open a bottom sheet or route
+  const [fabModal, setFabModal] = useState<{ type: string; petId?: string | null } | null>(null);
+
   const handleFabSelect = useCallback((key: string, petId?: string | null) => {
-    // For now navigate to a query param approach; Wave 3 will wire up bottom sheets
-    const petParam = petId ? `&pet_id=${petId}` : "";
-    window.location.href = `/diary/new?type=${key}${petParam}`;
+    setFabModal({ type: key, petId });
   }, []);
+
+  const closeFabModal = useCallback(() => setFabModal(null), []);
+
+  const handleFabSuccess = useCallback(() => {
+    setFabModal(null);
+    fetchTimeline();
+  }, [fetchTimeline]);
 
   return (
     <div className="min-h-dvh pb-24">
@@ -500,6 +511,98 @@ export default function DiaryPage() {
           </>
         )}
       </div>
+
+      {/* ── FAB form modals ── */}
+      {fabModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          <button
+            type="button"
+            aria-label="ปิด"
+            tabIndex={-1}
+            onClick={closeFabModal}
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+          />
+          <div className="relative max-w-sm w-full max-h-[90vh] overflow-y-auto">
+            {fabModal.type === "diary_entries" && (
+              <AddDiaryEntryForm
+                petId={fabModal.petId}
+                pets={pets}
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "vaccinations" && fabModal.petId && (
+              <AddVaccineForm
+                petId={fabModal.petId}
+                petSpecies={pets.find((p) => p.id === fabModal.petId)?.species ?? null}
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "parasite_external" && fabModal.petId && (
+              <AddParasiteLogForm
+                petId={fabModal.petId}
+                petSpecies={pets.find((p) => p.id === fabModal.petId)?.species ?? null}
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "parasite_internal" && fabModal.petId && (
+              <AddParasiteLogForm
+                petId={fabModal.petId}
+                petSpecies={pets.find((p) => p.id === fabModal.petId)?.species ?? null}
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "pet_weight_logs" && fabModal.petId && (
+              <AddWeightForm
+                petId={fabModal.petId}
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "grooming" && fabModal.petId && (
+              <AddHealthEventForm
+                petId={fabModal.petId}
+                defaultType="grooming"
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {fabModal.type === "vet_visit" && fabModal.petId && (
+              <AddHealthEventForm
+                petId={fabModal.petId}
+                defaultType="vet_visit"
+                onSuccess={handleFabSuccess}
+                onCancel={closeFabModal}
+              />
+            )}
+            {/* If no pet selected, prompt user to select one for pet-specific forms */}
+            {fabModal.type !== "diary_entries" && !fabModal.petId && (
+              <div className="bg-surface rounded-2xl p-6 text-center shadow-soft">
+                <p className="text-3xl mb-3" aria-hidden>
+                  🐾
+                </p>
+                <p className="text-sm font-bold text-text-main mb-1">เลือกน้องก่อน</p>
+                <p className="text-xs text-text-muted mb-4">
+                  กรุณาเลือกน้องจากแถบด้านบนก่อนเพิ่มบันทึก
+                </p>
+                <button
+                  onClick={closeFabModal}
+                  className="px-6 py-2 rounded-full bg-primary text-white text-sm font-bold"
+                >
+                  ตกลง
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── FAB ── */}
       <DiaryFab selectedPetId={selectedPetId} onSelect={handleFabSelect} />

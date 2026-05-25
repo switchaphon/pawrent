@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -408,6 +408,7 @@ function OwnerContent() {
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
   const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -422,6 +423,45 @@ function OwnerContent() {
   const [notifyDiary, setNotifyDiary] = useState(true);
   const [notifyQuiet, setNotifyQuiet] = useState(false);
 
+  const [notifySaveStatus, setNotifySaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadRef = useRef(true);
+
+  const saveNotificationPrefs = useCallback(async () => {
+    setNotifySaveStatus("saving");
+    try {
+      await apiFetch("/api/profile", {
+        method: "PUT",
+        body: JSON.stringify({
+          notification_prefs: {
+            vaccine: notifyVaccine,
+            parasite: notifyParasite,
+            weight: notifyWeight,
+            diary: notifyDiary,
+            quiet_hours: notifyQuiet,
+            lost_pet_radius_km: notifyRadiusKm,
+          },
+        }),
+      });
+      setNotifySaveStatus("saved");
+      setTimeout(() => setNotifySaveStatus("idle"), 2000);
+    } catch {
+      setNotifySaveStatus("idle");
+    }
+  }, [notifyVaccine, notifyParasite, notifyWeight, notifyDiary, notifyQuiet, notifyRadiusKm]);
+
+  useEffect(() => {
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+    notifyTimerRef.current = setTimeout(saveNotificationPrefs, 1000);
+    return () => {
+      if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+    };
+  }, [saveNotificationPrefs]);
+
   const fetchPets = async () => {
     if (!user) return;
     const { data } = await getPets(user.id);
@@ -434,6 +474,16 @@ function OwnerContent() {
     if (data) {
       setProfile(data);
       setEditName(data.full_name || "");
+      setEditPhone(data.phone || "");
+      const prefs = data.notification_prefs;
+      if (prefs) {
+        setNotifyVaccine(prefs.vaccine ?? true);
+        setNotifyParasite(prefs.parasite ?? true);
+        setNotifyWeight(prefs.weight ?? true);
+        setNotifyDiary(prefs.diary ?? true);
+        setNotifyQuiet(prefs.quiet_hours ?? false);
+        setNotifyRadiusKm(prefs.lost_pet_radius_km ?? 3);
+      }
     }
   };
 
@@ -611,13 +661,25 @@ function OwnerContent() {
             </div>
             <p className="text-xs text-center text-text-muted mb-4">แตะเพื่อเปลี่ยนรูป</p>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <label className="block text-xs font-bold text-text-main mb-2">ชื่อที่แสดง</label>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="ชื่อของคุณ"
+                className="w-full p-3 rounded-full border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-text-main mb-2">เบอร์โทรศัพท์</label>
+              <input
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="0812345678"
+                maxLength={20}
                 className="w-full p-3 rounded-full border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               />
             </div>
@@ -663,6 +725,7 @@ function OwnerContent() {
                       body: JSON.stringify({
                         full_name: editName || null,
                         avatar_url: avatarUrl,
+                        phone: editPhone || null,
                       }),
                     });
                     await fetchProfile();
@@ -828,9 +891,13 @@ function OwnerContent() {
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-[10px] text-text-muted">เบอร์โทร</p>
-                  <p className="text-xs font-bold text-text-muted">
-                    ยังไม่ได้ตั้งค่า — แตะเพื่อเพิ่ม
-                  </p>
+                  {profile?.phone ? (
+                    <p className="text-xs font-bold text-text-main">{profile.phone}</p>
+                  ) : (
+                    <p className="text-xs font-bold text-text-muted">
+                      ยังไม่ได้ตั้งค่า — แตะเพื่อเพิ่ม
+                    </p>
+                  )}
                 </div>
                 <ChevronRight className="w-4 h-4 text-text-muted" />
               </button>
@@ -847,7 +914,17 @@ function OwnerContent() {
         {/* Notification settings — 5 toggles */}
         <BubbleCard>
           <div className="p-4">
-            <p className="text-sm font-bold text-text-main mb-3">🔔 การแจ้งเตือน</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold text-text-main">🔔 การแจ้งเตือน</p>
+              {notifySaveStatus === "saved" && (
+                <span className="text-[10px] font-semibold text-success animate-fade-in">
+                  ✓ บันทึกแล้ว
+                </span>
+              )}
+              {notifySaveStatus === "saving" && (
+                <span className="text-[10px] font-semibold text-text-muted">กำลังบันทึก...</span>
+              )}
+            </div>
 
             {/* สัตว์หาย — radius chips */}
             <div className="py-2.5 border-b border-border/60">

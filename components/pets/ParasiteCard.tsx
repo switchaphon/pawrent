@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Bug, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Bug, Plus, ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { ParasiteLog } from "@/lib/types/pets";
 
 interface ParasiteCardProps {
@@ -9,6 +9,8 @@ interface ParasiteCardProps {
   isMemorial: boolean;
   onAddLog: () => void;
   onShowFullHistory: (medicineName: string) => void;
+  onEditLog?: (log: ParasiteLog) => void;
+  onDeleteLog?: (logId: string) => void;
 }
 
 function formatThaiDate(dateStr: string | null | undefined): string {
@@ -58,6 +60,8 @@ interface MedicineGroupProps {
   isExpanded: boolean;
   onToggle: () => void;
   onShowFullHistory: (name: string) => void;
+  onEditLog?: (log: ParasiteLog) => void;
+  onDeleteLog?: (logId: string) => void;
 }
 
 function MedicineGroup({
@@ -66,6 +70,8 @@ function MedicineGroup({
   isExpanded,
   onToggle,
   onShowFullHistory,
+  onEditLog,
+  onDeleteLog,
 }: MedicineGroupProps) {
   // Sort descending by date
   const sorted = [...logs].sort(
@@ -129,16 +135,43 @@ function MedicineGroup({
       >
         <div className="px-4 pb-2">
           {recentSlice.map((log) => (
-            <div
-              key={log.id}
-              className="flex justify-between items-center py-1.5 border-b border-border-subtle last:border-b-0"
-            >
-              <span className="text-[11px] font-semibold text-text-main">
-                {formatThaiDate(log.administered_date)}
-              </span>
-              <span className="text-[11px] text-text-muted">
-                {log.medicine_name ?? medicineName}
-              </span>
+            <div key={log.id} className="py-1.5 border-b border-border-subtle last:border-b-0">
+              <div className="flex justify-between items-center">
+                <span className="text-[11px] font-semibold text-text-main">
+                  {formatThaiDate(log.administered_date)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-text-muted">
+                    {log.medicine_name ?? medicineName}
+                  </span>
+                  {onEditLog && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditLog(log);
+                      }}
+                      className="p-1 rounded text-text-muted hover:text-primary"
+                      aria-label="แก้ไข"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                  {onDeleteLog && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteLog(log.id);
+                      }}
+                      className="p-1 rounded text-text-muted hover:text-danger"
+                      aria-label="ลบ"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           ))}
           {hasMore && (
@@ -163,6 +196,8 @@ export function ParasiteCard({
   isMemorial,
   onAddLog,
   onShowFullHistory,
+  onEditLog,
+  onDeleteLog,
 }: ParasiteCardProps) {
   const [expandedMedicine, setExpandedMedicine] = useState<string | null>(null);
 
@@ -219,6 +254,8 @@ export function ParasiteCard({
             isExpanded={expandedMedicine === name}
             onToggle={() => toggleExpand(name)}
             onShowFullHistory={onShowFullHistory}
+            onEditLog={onEditLog}
+            onDeleteLog={onDeleteLog}
           />
         ))
       )}
