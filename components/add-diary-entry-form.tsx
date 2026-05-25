@@ -106,24 +106,24 @@ export function AddDiaryEntryForm({ petId, pets, onSuccess, onCancel }: AddDiary
 
         {/* Date chip row */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDateChipClick}
-            className="inline-flex items-center px-3 py-1.5 rounded-full bg-surface-alt border border-border text-xs text-text-muted hover:border-primary hover:text-primary transition-colors"
-          >
-            {formatDateThai(entryDate)}
-          </button>
-          {/* Hidden date input — triggered by chip click */}
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={entryDate}
-            onChange={(e) => setEntryDate(e.target.value)}
-            max={today}
-            className="sr-only"
-            tabIndex={-1}
-            aria-hidden="true"
-          />
+          <div className="relative inline-flex">
+            <button
+              type="button"
+              onClick={handleDateChipClick}
+              className="inline-flex items-center px-3 py-1.5 rounded-full bg-surface-alt border border-border text-xs text-text-muted hover:border-primary hover:text-primary transition-colors"
+            >
+              {formatDateThai(entryDate)}
+            </button>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              max={today}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              tabIndex={-1}
+            />
+          </div>
         </div>
 
         {/* Pet selector chips — only shown when multiple pets */}
