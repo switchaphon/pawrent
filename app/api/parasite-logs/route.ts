@@ -96,7 +96,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  const updateSchema = parasiteLogSchema.omit({ pet_id: true }).partial();
+  const updateSchema = z.object({
+    medicine_name: z.string().max(200).nullable().optional(),
+    administered_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+      .optional(),
+    next_due_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+      .optional(),
+  });
   const parsed = updateSchema.safeParse(rest);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

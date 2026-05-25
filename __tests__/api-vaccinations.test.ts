@@ -69,7 +69,7 @@ vi.mock("@/lib/supabase-api", () => ({
 }));
 
 // Import route handler AFTER mock is in place.
-import { POST } from "@/app/api/vaccinations/route";
+import { POST, PUT, DELETE } from "@/app/api/vaccinations/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -194,5 +194,285 @@ describe("POST /api/vaccinations", () => {
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("DB error");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PUT /api/vaccinations
+// PUT calls from() three times:
+//   1. from("vaccinations").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("vaccinations").update(data).eq("id", id).select().single()
+// ---------------------------------------------------------------------------
+
+describe("PUT /api/vaccinations", () => {
+  const VACC_ID = "vacc-0001-0000-0000-000000000001";
+
+  function makePutRequest(body: unknown, withAuth = true): NextRequest {
+    return new NextRequest("http://localhost/api/vaccinations", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  // Build an update chain: update().eq().select().single()
+  function buildUpdateChain(result: { data: unknown; error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn(() => chain);
+    chain.select = vi.fn(() => chain);
+    chain.single = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  // Build a delete chain: delete().eq()
+  // (not used in PUT but defined here for consistency)
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    // Default: 3-step from() chain for PUT
+    // 1st call → vaccinations lookup (returns existing record with pet_id)
+    // 2nd call → pets ownership check
+    // 3rd call → vaccinations update
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        // vaccinations → select("pet_id").eq("id", id).maybeSingle()
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (fromCallIndex === 2) {
+        // pets → ownership chain
+        return { select: vi.fn(() => ownershipChain) };
+      }
+      // vaccinations → update chain (default success)
+      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makePutRequest({ id: VACC_ID, name: "Rabies" }, false);
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id is missing from body", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makePutRequest({ name: "Rabies" });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when vaccination record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // 1st from() → vaccinations lookup returns null
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makePutRequest({ id: VACC_ID, name: "Rabies" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Vaccination not found");
+  });
+
+  it("should return 404 when pet is not owned by the authenticated user", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // 1st maybeSingle → existing vaccination found with a pet_id
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    // 2nd maybeSingle → pet ownership check fails
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makePutRequest({ id: VACC_ID, name: "Rabies" });
+    const res = await PUT(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Pet not found");
+  });
+
+  it("should return 200 with updated data on success", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // 1st maybeSingle → vaccination exists
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    // 2nd maybeSingle → pet owned
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const updated = { id: VACC_ID, name: "Rabies updated", status: "protected" };
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (fromCallIndex === 2) {
+        return { select: vi.fn(() => ownershipChain) };
+      }
+      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
+    });
+
+    const req = makePutRequest({ id: VACC_ID, name: "Rabies updated" });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.id).toBe(VACC_ID);
+    expect(json.name).toBe("Rabies updated");
+  });
+
+  it("should return 500 on DB update error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (fromCallIndex === 2) {
+        return { select: vi.fn(() => ownershipChain) };
+      }
+      return {
+        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
+      };
+    });
+
+    const req = makePutRequest({ id: VACC_ID, name: "Rabies" });
+    const res = await PUT(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("update failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/vaccinations
+// DELETE calls from() three times:
+//   1. from("vaccinations").select("pet_id").eq("id", id).maybeSingle()
+//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
+//   3. from("vaccinations").delete().eq("id", id)
+// ---------------------------------------------------------------------------
+
+describe("DELETE /api/vaccinations", () => {
+  const VACC_ID = "vacc-0001-0000-0000-000000000001";
+
+  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
+    const url =
+      id !== null
+        ? `http://localhost/api/vaccinations?id=${id}`
+        : "http://localhost/api/vaccinations";
+    return new NextRequest(url, {
+      method: "DELETE",
+      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+    });
+  }
+
+  function buildDeleteChain(result: { error: unknown }) {
+    const chain: Record<string, unknown> = {};
+    chain.eq = vi.fn().mockResolvedValue(result);
+    return chain;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    eqCalls.length = 0;
+    fromCallIndex = 0;
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (fromCallIndex === 2) {
+        return { select: vi.fn(() => ownershipChain) };
+      }
+      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
+    });
+  });
+
+  it("should return 401 without auth", async () => {
+    const req = makeDeleteRequest(VACC_ID, false);
+    const res = await DELETE(req);
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBe("Unauthorized");
+  });
+
+  it("should return 400 when id query param is missing", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    const req = makeDeleteRequest(null);
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("id is required");
+  });
+
+  it("should return 404 when vaccination record is not found", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+
+    const req = makeDeleteRequest(VACC_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error).toBe("Vaccination not found");
+  });
+
+  it("should return 200 with success true on deletion", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    // 1st maybeSingle → vaccination exists
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    // 2nd maybeSingle → pet owned
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    const req = makeDeleteRequest(VACC_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.success).toBe(true);
+  });
+
+  it("should return 500 on DB delete error", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_UUID }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+
+    mockFrom.mockImplementation(() => {
+      fromCallIndex++;
+      if (fromCallIndex === 1) {
+        const chain: Record<string, unknown> = {};
+        chain.eq = vi.fn(() => chain);
+        chain.maybeSingle = mockMaybeSingle;
+        return { select: vi.fn(() => chain) };
+      }
+      if (fromCallIndex === 2) {
+        return { select: vi.fn(() => ownershipChain) };
+      }
+      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
+    });
+
+    const req = makeDeleteRequest(VACC_ID);
+    const res = await DELETE(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("delete failed");
   });
 });
