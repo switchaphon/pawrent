@@ -156,6 +156,31 @@ export async function POST(request: NextRequest) {
         userId = authUser.user.id;
       }
 
+      // Download LINE profile picture and re-upload to Supabase storage
+      // so the stored URL never expires (LINE CDN URLs have a TTL).
+      let avatarUrl: string | undefined = lineProfile.picture;
+      if (lineProfile.picture) {
+        try {
+          const imgRes = await fetch(lineProfile.picture);
+          const buffer = Buffer.from(await imgRes.arrayBuffer());
+          const { error: uploadErr } = await supabase.storage
+            .from("user-photos")
+            .upload(`avatars/${userId}.jpg`, buffer, {
+              upsert: true,
+              contentType: "image/jpeg",
+            });
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage
+              .from("user-photos")
+              .getPublicUrl(`avatars/${userId}.jpg`);
+            avatarUrl = urlData.publicUrl;
+          }
+          // If upload fails, avatarUrl stays as the LINE CDN URL (better than nothing)
+        } catch {
+          // Network or unexpected error — fall back to LINE URL
+        }
+      }
+
       // Create the profile linked to the auth user
       const { data: newProfile, error: profileError } = await supabase
         .from("profiles")
@@ -163,7 +188,7 @@ export async function POST(request: NextRequest) {
           id: userId,
           line_user_id: lineProfile.sub,
           line_display_name: lineProfile.name,
-          avatar_url: lineProfile.picture,
+          avatar_url: avatarUrl,
           ...(lineProfile.email ? { email: lineProfile.email } : {}),
           full_name: lineProfile.name,
         })

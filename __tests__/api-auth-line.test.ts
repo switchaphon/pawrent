@@ -54,6 +54,8 @@ const {
   mockSelectSingle,
   mockSelectEq,
   mockSelect,
+  mockStorageUpload,
+  mockStorageGetPublicUrl,
 } = vi.hoisted(() => {
   const mockUpsertSingle = vi.fn();
   const mockUpsertSelect = vi.fn(() => ({ single: mockUpsertSingle }));
@@ -64,6 +66,8 @@ const {
   const mockCreateUser = vi.fn();
   const mockListUsers = vi.fn();
   const mockUpdateUserById = vi.fn();
+  const mockStorageUpload = vi.fn();
+  const mockStorageGetPublicUrl = vi.fn();
   return {
     mockCreateUser,
     mockListUsers,
@@ -74,6 +78,8 @@ const {
     mockSelectSingle,
     mockSelectEq,
     mockSelect,
+    mockStorageUpload,
+    mockStorageGetPublicUrl,
   };
 });
 
@@ -90,6 +96,12 @@ vi.mock("@supabase/supabase-js", () => ({
       upsert: mockUpsert,
       select: mockSelect,
     })),
+    storage: {
+      from: vi.fn(() => ({
+        upload: mockStorageUpload,
+        getPublicUrl: mockStorageGetPublicUrl,
+      })),
+    },
   })),
 }));
 
@@ -154,6 +166,25 @@ function mockLineVerifyFailure() {
     ok: false,
     json: async () => ({ error: "invalid token" }),
   });
+}
+
+/** Sets up fetch to handle two sequential calls: LINE verify then avatar image download. */
+function mockLineVerifyThenAvatarFetch() {
+  const lineResponse = {
+    ok: true,
+    json: async () => ({
+      sub: "U1234567890",
+      name: "Test User",
+      picture: "https://example.com/avatar.jpg",
+      iss: "https://access.line.me",
+      aud: process.env.LINE_CHANNEL_ID,
+    }),
+  };
+  const avatarResponse = {
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(8),
+  };
+  global.fetch = vi.fn().mockResolvedValueOnce(lineResponse).mockResolvedValueOnce(avatarResponse);
 }
 
 function mockNewUserFlow() {
@@ -459,5 +490,117 @@ describe("POST /api/auth/line", () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).toBe("Failed to create profile");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Avatar upload tests (Task 2b+2c)
+  // ---------------------------------------------------------------------------
+
+  it("uploads avatar to Supabase storage and uses public URL as avatar_url for new user", async () => {
+    mockLineVerifyThenAvatarFetch();
+
+    const supabaseAvatarUrl =
+      "https://supabase.example.com/storage/v1/object/public/user-photos/avatars/uuid-123.jpg";
+    mockStorageUpload.mockResolvedValueOnce({ error: null });
+    mockStorageGetPublicUrl.mockReturnValueOnce({
+      data: { publicUrl: supabaseAvatarUrl },
+    });
+
+    // Profile lookup returns null (new user)
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+    // auth.admin.createUser succeeds
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: { id: "uuid-123" } },
+      error: null,
+    });
+    // Profile upsert returns profile with Supabase avatar URL
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: { ...mockProfile, avatar_url: supabaseAvatarUrl },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+
+    // Storage upload was called with correct path and content type
+    expect(mockStorageUpload).toHaveBeenCalledWith(
+      "avatars/uuid-123.jpg",
+      expect.any(Buffer),
+      expect.objectContaining({ upsert: true, contentType: "image/jpeg" })
+    );
+
+    // The upserted profile uses the Supabase URL, not the LINE CDN URL
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ avatar_url: supabaseAvatarUrl })
+    );
+
+    const body = await res.json();
+    expect(body.user.avatar_url).toBe(supabaseAvatarUrl);
+  });
+
+  it("falls back to LINE CDN URL when storage upload fails", async () => {
+    mockLineVerifyThenAvatarFetch();
+
+    mockStorageUpload.mockResolvedValueOnce({ error: { message: "Upload failed" } });
+
+    // Profile lookup returns null (new user)
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: { id: "uuid-123" } },
+      error: null,
+    });
+    // Profile upsert returns profile with LINE CDN URL (fallback)
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: { ...mockProfile, avatar_url: "https://example.com/avatar.jpg" },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+
+    // getPublicUrl must NOT be called when upload failed
+    expect(mockStorageGetPublicUrl).not.toHaveBeenCalled();
+
+    // Upserted profile falls back to LINE CDN URL
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ avatar_url: "https://example.com/avatar.jpg" })
+    );
+  });
+
+  it("skips avatar upload when lineProfile.picture is undefined", async () => {
+    // LINE verify returns profile without picture
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        sub: "U1234567890",
+        name: "Test User",
+        iss: "https://access.line.me",
+        aud: process.env.LINE_CHANNEL_ID,
+        // picture deliberately absent
+      }),
+    });
+
+    // Profile lookup returns null (new user)
+    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateUser.mockResolvedValueOnce({
+      data: { user: { id: "uuid-123" } },
+      error: null,
+    });
+    mockUpsertSingle.mockResolvedValueOnce({
+      data: { ...mockProfile, avatar_url: null },
+      error: null,
+    });
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+
+    // No storage calls when picture is absent
+    expect(mockStorageUpload).not.toHaveBeenCalled();
+    expect(mockStorageGetPublicUrl).not.toHaveBeenCalled();
+
+    // Upsert called without avatar_url (or with undefined/null)
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.not.objectContaining({ avatar_url: expect.stringContaining("http") })
+    );
   });
 });
