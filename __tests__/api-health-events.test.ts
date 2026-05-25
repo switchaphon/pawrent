@@ -51,7 +51,8 @@ const ownershipChain = buildOwnershipChain();
 // The health-events route calls from("pets") for ownership check, then
 // from("health_events") for insert.
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     // First call: from("pets").select("id") → ownership chain

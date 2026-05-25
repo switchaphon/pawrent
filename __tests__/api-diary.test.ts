@@ -53,7 +53,8 @@ const ownershipChain = buildEqChain();
 //   1. from("pets").select("id").eq("id", pet_id).eq("owner_id", user_id).maybeSingle()
 //   2. from("diary_entries").insert({...}).select().single()
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     return { select: vi.fn(() => ownershipChain) };

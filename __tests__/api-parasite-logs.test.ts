@@ -48,7 +48,8 @@ function buildOwnershipChain() {
 const ownershipChain = buildOwnershipChain();
 
 let fromCallIndex = 0;
-const mockFrom = vi.fn(() => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
   fromCallIndex++;
   if (fromCallIndex === 1) {
     return { select: vi.fn(() => ownershipChain) };
