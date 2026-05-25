@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Camera, ArrowRight, Plus, X, Trash2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Camera, ArrowRight, Plus, X, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { DiaryEntry, PetPhoto } from "@/lib/types/pets";
@@ -71,8 +71,16 @@ export function MemoriesZone({
   onAddPhoto,
   onDeletePhoto,
 }: MemoriesZoneProps) {
-  const [viewingPhoto, setViewingPhoto] = useState<PetPhoto | null>(null);
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const viewingPhoto = viewingIndex !== null ? (photos[viewingIndex] ?? null) : null;
+
+  const goPrev = useCallback(() => setViewingIndex((i) => (i !== null && i > 0 ? i - 1 : i)), []);
+  const goNext = useCallback(
+    () => setViewingIndex((i) => (i !== null && i < photos.length - 1 ? i + 1 : i)),
+    []
+  );
   return (
     <div className="mb-[14px]" role="region" aria-label="ความทรงจำ">
       {/* Section header */}
@@ -133,7 +141,7 @@ export function MemoriesZone({
               key={photo.id}
               type="button"
               role="listitem"
-              onClick={() => setViewingPhoto(photo)}
+              onClick={() => setViewingIndex(photos.indexOf(photo))}
               className="aspect-square rounded-[12px] overflow-hidden relative bg-surface-alt"
             >
               <Image
@@ -163,8 +171,8 @@ export function MemoriesZone({
         )}
       </div>
 
-      {/* Photo viewer lightbox */}
-      {viewingPhoto && (
+      {/* Photo viewer lightbox with prev/next */}
+      {viewingPhoto && viewingIndex !== null && (
         <div
           role="dialog"
           aria-modal="true"
@@ -173,11 +181,41 @@ export function MemoriesZone({
         >
           <button
             type="button"
-            onClick={() => setViewingPhoto(null)}
+            onClick={() => setViewingIndex(null)}
             className="absolute inset-0"
             aria-label="ปิด"
           />
+
+          {/* Prev button */}
+          {viewingIndex > 0 && (
+            <button
+              type="button"
+              onClick={goPrev}
+              className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center active:bg-white/30"
+              aria-label="รูปก่อนหน้า"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Next button */}
+          {viewingIndex < photos.length - 1 && (
+            <button
+              type="button"
+              onClick={goNext}
+              className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center active:bg-white/30"
+              aria-label="รูปถัดไป"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+
           <div className="relative max-w-sm w-full mx-4">
+            {/* Counter */}
+            <p className="text-center text-white/70 text-[11px] font-semibold mb-2">
+              {viewingIndex + 1} / {photos.length}
+            </p>
+
             <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
               <Image
                 src={viewingPhoto.photo_url}
@@ -191,9 +229,7 @@ export function MemoriesZone({
               {!isMemorial && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setDeleteTarget(viewingPhoto.id);
-                  }}
+                  onClick={() => setDeleteTarget(viewingPhoto.id)}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-danger/90 text-white text-[12px] font-bold"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> ลบรูป
@@ -201,7 +237,7 @@ export function MemoriesZone({
               )}
               <button
                 type="button"
-                onClick={() => setViewingPhoto(null)}
+                onClick={() => setViewingIndex(null)}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/20 text-white text-[12px] font-bold"
               >
                 <X className="w-3.5 h-3.5" /> ปิด
@@ -222,7 +258,7 @@ export function MemoriesZone({
         onConfirm={() => {
           if (deleteTarget) {
             onDeletePhoto(deleteTarget);
-            setViewingPhoto(null);
+            setViewingIndex(null);
             setDeleteTarget(null);
           }
         }}
