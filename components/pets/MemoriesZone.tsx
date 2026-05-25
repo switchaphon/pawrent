@@ -1,9 +1,11 @@
 "use client";
 
-import { Camera, ArrowRight, Plus } from "lucide-react";
+import { useState } from "react";
+import { Camera, ArrowRight, Plus, X, Trash2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { DiaryEntry, PetPhoto } from "@/lib/types/pets";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface MemoriesZoneProps {
   petId: string;
@@ -67,8 +69,10 @@ export function MemoriesZone({
   photos,
   isMemorial,
   onAddPhoto,
-  onDeletePhoto: _,
+  onDeletePhoto,
 }: MemoriesZoneProps) {
+  const [viewingPhoto, setViewingPhoto] = useState<PetPhoto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   return (
     <div className="mb-[14px]" role="region" aria-label="ความทรงจำ">
       {/* Section header */}
@@ -125,9 +129,11 @@ export function MemoriesZone({
         {/* 4-column grid */}
         <div className="grid grid-cols-4 gap-1.5" role="list" aria-label="อัลบั้มรูปสัตว์เลี้ยง">
           {photos.map((photo) => (
-            <div
+            <button
               key={photo.id}
+              type="button"
               role="listitem"
+              onClick={() => setViewingPhoto(photo)}
               className="aspect-square rounded-[12px] overflow-hidden relative bg-surface-alt"
             >
               <Image
@@ -137,7 +143,7 @@ export function MemoriesZone({
                 sizes="(max-width: 390px) 25vw, 80px"
                 className="object-cover"
               />
-            </div>
+            </button>
           ))}
 
           {/* Add photo button */}
@@ -156,6 +162,72 @@ export function MemoriesZone({
           <p className="text-center text-[12px] text-text-muted py-4">ยังไม่มีรูปภาพ</p>
         )}
       </div>
+
+      {/* Photo viewer lightbox */}
+      {viewingPhoto && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="ดูรูปภาพ"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 animate-fade-in"
+        >
+          <button
+            type="button"
+            onClick={() => setViewingPhoto(null)}
+            className="absolute inset-0"
+            aria-label="ปิด"
+          />
+          <div className="relative max-w-sm w-full mx-4">
+            <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
+              <Image
+                src={viewingPhoto.photo_url}
+                alt="รูปสัตว์เลี้ยง"
+                fill
+                className="object-contain"
+                sizes="(max-width: 448px) 100vw, 400px"
+              />
+            </div>
+            <div className="flex justify-center gap-3 mt-4">
+              {!isMemorial && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteTarget(viewingPhoto.id);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-danger/90 text-white text-[12px] font-bold"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> ลบรูป
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setViewingPhoto(null)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/20 text-white text-[12px] font-bold"
+              >
+                <X className="w-3.5 h-3.5" /> ปิด
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete photo confirm */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="ลบรูปนี้?"
+        description="รูปจะถูกลบถาวร ไม่สามารถย้อนกลับได้"
+        confirmLabel="ลบ"
+        cancelLabel="ยกเลิก"
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteTarget) {
+            onDeletePhoto(deleteTarget);
+            setViewingPhoto(null);
+            setDeleteTarget(null);
+          }
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
