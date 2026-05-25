@@ -467,7 +467,14 @@ export default function DiaryPage() {
                     {item.detail}
                   </p>
                 </div>
-                <button className="flex min-h-9 flex-shrink-0 items-center gap-1 rounded-full bg-gradient-to-br from-primary to-primary-light px-3.5 py-2 text-[11px] font-bold text-white shadow-[0_4px_14px_rgba(255,130,99,0.3)]">
+                <button
+                  onClick={() => {
+                    if (selectedPetId) {
+                      setFabModal({ type: "pet_weight_logs", petId: selectedPetId });
+                    }
+                  }}
+                  className="flex min-h-9 flex-shrink-0 items-center gap-1 rounded-full bg-gradient-to-br from-primary to-primary-light px-3.5 py-2 text-[11px] font-bold text-white shadow-[0_4px_14px_rgba(255,130,99,0.3)]"
+                >
                   ทำตอนนี้
                 </button>
               </div>
@@ -691,21 +698,38 @@ function TimelineCard({ item, now }: { item: TimelineItem; now: Date }) {
           </div>
         </div>
 
-        {/* Full-width photo for diary entries */}
+        {/* Photo grid for diary entries */}
         {hasFullPhoto && (
-          <div className="relative mt-3 h-[160px] w-full overflow-hidden rounded-xl">
-            <Image
-              src={item.photo_urls![0]}
-              alt={item.caption ?? item.title ?? ""}
-              fill
-              className="object-cover"
-              sizes="(max-width: 448px) 100vw, 400px"
-            />
-            {item.photo_urls!.length > 1 && (
-              <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-[2px] text-[10px] font-bold text-white">
-                +{item.photo_urls!.length - 1}
-              </span>
-            )}
+          <div
+            className={`mt-3 gap-1.5 ${
+              item.photo_urls!.length === 1
+                ? ""
+                : `grid ${item.photo_urls!.length === 2 ? "grid-cols-2" : "grid-cols-2"}`
+            }`}
+          >
+            {item.photo_urls!.slice(0, 4).map((url, i) => (
+              <div
+                key={i}
+                className={`relative overflow-hidden rounded-xl ${
+                  item.photo_urls!.length === 1 ? "h-[160px] w-full" : "aspect-square"
+                }`}
+              >
+                <Image
+                  src={url}
+                  alt={item.caption ?? item.title ?? ""}
+                  fill
+                  className="object-cover"
+                  sizes={
+                    item.photo_urls!.length === 1 ? "(max-width: 448px) 100vw, 400px" : "180px"
+                  }
+                />
+                {i === 3 && item.photo_urls!.length > 4 && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-bold">
+                    +{item.photo_urls!.length - 4}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
