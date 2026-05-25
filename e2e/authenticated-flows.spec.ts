@@ -46,25 +46,7 @@ test.describe("Authenticated user flows", () => {
     await nav.getByText("สัตว์เลี้ยง").click();
     await expect(page).toHaveURL(/\/pets/);
 
-    // Navigate to ฟีด (post feed — replaces hospital tab)
-    await nav.getByText("ฟีด").click();
-    await expect(page).toHaveURL(/\/post/);
-  });
-
-  test("report shortcut is visible on home and routes to post/lost", async ({ page }) => {
-    await page.goto("/");
-    // Home quick-actions primary CTA → /post/lost wizard
-    const reportShortcut = page.getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/).first();
-    await expect(reportShortcut).toBeVisible({ timeout: 10000 });
-  });
-
-  test("report shortcut links to /post/lost page", async ({ page }) => {
-    await page.goto("/");
-    await page
-      .getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/)
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/post\/lost/);
+    // L&F nav tab + shortcuts hidden for v2
   });
 });
 

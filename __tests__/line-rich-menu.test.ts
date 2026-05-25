@@ -48,14 +48,14 @@ describe("createRichMenuTemplate", () => {
     }
   });
 
-  it("maps panels to Home, Pets, Hospital, Profile paths", () => {
+  it("maps panels to Home, Pets, Diary, Profile paths", () => {
     const liffBase = "https://liff.line.me/test-liff-id";
     const template = createRichMenuTemplate(liffBase);
     const uris = template.areas.map((a) => a.action.uri);
 
     expect(uris[0]).toBe(`${liffBase}/`);
     expect(uris[1]).toBe(`${liffBase}/pets`);
-    expect(uris[2]).toBe(`${liffBase}/post`);
+    expect(uris[2]).toBe(`${liffBase}/diary`);
     expect(uris[3]).toBe(`${liffBase}/profile`);
   });
 });

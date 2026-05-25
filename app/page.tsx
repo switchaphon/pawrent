@@ -601,8 +601,9 @@ function HomeDashboard() {
   const { user } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [petsLoading, setPetsLoading] = useState(true);
-  const [nearbyAlerts, setNearbyAlerts] = useState<NearbyAlert[]>([]);
-  const [alertsLoading, setAlertsLoading] = useState(true);
+  // L&F hidden for v2 — kept for future reactivation
+  // const [nearbyAlerts, setNearbyAlerts] = useState<NearbyAlert[]>([]);
+  // const [alertsLoading, setAlertsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchPets() {
@@ -614,19 +615,20 @@ function HomeDashboard() {
     fetchPets();
   }, [user]);
 
-  useEffect(() => {
-    async function fetchAlerts() {
-      try {
-        const data = await apiFetch("/api/post?status=active&alert_type=lost&limit=3");
-        setNearbyAlerts(data.alerts || data.data || []);
-      } catch {
-        setNearbyAlerts([]);
-      } finally {
-        setAlertsLoading(false);
-      }
-    }
-    fetchAlerts();
-  }, []);
+  // L&F hidden for v2 — kept for future reactivation
+  // useEffect(() => {
+  //   async function fetchAlerts() {
+  //     try {
+  //       const data = await apiFetch("/api/post?status=active&alert_type=lost&limit=3");
+  //       setNearbyAlerts(data.alerts || data.data || []);
+  //     } catch {
+  //       setNearbyAlerts([]);
+  //     } finally {
+  //       setAlertsLoading(false);
+  //     }
+  //   }
+  //   fetchAlerts();
+  // }, []);
 
   const userName =
     (user as { displayName?: string; name?: string; line_display_name?: string } | null)
@@ -642,9 +644,10 @@ function HomeDashboard() {
         <WeatherStrip />
         <PetStatusRow pets={pets} loading={petsLoading} />
         <UrgentAlertsCard pets={pets} />
-        <LostPetsNearby alerts={nearbyAlerts} loading={alertsLoading} />
+        {/* L&F hidden for v2 — kept for future reactivation */}
+        {/* <LostPetsNearby alerts={nearbyAlerts} loading={alertsLoading} /> */}
         <HealthReminders pets={pets} />
-        <QuickActionsRow />
+        {/* <QuickActionsRow /> */}
       </main>
     </div>
   );

@@ -32,25 +32,14 @@ test.describe("Home dashboard (V6+D2)", () => {
     await expect(page.getByText("สุขภาพน้อง ๆ")).toBeVisible({ timeout: 10000 });
   });
 
-  test("quick actions expose lost + found + feed shortcuts", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByText("แจ้งสัตว์เลี้ยงหาย")).toBeVisible({
-      timeout: 10000,
-    });
-    await expect(page.getByText("พบสัตว์จร")).toBeVisible();
-    await expect(page.getByText("ฟีดน้อง")).toBeVisible();
-  });
+  // L&F quick actions hidden for v2 — tests kept for future reactivation
+  // test("quick actions expose lost + found + feed shortcuts", ...)
+  // test("primary CTA routes to /post/lost", ...)
 
   test("notification bell has accessible label", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: "การแจ้งเตือน" })).toBeVisible({
       timeout: 10000,
     });
-  });
-
-  test("primary CTA routes to /post/lost", async ({ page }) => {
-    await page.goto("/");
-    await page.getByText("แจ้งสัตว์เลี้ยงหาย").first().click();
-    await expect(page).toHaveURL(/\/post\/lost/);
   });
 });

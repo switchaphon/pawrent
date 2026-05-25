@@ -30,7 +30,7 @@ const CELL_HEIGHT = MENU_HEIGHT / ROWS; // 843
 const PANELS = [
   { path: "/", label: "Home" },
   { path: "/pets", label: "My Pets" },
-  { path: "/post", label: "Lost & Found" },
+  { path: "/diary", label: "Diary" },
   { path: "/profile", label: "Profile" },
 ] as const;
 

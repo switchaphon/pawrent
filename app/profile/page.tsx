@@ -426,19 +426,20 @@ function ProfileContent() {
                 <p className="text-sm font-extrabold text-text-main">{petCount}</p>
                 <p className="text-[10px] text-text-muted">สัตว์เลี้ยง</p>
               </div>
+              {/* L&F stats hidden for v2 */}
               <div className="rounded-[16px] bg-surface-alt p-2.5 text-center">
                 <p className="text-lg mb-0.5" aria-hidden>
-                  📄
+                  📔
                 </p>
-                <p className="text-sm font-extrabold text-text-main">{postCount}</p>
-                <p className="text-[10px] text-text-muted">โพสต์</p>
+                <p className="text-sm font-extrabold text-text-main">0</p>
+                <p className="text-[10px] text-text-muted">ไดอารี่</p>
               </div>
               <div className="rounded-[16px] bg-surface-alt p-2.5 text-center">
                 <p className="text-lg mb-0.5" aria-hidden>
-                  ❤️
+                  💉
                 </p>
                 <p className="text-sm font-extrabold text-text-main">0</p>
-                <p className="text-[10px] text-text-muted">ช่วยเหลือ</p>
+                <p className="text-[10px] text-text-muted">วัคซีน</p>
               </div>
             </div>
 
@@ -466,7 +467,7 @@ function ProfileContent() {
                   POPS Family 🏠
                 </p>
                 <p className="text-[11px] text-text-muted mt-0.5">
-                  สูงสุด {petLimit} ตัว · {postLimit} โพสต์/เดือน · ฟีเจอร์พื้นฐาน
+                  สูงสุด {petLimit} ตัว · ฟีเจอร์พื้นฐาน
                 </p>
               </div>
               <span className="bg-success-bg text-success rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0">
@@ -490,21 +491,7 @@ function ProfileContent() {
                   />
                 </div>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-semibold text-text-main">📄 โพสต์เดือนนี้</span>
-                  <span className="text-[11px] font-bold text-text-main">
-                    {postCount}
-                    <span className="text-text-muted font-normal">/{postLimit}</span>
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-surface-alt overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary-gradient"
-                    style={{ width: `${Math.min(100, (postCount / postLimit) * 100)}%` }}
-                  />
-                </div>
-              </div>
+              {/* L&F post quota hidden for v2 */}
             </div>
 
             <button
