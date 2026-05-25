@@ -49,8 +49,7 @@ export function AddHealthEventForm({
 }: AddHealthEventFormProps) {
   const today = new Date().toISOString().split("T")[0];
 
-  const resolvedDefault =
-    defaultType && isValidEventType(defaultType) ? defaultType : "vet_visit";
+  const resolvedDefault = defaultType && isValidEventType(defaultType) ? defaultType : "vet_visit";
 
   const [eventType, setEventType] = useState<EventType>(resolvedDefault);
   const [title, setTitle] = useState("");

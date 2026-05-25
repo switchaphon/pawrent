@@ -213,7 +213,10 @@ function VaxRow({ vax, allForType, isExpanded, onToggle, onEdit, onDelete }: Vax
                   {onEdit && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onEdit(activeDose); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(activeDose);
+                      }}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-surface-alt text-[11px] font-semibold text-text-muted active:bg-border transition-colors"
                     >
                       <Pencil className="w-3 h-3" /> แก้ไข
@@ -222,7 +225,10 @@ function VaxRow({ vax, allForType, isExpanded, onToggle, onEdit, onDelete }: Vax
                   {onDelete && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onDelete(activeDose.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(activeDose.id);
+                      }}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-danger-bg text-[11px] font-semibold text-danger active:bg-danger/20 transition-colors"
                     >
                       <Trash2 className="w-3 h-3" /> ลบ

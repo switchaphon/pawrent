@@ -585,9 +585,13 @@ export default function DiaryPage() {
             {/* If no pet selected, prompt user to select one for pet-specific forms */}
             {fabModal.type !== "diary_entries" && !fabModal.petId && (
               <div className="bg-surface rounded-2xl p-6 text-center shadow-soft">
-                <p className="text-3xl mb-3" aria-hidden>🐾</p>
+                <p className="text-3xl mb-3" aria-hidden>
+                  🐾
+                </p>
                 <p className="text-sm font-bold text-text-main mb-1">เลือกน้องก่อน</p>
-                <p className="text-xs text-text-muted mb-4">กรุณาเลือกน้องจากแถบด้านบนก่อนเพิ่มบันทึก</p>
+                <p className="text-xs text-text-muted mb-4">
+                  กรุณาเลือกน้องจากแถบด้านบนก่อนเพิ่มบันทึก
+                </p>
                 <button
                   onClick={closeFabModal}
                   className="px-6 py-2 rounded-full bg-primary text-white text-sm font-bold"

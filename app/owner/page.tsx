@@ -922,9 +922,7 @@ function OwnerContent() {
                 </span>
               )}
               {notifySaveStatus === "saving" && (
-                <span className="text-[10px] font-semibold text-text-muted">
-                  กำลังบันทึก...
-                </span>
+                <span className="text-[10px] font-semibold text-text-muted">กำลังบันทึก...</span>
               )}
             </div>
 

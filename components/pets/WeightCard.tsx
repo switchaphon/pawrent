@@ -32,7 +32,12 @@ function isOlderThan30Days(dateStr: string): boolean {
   return now - recorded > 30 * 24 * 60 * 60 * 1000;
 }
 
-export function WeightCard({ latestWeight, weightHistory, isMemorial, onAddWeight }: WeightCardProps) {
+export function WeightCard({
+  latestWeight,
+  weightHistory,
+  isMemorial,
+  onAddWeight,
+}: WeightCardProps) {
   const [chartOpen, setChartOpen] = useState(false);
 
   const showStaleReminder =

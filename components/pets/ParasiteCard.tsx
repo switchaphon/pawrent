@@ -135,10 +135,7 @@ function MedicineGroup({
       >
         <div className="px-4 pb-2">
           {recentSlice.map((log) => (
-            <div
-              key={log.id}
-              className="py-1.5 border-b border-border-subtle last:border-b-0"
-            >
+            <div key={log.id} className="py-1.5 border-b border-border-subtle last:border-b-0">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-semibold text-text-main">
                   {formatThaiDate(log.administered_date)}
@@ -150,7 +147,10 @@ function MedicineGroup({
                   {onEditLog && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onEditLog(log); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditLog(log);
+                      }}
                       className="p-1 rounded text-text-muted hover:text-primary"
                       aria-label="แก้ไข"
                     >
@@ -160,7 +160,10 @@ function MedicineGroup({
                   {onDeleteLog && (
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onDeleteLog(log.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteLog(log.id);
+                      }}
                       className="p-1 rounded text-text-muted hover:text-danger"
                       aria-label="ลบ"
                     >
