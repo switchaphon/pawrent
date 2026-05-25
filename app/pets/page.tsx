@@ -69,9 +69,12 @@ function PetsContent() {
   const isMemorial = selectedPet?.status === "memorial";
 
   const fetchPetDetails = useCallback(async (petId: string) => {
-    const [detailsRes, photosRes] = await Promise.all([
+    const [detailsRes, photosRes, parasiteRes, weightRes, diaryRes] = await Promise.all([
       getPetWithDetails(petId),
       getPetPhotos(petId),
+      apiFetch(`/api/parasite-logs?pet_id=${petId}`).catch(() => []),
+      apiFetch(`/api/pet-weight?pet_id=${petId}&limit=12`).catch(() => []),
+      apiFetch(`/api/diary/timeline?pet_id=${petId}&limit=5`).catch(() => ({ entries: [] })),
     ]);
 
     if (detailsRes.data) {
@@ -80,30 +83,9 @@ function PetsContent() {
     }
 
     setPetPhotos(photosRes.data || []);
-
-    // Fetch all parasite logs (not just latest)
-    try {
-      const res = await apiFetch(`/api/parasite-logs?pet_id=${petId}`);
-      setParasiteLogs(Array.isArray(res) ? res : []);
-    } catch {
-      setParasiteLogs([]);
-    }
-
-    // Fetch weight history
-    try {
-      const res = await apiFetch(`/api/pet-weight?pet_id=${petId}&limit=12`);
-      setWeightHistory(Array.isArray(res) ? res : []);
-    } catch {
-      setWeightHistory([]);
-    }
-
-    // Fetch diary entries for preview
-    try {
-      const res = await apiFetch(`/api/diary/timeline?pet_id=${petId}&limit=5`);
-      setDiaryEntries(Array.isArray(res?.entries) ? res.entries : []);
-    } catch {
-      setDiaryEntries([]);
-    }
+    setParasiteLogs(Array.isArray(parasiteRes) ? parasiteRes : []);
+    setWeightHistory(Array.isArray(weightRes) ? weightRes : []);
+    setDiaryEntries(Array.isArray(diaryRes?.entries) ? diaryRes.entries : []);
   }, []);
 
   const fetchPets = useCallback(

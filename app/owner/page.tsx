@@ -404,6 +404,8 @@ function OwnerContent() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
+  const [avatarError, setAvatarError] = useState(false);
+
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
@@ -574,13 +576,14 @@ function OwnerContent() {
               <label className="cursor-pointer relative">
                 <div className="w-24 h-24 rounded-full bg-pops-gradient p-[3px] shadow-glow">
                   <div className="w-full h-full rounded-full bg-surface-alt flex items-center justify-center overflow-hidden">
-                    {editAvatarPreview || profile?.avatar_url ? (
+                    {editAvatarPreview || (profile?.avatar_url && !avatarError) ? (
                       <Image
                         src={editAvatarPreview || profile?.avatar_url || ""}
                         alt="Avatar"
                         width={88}
                         height={88}
                         className="w-full h-full object-cover"
+                        onError={() => setAvatarError(true)}
                       />
                     ) : (
                       <Camera className="w-8 h-8 text-text-muted" />
@@ -699,13 +702,14 @@ function OwnerContent() {
               <div className="relative shrink-0">
                 <div className="w-20 h-20 rounded-full bg-pops-gradient p-[3px] shadow-glow">
                   <div className="w-full h-full rounded-full bg-surface flex items-center justify-center overflow-hidden">
-                    {profile?.avatar_url ? (
+                    {profile?.avatar_url && !avatarError ? (
                       <Image
                         src={profile.avatar_url}
                         alt={displayName}
                         width={74}
                         height={74}
                         className="w-full h-full object-cover"
+                        onError={() => setAvatarError(true)}
                       />
                     ) : (
                       <span className="text-4xl" aria-hidden>

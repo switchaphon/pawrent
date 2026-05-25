@@ -15,3 +15,7 @@ When your task is done, update the Status column to "done" and commit.
 | Phase 1.5 UI State Patterns (Tasks 1-14)         | feature/prp-16-e2e-docs           | Team (A+B+Lead) | 2026-05-18 | done   |
 | Phase 2A Diary — APIs + UI + FAB                 | feature/v2-phase2ab               | Agent-Diary     | 2026-05-18 | done   |
 | Phase 2B ID Card — PNG + modal + QR + completion | feature/v2-phase2ab               | Agent-IDCard    | 2026-05-18 | done   |
+| v2-BugPerf Task 1: Diary FAB → action sheet      | feature/v2-bugfix-performance     | Agent-FAB       | 2026-05-25 | done   |
+| v2-BugPerf Task 2: Avatar fix (onError + upload) | feature/v2-bugfix-performance     | Agent-Avatar    | 2026-05-25 | done   |
+| v2-BugPerf Task 3+4: Waterfall parallel fetch    | feature/v2-bugfix-performance     | Agent-Perf      | 2026-05-25 | done   |
+| v2-BugPerf Task 5: Diary indexes migration       | feature/v2-bugfix-performance     | Lead            | 2026-05-25 | done   |

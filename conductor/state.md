@@ -18,6 +18,7 @@
 | Phase1.5  | feature/prp-16-e2e-docs                    | complete | 2026-05-18   |
 | v2-Diary  | feature/v2-phase2ab                        | complete | 2026-05-18   |
 | v2-IDCard | feature/v2-phase2ab                        | complete | 2026-05-18   |
+| v2-BugPerf | feature/v2-bugfix-performance              | complete | 2026-05-25   |
 
 ## Blocked PRPs
 

@@ -7,6 +7,8 @@ import { TriangleAlert, Syringe, Pill, Scale, User } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { DiaryFab } from "@/components/diary-fab";
+import { apiFetch } from "@/lib/api";
+import { getAuthToken } from "@/lib/auth-token";
 import type { TimelineItem } from "@/app/api/diary/timeline/route";
 
 // ─── Thai date helpers ────────────────────────────────────────────────────────
@@ -224,26 +226,12 @@ export default function DiaryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [urgentItems, setUrgentItems] = useState<UrgentItem[]>([]);
 
-  const authHeader = useRef<string | null>(null);
-
-  // Retrieve auth token from localStorage (set by LIFF auth flow)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("sb_access_token");
-      if (token) authHeader.current = `Bearer ${token}`;
-    }
-  }, []);
-
   // Fetch pets list, then apply pet_id URL param if present
   useEffect(() => {
     async function loadPets() {
-      if (!authHeader.current) return;
+      if (!getAuthToken()) return;
       try {
-        const res = await fetch("/api/pets", {
-          headers: { Authorization: authHeader.current },
-        });
-        if (!res.ok) return;
-        const data: UserPet[] = await res.json();
+        const data: UserPet[] = await apiFetch("/api/pets");
         setPets(data);
         const urlPetId = searchParams.get("pet_id");
         if (urlPetId && data.some((p) => p.id === urlPetId)) {
@@ -261,17 +249,13 @@ export default function DiaryPage() {
   // Fetch urgent items for the selected pet
   useEffect(() => {
     async function loadUrgent() {
-      if (!authHeader.current || !selectedPetId) {
+      if (!getAuthToken() || !selectedPetId) {
         setUrgentItems([]);
         return;
       }
       try {
         const params = new URLSearchParams({ pet_id: selectedPetId });
-        const res = await fetch(`/api/pet-weight?${params}`, {
-          headers: { Authorization: authHeader.current! },
-        });
-        if (!res.ok) return;
-        const weightLogs = await res.json();
+        const weightLogs = await apiFetch(`/api/pet-weight?${params}`);
         const built: UrgentItem[] = [];
 
         if (weightLogs.length === 0) {
@@ -310,7 +294,7 @@ export default function DiaryPage() {
   // Fetch timeline
   const fetchTimeline = useCallback(
     async (cursor?: string) => {
-      if (!authHeader.current) return;
+      if (!getAuthToken()) return;
       const isFirstPage = !cursor;
       if (isFirstPage) setLoading(true);
       else setLoadingMore(true);
@@ -320,12 +304,9 @@ export default function DiaryPage() {
         if (selectedPetId) params.set("pet_id", selectedPetId);
         if (cursor) params.set("cursor", cursor);
 
-        const res = await fetch(`/api/diary/timeline?${params}`, {
-          headers: { Authorization: authHeader.current! },
-        });
-        if (!res.ok) return;
-
-        const json: { items: TimelineItem[]; next_cursor: string | null } = await res.json();
+        const json: { items: TimelineItem[]; next_cursor: string | null } = await apiFetch(
+          `/api/diary/timeline?${params}`
+        );
         setItems((prev) => (isFirstPage ? json.items : [...prev, ...json.items]));
         setNextCursor(json.next_cursor);
       } catch {
