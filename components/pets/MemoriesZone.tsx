@@ -79,7 +79,7 @@ export function MemoriesZone({
   const goPrev = useCallback(() => setViewingIndex((i) => (i !== null && i > 0 ? i - 1 : i)), []);
   const goNext = useCallback(
     () => setViewingIndex((i) => (i !== null && i < photos.length - 1 ? i + 1 : i)),
-    []
+    [photos.length]
   );
   return (
     <div className="mb-[14px]" role="region" aria-label="ความทรงจำ">

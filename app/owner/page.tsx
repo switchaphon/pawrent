@@ -926,31 +926,6 @@ function OwnerContent() {
               )}
             </div>
 
-            {/* สัตว์หาย — radius chips */}
-            <div className="py-2.5 border-b border-border/60">
-              <div className="mb-2">
-                <p className="text-xs font-bold text-text-main">📍 สัตว์หาย</p>
-                <p className="text-[10px] text-text-muted">แจ้งเมื่อมีสัตว์หายในรัศมีใกล้คุณ</p>
-              </div>
-              <div className="flex gap-1.5 flex-wrap">
-                {[1, 3, 5, 10].map((km) => (
-                  <button
-                    key={km}
-                    type="button"
-                    onClick={() => setNotifyRadiusKm(km)}
-                    className={cn(
-                      "h-9 px-3 rounded-full text-[11px] font-bold min-w-[44px] transition-all",
-                      notifyRadiusKm === km
-                        ? "bg-primary-gradient text-white shadow-glow"
-                        : "bg-surface-alt text-text-muted"
-                    )}
-                  >
-                    {km} km
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <ToggleRow
               icon="💉"
               title="วัคซีน"
