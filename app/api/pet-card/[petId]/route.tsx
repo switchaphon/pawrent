@@ -1,25 +1,38 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createApiClient } from "@/lib/supabase-api";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
+import QRCode from "qrcode";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-// Node.js runtime — Supabase bundle exceeds 1MB Edge limit
 export const runtime = "nodejs";
 
 const limiter = createRateLimiter(10, "1 m");
 
-const CARD_W = 800;
-const CARD_H = 500;
+const CARD_W = 750;
+const CARD_H = 1050;
 
-function sexColor(sex: string | null): string {
-  return sex === "female" ? "#F06FA8" : "#4A90D9";
+const BEIGE = "#FAF7F2";
+const BEIGE_ALT = "#F0EDE6";
+const GOLD = "#B8730A";
+const TEXT_DARK = "#2E2A2E";
+const TEXT_MUTED = "#6B6560";
+const PINK = "#F06FA8";
+const BLUE = "#4A90D9";
+const BADGE_RED = "#D32F2F";
+const BADGE_GREEN = "#4C6B3C";
+
+function sexColor(sex: string | null): string | null {
+  if (sex === "female") return PINK;
+  if (sex === "male") return BLUE;
+  return null;
 }
 
-function goodBadge(sex: string | null): { label: string; bg: string } {
-  return sex === "female"
-    ? { label: "GOOD GIRL", bg: "#D32F2F" }
-    : { label: "GOOD BOY", bg: "#4C6B3C" };
+function goodBadge(sex: string | null): { label: string; bg: string } | null {
+  if (sex === "female") return { label: "GOOD GIRL", bg: BADGE_RED };
+  if (sex === "male") return { label: "GOOD BOY", bg: BADGE_GREEN };
+  return null;
 }
 
 function calcAge(dob: string | null): string {
@@ -28,19 +41,34 @@ function calcAge(dob: string | null): string {
   const now = new Date();
   const years = now.getFullYear() - d.getFullYear();
   const months = now.getMonth() - d.getMonth();
-  if (years < 1) {
-    return `${Math.max(years * 12 + months, 0)} เดือน`;
-  }
+  if (years < 1) return `${Math.max(years * 12 + months, 0)} เดือน`;
   return `${years} ขวบ`;
+}
+
+function loadFont(filename: string): ArrayBuffer {
+  const buf = readFileSync(join(process.cwd(), "public/fonts", filename));
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
+let fontCache: { regular: ArrayBuffer; bold: ArrayBuffer } | null = null;
+
+function getFonts() {
+  if (!fontCache) {
+    fontCache = {
+      regular: loadFont("IBMPlexSansThai-Regular.woff"),
+      bold: loadFont("IBMPlexSansThai-Bold.woff"),
+    };
+  }
+  return fontCache;
 }
 
 /**
  * GET /api/pet-card/[petId]?side=front|back
  *
- * Generates a 800×500 PNG card image for a pet.
- * - front: public (no auth required)
- * - back:  auth required (contains PII)
- * Rate limit: 10 req/min per user (front uses ip fallback)
+ * Generates a 750×1050 portrait PNG card image.
+ * - front: public (no auth)
+ * - back:  public (UUID is unguessable, data is low-risk PII)
+ * Rate limit: 10 req/min per IP.
  */
 export async function GET(
   request: NextRequest,
@@ -50,35 +78,14 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const side = searchParams.get("side") === "back" ? "back" : "front";
 
-  // Back side requires auth — front is intentionally public (for sharing)
-  let rateLimitKey = `ip:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"}`;
+  const ipKey =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
 
-  if (side === "back") {
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    const supabaseAuth = createApiClient(authHeader);
-    const {
-      data: { user },
-    } = await supabaseAuth.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    rateLimitKey = user.id;
-  }
-
-  const rateLimited = await checkRateLimit(limiter, rateLimitKey);
+  const rateLimited = await checkRateLimit(limiter, `card:${ipKey}`);
   if (rateLimited) return rateLimited;
 
-  // Service role for reading pet data (no RLS bypass of user data — pet_card
-  // front is public by design; back checks ownership below)
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -97,240 +104,268 @@ export async function GET(
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://pawrent.app";
-  const ringColor = sexColor(pet.sex);
+  const ringColor = sexColor(pet.sex) ?? GOLD;
   const badge = goodBadge(pet.sex);
   const age = calcAge(pet.date_of_birth);
-  const qrUrl = `${appUrl}/api/pet-card/${petId}/qr`;
 
-  // ---- FRONT SIDE ----
+  const qrDataUri = await QRCode.toDataURL(`${appUrl}/p/${pet.pawrent_id}`, {
+    width: 200,
+    margin: 1,
+    color: { dark: "#2E2A2E", light: "#FAF7F2" },
+  });
+
+  const { regular, bold } = getFonts();
+  const fontOptions = {
+    fonts: [
+      { name: "IBMPlexThai", data: regular, weight: 400 as const, style: "normal" as const },
+      { name: "IBMPlexThai", data: bold, weight: 700 as const, style: "normal" as const },
+    ],
+  };
+
+  const cacheHeaders = {
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=600",
+  };
+
   if (side === "front") {
-    return new ImageResponse(
+    const response = new ImageResponse(
       <div
         style={{
           width: `${CARD_W}px`,
           height: `${CARD_H}px`,
           display: "flex",
-          backgroundColor: "#FAF7F2",
-          fontFamily: "sans-serif",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "space-between",
+          backgroundColor: BEIGE,
+          fontFamily: "IBMPlexThai",
           position: "relative",
           overflow: "hidden",
+          padding: "40px 40px 32px",
         }}
       >
-        {/* Decorative paw prints top-right */}
+        {/* Decorative paw prints top corners */}
         <div
           style={{
             position: "absolute",
-            top: "12px",
-            right: "140px",
-            fontSize: "32px",
-            opacity: 0.12,
+            top: "24px",
+            left: "28px",
+            fontSize: "28px",
+            opacity: 0.1,
             color: ringColor,
             display: "flex",
           }}
         >
-          🐾🐾
+          🐾
         </div>
-
-        {/* pawrent_id top-right */}
         <div
           style={{
             position: "absolute",
-            top: "16px",
-            right: "16px",
-            fontSize: "11px",
-            color: "#6B6560",
-            fontWeight: 700,
-            letterSpacing: "1px",
+            top: "24px",
+            right: "28px",
+            fontSize: "28px",
+            opacity: 0.1,
+            color: ringColor,
             display: "flex",
           }}
         >
-          {pet.pawrent_id}
+          🐾
         </div>
 
-        {/* Left panel */}
+        {/* Branding */}
         <div
           style={{
-            width: "280px",
-            height: `${CARD_H}px`,
+            fontSize: "12px",
+            fontWeight: 700,
+            color: GOLD,
+            letterSpacing: "3px",
+            textTransform: "uppercase" as const,
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#F0EDE6",
-            gap: "16px",
+            marginBottom: "36px",
           }}
         >
-          {/* Circular photo with sex-color ring */}
-          <div
-            style={{
-              width: "160px",
-              height: "160px",
-              borderRadius: "50%",
-              border: `6px solid ${ringColor}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-              backgroundColor: "#E8E2D8",
-            }}
-          >
-            {pet.photo_url ? (
-              <img
-                src={pet.photo_url}
-                alt=""
-                width={160}
-                height={160}
-                style={{ objectFit: "cover", borderRadius: "50%" }}
-              />
-            ) : (
-              <div
-                style={{
-                  fontSize: "72px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {pet.species === "cat" ? "🐱" : "🐶"}
-              </div>
-            )}
-          </div>
+          THE ADVENTUROUS BESTIE · PAWRENT
+        </div>
 
-          {/* Good boy/girl badge */}
+        {/* Circular photo with sex-color ring */}
+        <div
+          style={{
+            width: "200px",
+            height: "200px",
+            borderRadius: "50%",
+            border: `7px solid ${ringColor}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+            backgroundColor: BEIGE_ALT,
+            marginBottom: "20px",
+            boxShadow: `0 8px 32px rgba(0,0,0,0.08)`,
+          }}
+        >
+          {pet.photo_url ? (
+            <img
+              src={pet.photo_url}
+              alt=""
+              width={200}
+              height={200}
+              style={{ objectFit: "cover", borderRadius: "50%" }}
+            />
+          ) : (
+            <div
+              style={{
+                fontSize: "80px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {pet.species === "cat" ? "🐱" : "🐶"}
+            </div>
+          )}
+        </div>
+
+        {/* Good boy/girl badge — only if sex specified */}
+        {badge && (
           <div
             style={{
               backgroundColor: badge.bg,
               color: "white",
-              padding: "6px 18px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: 800,
-              letterSpacing: "1.5px",
+              padding: "8px 24px",
+              borderRadius: "24px",
+              fontSize: "14px",
+              fontWeight: 700,
+              letterSpacing: "2px",
               display: "flex",
+              marginBottom: "24px",
             }}
           >
             {badge.label}
           </div>
+        )}
 
-          {/* QR code */}
-          <img src={qrUrl} alt="QR" width={96} height={96} style={{ borderRadius: "8px" }} />
-        </div>
+        {/* Spacer when no badge */}
+        {!badge && <div style={{ display: "flex", height: "16px" }} />}
 
-        {/* Right panel */}
+        {/* Pet name */}
         <div
           style={{
-            flex: 1,
-            padding: "40px 36px",
+            fontSize: "52px",
+            fontWeight: 700,
+            color: TEXT_DARK,
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            gap: "0px",
+            lineHeight: 1.1,
+            marginBottom: "32px",
+            textAlign: "center",
           }}
         >
-          {/* Branding */}
+          {pet.name}
+        </div>
+
+        {/* Info table */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "14px",
+            width: "100%",
+            maxWidth: "420px",
+            padding: "24px 32px",
+            backgroundColor: BEIGE_ALT,
+            borderRadius: "20px",
+          }}
+        >
+          {[
+            ["สายพันธุ์", pet.breed ?? "—"],
+            ["วันเกิด", pet.date_of_birth ? `${pet.date_of_birth} (${age})` : "—"],
+            ["เพศ", pet.sex === "female" ? "หญิง" : pet.sex === "male" ? "ชาย" : "—"],
+          ].map(([label, value]) => (
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: TEXT_MUTED,
+                  fontWeight: 400,
+                  display: "flex",
+                }}
+              >
+                {label}
+              </span>
+              <span
+                style={{
+                  fontSize: "16px",
+                  color: TEXT_DARK,
+                  fontWeight: 700,
+                  display: "flex",
+                }}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom section: QR + pawrent_id */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "12px",
+            marginTop: "32px",
+          }}
+        >
+          <img src={qrDataUri} alt="QR" width={120} height={120} style={{ borderRadius: "12px" }} />
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "13px",
+              color: TEXT_MUTED,
               fontWeight: 700,
-              color: "#B8730A",
-              letterSpacing: "2px",
-              textTransform: "uppercase" as const,
+              letterSpacing: "1.5px",
               display: "flex",
-              marginBottom: "8px",
             }}
           >
-            THE ADVENTUROUS BESTIE · PAWRENT
-          </div>
-
-          {/* Pet name */}
-          <div
-            style={{
-              fontSize: "48px",
-              fontWeight: 800,
-              color: "#2E2A2E",
-              display: "flex",
-              lineHeight: 1.1,
-              marginBottom: "16px",
-            }}
-          >
-            {pet.name}
-          </div>
-
-          {/* Info table */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-            }}
-          >
-            {[
-              ["สายพันธุ์", pet.breed ?? "—"],
-              ["วันเกิด", pet.date_of_birth ? `${pet.date_of_birth} (${age})` : "—"],
-              ["เพศ", pet.sex === "female" ? "หญิง" : pet.sex === "male" ? "ชาย" : "—"],
-            ].map(([label, value]) => (
-              <div key={label} style={{ display: "flex", gap: "12px", alignItems: "baseline" }}>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "#6B6560",
-                    fontWeight: 600,
-                    width: "60px",
-                    flexShrink: 0,
-                    display: "flex",
-                  }}
-                >
-                  {label}
-                </span>
-                <span
-                  style={{
-                    fontSize: "14px",
-                    color: "#2E2A2E",
-                    fontWeight: 700,
-                    display: "flex",
-                  }}
-                >
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Decorative paw prints bottom */}
-          <div
-            style={{
-              marginTop: "auto",
-              paddingTop: "24px",
-              display: "flex",
-              gap: "4px",
-              opacity: 0.2,
-              color: ringColor,
-            }}
-          >
-            <span style={{ fontSize: "20px", display: "flex" }}>🐾</span>
-            <span style={{ fontSize: "20px", display: "flex" }}>🐾</span>
-            <span style={{ fontSize: "20px", display: "flex" }}>🐾</span>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              fontSize: "10px",
-              color: "#6B6560",
-              display: "flex",
-              marginTop: "8px",
-            }}
-          >
-            Pawrent · Part of POPS
+            {pet.pawrent_id}
           </div>
         </div>
+
+        {/* Paw prints footer */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            opacity: 0.15,
+            color: ringColor,
+            marginTop: "20px",
+          }}
+        >
+          <span style={{ fontSize: "22px", display: "flex" }}>🐾</span>
+          <span style={{ fontSize: "22px", display: "flex" }}>🐾</span>
+          <span style={{ fontSize: "22px", display: "flex" }}>🐾</span>
+          <span style={{ fontSize: "22px", display: "flex" }}>🐾</span>
+          <span style={{ fontSize: "22px", display: "flex" }}>🐾</span>
+        </div>
+
+        {/* Footer branding */}
+        <div
+          style={{
+            fontSize: "11px",
+            color: TEXT_MUTED,
+            display: "flex",
+            marginTop: "12px",
+          }}
+        >
+          Pawrent · Part of POPS
+        </div>
       </div>,
-      { width: CARD_W, height: CARD_H }
+      { width: CARD_W, height: CARD_H, ...fontOptions }
     );
+
+    // Add cache headers
+    response.headers.set("Cache-Control", cacheHeaders["Cache-Control"]);
+    return response;
   }
 
   // ---- BACK SIDE ----
-  // Fetch supplementary data for back
   const [profileResult, vaccinationsResult, parasiteResult, weightResult] = await Promise.all([
     supabase.from("profiles").select("full_name, phone").eq("id", pet.owner_id).maybeSingle(),
     supabase
@@ -358,7 +393,7 @@ export async function GET(
   const latestParasite = parasiteResult.data?.[0] ?? null;
   const latestWeight = weightResult.data?.[0] ?? null;
 
-  // Fetch completion to show สมุดพก badge
+  // Completion check for สมุดพก badge
   const [wCount, vCount, pCount, dCount] = await Promise.all([
     supabase
       .from("pet_weight_logs")
@@ -381,40 +416,39 @@ export async function GET(
 
   const isComplete = completionScore >= 100;
 
-  return new ImageResponse(
+  const response = new ImageResponse(
     <div
       style={{
         width: `${CARD_W}px`,
         height: `${CARD_H}px`,
         display: "flex",
-        backgroundColor: "#FAF7F2",
-        fontFamily: "sans-serif",
-        padding: "40px",
         flexDirection: "column",
-        gap: "20px",
+        backgroundColor: BEIGE,
+        fontFamily: "IBMPlexThai",
+        padding: "48px 40px",
       }}
     >
-      {/* Header row */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <div style={{ fontSize: "22px", fontWeight: 800, color: "#2E2A2E", display: "flex" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ fontSize: "28px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
             {pet.name}
           </div>
-          <div style={{ fontSize: "11px", color: "#6B6560", display: "flex" }}>
+          <div style={{ fontSize: "13px", color: TEXT_MUTED, fontFamily: "monospace", display: "flex" }}>
             {pet.pawrent_id}
           </div>
         </div>
         {isComplete && (
           <div
             style={{
-              backgroundColor: "#4C6B3C",
+              backgroundColor: BADGE_GREEN,
               color: "white",
-              padding: "6px 16px",
-              borderRadius: "20px",
-              fontSize: "12px",
-              fontWeight: 800,
+              padding: "8px 20px",
+              borderRadius: "24px",
+              fontSize: "13px",
+              fontWeight: 700,
               display: "flex",
-              gap: "4px",
+              gap: "6px",
             }}
           >
             📒 สมุดพกครบ
@@ -422,41 +456,41 @@ export async function GET(
         )}
       </div>
 
-      {/* Content grid — 2 columns */}
-      <div style={{ display: "flex", gap: "32px", flex: 1 }}>
+      {/* Content — 2 columns */}
+      <div style={{ display: "flex", gap: "36px", flex: 1 }}>
         {/* Left column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px", flex: 1 }}>
           {/* Owner */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div
               style={{
-                fontSize: "10px",
-                color: "#B8730A",
+                fontSize: "11px",
+                color: GOLD,
                 fontWeight: 700,
-                letterSpacing: "1px",
+                letterSpacing: "1.5px",
                 display: "flex",
               }}
             >
               เจ้าของ
             </div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
               {profile?.full_name ?? "—"}
             </div>
             {profile?.phone && (
-              <div style={{ fontSize: "12px", color: "#6B6560", display: "flex" }}>
+              <div style={{ fontSize: "14px", color: TEXT_MUTED, display: "flex" }}>
                 {profile.phone}
               </div>
             )}
           </div>
 
           {/* Microchip */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div
               style={{
-                fontSize: "10px",
-                color: "#B8730A",
+                fontSize: "11px",
+                color: GOLD,
                 fontWeight: 700,
-                letterSpacing: "1px",
+                letterSpacing: "1.5px",
                 display: "flex",
               }}
             >
@@ -464,9 +498,9 @@ export async function GET(
             </div>
             <div
               style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "#2E2A2E",
+                fontSize: "15px",
+                fontWeight: 700,
+                color: TEXT_DARK,
                 fontFamily: "monospace",
                 display: "flex",
               }}
@@ -476,23 +510,23 @@ export async function GET(
           </div>
 
           {/* Weight */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div
               style={{
-                fontSize: "10px",
-                color: "#B8730A",
+                fontSize: "11px",
+                color: GOLD,
                 fontWeight: 700,
-                letterSpacing: "1px",
+                letterSpacing: "1.5px",
                 display: "flex",
               }}
             >
               น้ำหนักล่าสุด
             </div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}>
+            <div style={{ fontSize: "16px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
               {latestWeight ? `${latestWeight.weight_kg} kg` : "—"}
               {latestWeight?.recorded_at && (
                 <span
-                  style={{ fontSize: "11px", color: "#6B6560", marginLeft: "8px", display: "flex" }}
+                  style={{ fontSize: "12px", color: TEXT_MUTED, marginLeft: "10px", display: "flex" }}
                 >
                   ({latestWeight.recorded_at.slice(0, 10)})
                 </span>
@@ -501,19 +535,19 @@ export async function GET(
           </div>
 
           {/* Parasite */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div
               style={{
-                fontSize: "10px",
-                color: "#B8730A",
+                fontSize: "11px",
+                color: GOLD,
                 fontWeight: 700,
-                letterSpacing: "1px",
+                letterSpacing: "1.5px",
                 display: "flex",
               }}
             >
               ยากำจัดปรสิตล่าสุด
             </div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "#2E2A2E", display: "flex" }}>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
               {latestParasite
                 ? `${latestParasite.medicine_name ?? "—"} (${latestParasite.administered_date.slice(0, 10)})`
                 : "—"}
@@ -522,48 +556,48 @@ export async function GET(
         </div>
 
         {/* Right column — Vaccines */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "260px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "280px" }}>
           <div
             style={{
-              fontSize: "10px",
-              color: "#B8730A",
+              fontSize: "11px",
+              color: GOLD,
               fontWeight: 700,
-              letterSpacing: "1px",
+              letterSpacing: "1.5px",
               display: "flex",
             }}
           >
             วัคซีน
           </div>
           {vaccines.length === 0 ? (
-            <div style={{ fontSize: "13px", color: "#6B6560", display: "flex" }}>
+            <div style={{ fontSize: "14px", color: TEXT_MUTED, display: "flex" }}>
               ยังไม่มีข้อมูล
             </div>
           ) : (
             vaccines.map((v, i) => (
-              <div key={i} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                 <div
                   style={{
-                    width: "8px",
-                    height: "8px",
+                    width: "10px",
+                    height: "10px",
                     borderRadius: "50%",
                     backgroundColor:
                       v.status === "protected"
-                        ? "#4C6B3C"
+                        ? BADGE_GREEN
                         : v.status === "due_soon"
-                          ? "#B8730A"
-                          : "#D32F2F",
+                          ? GOLD
+                          : BADGE_RED,
                     flexShrink: 0,
                     display: "flex",
                   }}
                 />
-                <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                   <span
-                    style={{ fontSize: "12px", fontWeight: 700, color: "#2E2A2E", display: "flex" }}
+                    style={{ fontSize: "14px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}
                   >
                     {v.name}
                   </span>
                   {v.last_date && (
-                    <span style={{ fontSize: "10px", color: "#6B6560", display: "flex" }}>
+                    <span style={{ fontSize: "11px", color: TEXT_MUTED, display: "flex" }}>
                       {v.last_date.slice(0, 10)}
                     </span>
                   )}
@@ -577,23 +611,27 @@ export async function GET(
       {/* Footer */}
       <div
         style={{
-          borderTop: "1px solid #E8E2D8",
-          paddingTop: "12px",
+          borderTop: `1px solid ${BEIGE_ALT}`,
+          paddingTop: "20px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          marginTop: "24px",
         }}
       >
-        <div style={{ fontSize: "10px", color: "#6B6560", display: "flex" }}>
+        <div style={{ fontSize: "11px", color: TEXT_MUTED, display: "flex" }}>
           Pawrent · Part of POPS
         </div>
         <div
-          style={{ fontSize: "10px", color: "#6B6560", fontFamily: "monospace", display: "flex" }}
+          style={{ fontSize: "11px", color: TEXT_MUTED, fontFamily: "monospace", display: "flex" }}
         >
           {pet.pawrent_id}
         </div>
       </div>
     </div>,
-    { width: CARD_W, height: CARD_H }
+    { width: CARD_W, height: CARD_H, ...fontOptions }
   );
+
+  response.headers.set("Cache-Control", cacheHeaders["Cache-Control"]);
+  return response;
 }

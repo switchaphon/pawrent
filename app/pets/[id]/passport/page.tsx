@@ -38,7 +38,7 @@ export default async function PassportPage({ params }: Props) {
   const { data: pet } = await supabase
     .from("pets")
     .select(
-      "id, name, species, breed, sex, color, weight_kg, date_of_birth, microchip_number, photo_url, gotcha_day, is_spayed_neutered"
+      "id, name, species, breed, sex, color, weight_kg, date_of_birth, microchip_number, photo_url, gotcha_day, is_spayed_neutered, pawrent_id"
     )
     .eq("id", id)
     .eq("owner_id", user.id)

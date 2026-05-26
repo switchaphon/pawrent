@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { X, Lock, Download, Share2, Loader2 } from "lucide-react";
+import { X, Lock, Download, Share2, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { liffShareTargetPicker } from "@/lib/liff";
 import { apiFetch } from "@/lib/api";
+
 interface PetIdCardModalProps {
-  pet: { id: string; name: string };
+  pet: { id: string; name: string; pawrent_id?: string | null };
   open: boolean;
   onClose: () => void;
 }
@@ -29,16 +30,14 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
   const [flipped, setFlipped] = React.useState(false);
   const [completion, setCompletion] = React.useState<CompletionData | null>(null);
   const [loadingCompletion, setLoadingCompletion] = React.useState(false);
-  const [sharing, setSharing] = React.useState(false);
+  const [sharing, setSharing] = React.useState<"image" | "flex" | null>(null);
   const [downloading, setDownloading] = React.useState(false);
 
-  // Reset flip state when modal opens/closes
   React.useEffect(() => {
     if (!open) {
       setFlipped(false);
       return;
     }
-    // Fetch completion score when modal opens
     setLoadingCompletion(true);
     apiFetch(`/api/pets/${pet.id}/completion`)
       .then((data: CompletionData) => setCompletion(data))
@@ -46,7 +45,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
       .finally(() => setLoadingCompletion(false));
   }, [open, pet.id]);
 
-  // ESC key handling
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -64,8 +62,8 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
   const frontSrc = `/api/pet-card/${pet.id}?side=front`;
   const backSrc = `/api/pet-card/${pet.id}?side=back`;
 
-  async function handleShare() {
-    setSharing(true);
+  async function handleShareImage() {
+    setSharing("image");
     try {
       await liffShareTargetPicker([
         {
@@ -75,7 +73,71 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         },
       ]);
     } finally {
-      setSharing(false);
+      setSharing(null);
+    }
+  }
+
+  async function handleShareFlex() {
+    setSharing("flex");
+    try {
+      const appUrl = window.location.origin;
+      await liffShareTargetPicker([
+        {
+          type: "flex",
+          altText: `บัตรประจำตัว ${pet.name} 🐾`,
+          contents: {
+            type: "bubble",
+            size: "giga",
+            hero: {
+              type: "image",
+              url: `${appUrl}/api/pet-card/${pet.id}?side=front`,
+              size: "full",
+              aspectRatio: "5:7",
+              aspectMode: "cover",
+            },
+            body: {
+              type: "box",
+              layout: "vertical",
+              spacing: "sm",
+              paddingAll: "16px",
+              contents: [
+                {
+                  type: "text",
+                  text: `🐾 ${pet.name}`,
+                  weight: "bold",
+                  size: "lg",
+                  color: "#2E2A2E",
+                },
+                {
+                  type: "text",
+                  text: "บัตรประจำตัวสัตว์เลี้ยง · Pawrent",
+                  size: "xs",
+                  color: "#6B6560",
+                },
+              ],
+            },
+            footer: {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "button",
+                  action: {
+                    type: "uri",
+                    label: "ดูโปรไฟล์สัตว์เลี้ยง",
+                    uri: `${appUrl}/p/${pet.pawrent_id ?? pet.id}`,
+                  },
+                  style: "primary",
+                  color: "#FF8263",
+                  height: "sm",
+                },
+              ],
+            },
+          },
+        },
+      ]);
+    } finally {
+      setSharing(null);
     }
   }
 
@@ -102,7 +164,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
       role="dialog"
       aria-modal="true"
       aria-label={`บัตรประจำตัว ${pet.name}`}
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center animate-fade-in"
     >
       {/* Backdrop */}
       <button
@@ -111,9 +173,9 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         onClick={onClose}
         className="absolute inset-0"
         style={{
-          background: "rgba(46,42,46,0.72)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
+          background: "rgba(46,42,46,0.80)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
         }}
       />
 
@@ -127,9 +189,9 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         <X className="w-5 h-5" />
       </button>
 
-      {/* Card area */}
-      <div className="relative z-10 flex flex-col items-center gap-5 w-full max-w-sm">
-        {/* Loading completion */}
+      {/* Card area — near fullscreen portrait */}
+      <div className="relative z-10 flex flex-col items-center gap-4 w-full px-4" style={{ maxWidth: "390px" }}>
+        {/* Loading */}
         {loadingCompletion && (
           <div className="flex items-center gap-2 text-white/70 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -140,33 +202,29 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         {/* LOCKED state */}
         {!loadingCompletion && !isUnlocked && (
           <div
-            className="relative w-full rounded-[24px] overflow-hidden border border-white/20"
-            style={{ aspectRatio: "8/5" }}
+            className="relative w-full rounded-[28px] overflow-hidden border border-white/20"
+            style={{ aspectRatio: "5/7" }}
           >
-            {/* Blurred card preview */}
             <Image
               src={frontSrc}
               alt={`บัตร ${pet.name}`}
               fill
               className="object-cover"
-              style={{ filter: "blur(8px)", transform: "scale(1.08)" }}
+              style={{ filter: "blur(10px)", transform: "scale(1.08)" }}
               unoptimized
             />
 
-            {/* Lock overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40">
-              <div className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-white" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/45">
+              <div className="w-18 h-18 rounded-full bg-white/10 border-2 border-white/30 flex items-center justify-center">
+                <Lock className="w-9 h-9 text-white" />
               </div>
 
-              {/* Progress ring */}
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-white font-extrabold text-2xl">{score}%</span>
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-white font-extrabold text-3xl">{score}%</span>
                 <span className="text-white/70 text-xs">ครบ 100% เพื่อปลดล็อค</span>
               </div>
 
-              {/* Completion bar */}
-              <div className="w-48 h-2 rounded-full bg-white/20 overflow-hidden">
+              <div className="w-52 h-2.5 rounded-full bg-white/20 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -176,18 +234,18 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                 />
               </div>
 
-              <p className="text-white/80 text-xs text-center px-6 leading-relaxed">
+              <p className="text-white/80 text-xs text-center px-8 leading-relaxed">
                 กรอกข้อมูลให้ครบเพื่อปลดล็อคบัตรประจำตัว!
               </p>
             </div>
           </div>
         )}
 
-        {/* UNLOCKED state — 3D flip card */}
+        {/* UNLOCKED — 3D flip card, portrait, near-fullscreen */}
         {!loadingCompletion && isUnlocked && (
           <div
             className="w-full cursor-pointer"
-            style={{ perspective: "1000px", aspectRatio: "8/5" }}
+            style={{ perspective: "1200px", aspectRatio: "5/7" }}
             onClick={() => setFlipped((f) => !f)}
             role="button"
             tabIndex={0}
@@ -205,20 +263,20 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                 width: "100%",
                 height: "100%",
                 transformStyle: "preserve-3d",
-                transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
                 transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
               }}
             >
-              {/* Front face */}
+              {/* Front */}
               <div
                 style={{
                   position: "absolute",
                   inset: 0,
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
-                  borderRadius: "24px",
+                  borderRadius: "28px",
                   overflow: "hidden",
-                  boxShadow: "0 20px 60px rgba(46,42,46,0.4)",
+                  boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
               >
                 <Image
@@ -231,7 +289,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                 />
               </div>
 
-              {/* Back face */}
+              {/* Back */}
               <div
                 style={{
                   position: "absolute",
@@ -239,9 +297,9 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
                   transform: "rotateY(180deg)",
-                  borderRadius: "24px",
+                  borderRadius: "28px",
                   overflow: "hidden",
-                  boxShadow: "0 20px 60px rgba(46,42,46,0.4)",
+                  boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
               >
                 <Image
@@ -263,38 +321,60 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
           </p>
         )}
 
-        {/* Action buttons — only when unlocked */}
+        {/* Action buttons — dual share + download */}
         {!loadingCompletion && isUnlocked && (
-          <div className="flex gap-3 w-full">
-            <button
-              type="button"
-              onClick={handleShare}
-              disabled={sharing}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 h-12 rounded-full",
-                "text-[13px] font-bold text-white transition-opacity",
-                sharing && "opacity-60"
-              )}
-              style={{
-                background: "linear-gradient(135deg, #06C755, #04A844)",
-                boxShadow: "0 4px 14px rgba(6,199,85,0.35)",
-              }}
-            >
-              {sharing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Share2 className="w-4 h-4" />
-              )}
-              แชร์ทาง LINE
-            </button>
+          <div className="flex flex-col gap-2.5 w-full">
+            {/* Share row */}
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={handleShareFlex}
+                disabled={sharing !== null}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 h-12 rounded-full",
+                  "text-[12px] font-bold text-white transition-opacity",
+                  sharing === "flex" && "opacity-60"
+                )}
+                style={{
+                  background: "linear-gradient(135deg, #06C755, #04A844)",
+                  boxShadow: "0 4px 14px rgba(6,199,85,0.35)",
+                }}
+              >
+                {sharing === "flex" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4" />
+                )}
+                แชร์การ์ด
+              </button>
 
+              <button
+                type="button"
+                onClick={handleShareImage}
+                disabled={sharing !== null}
+                className={cn(
+                  "flex items-center justify-center gap-2 h-12 rounded-full px-5",
+                  "bg-white/15 border border-white/25 text-white text-[12px] font-bold transition-opacity",
+                  sharing === "image" && "opacity-60"
+                )}
+              >
+                {sharing === "image" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ImageIcon className="w-4 h-4" />
+                )}
+                แชร์รูป
+              </button>
+            </div>
+
+            {/* Download */}
             <button
               type="button"
               onClick={handleDownload}
               disabled={downloading}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 h-12 rounded-full",
-                "bg-white/15 border border-white/25 text-white text-[13px] font-bold transition-opacity",
+                "w-full flex items-center justify-center gap-2 h-11 rounded-full",
+                "bg-white/10 border border-white/20 text-white/80 text-[12px] font-bold transition-opacity",
                 downloading && "opacity-60"
               )}
             >
@@ -303,12 +383,12 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              ดาวน์โหลด
+              ดาวน์โหลด PNG
             </button>
           </div>
         )}
 
-        {/* Locked CTA */}
+        {/* Locked — missing items */}
         {!loadingCompletion && !isUnlocked && completion && (
           <div className="w-full rounded-[16px] bg-white/10 border border-white/20 p-4">
             <p className="text-white/80 text-xs font-bold mb-2">ข้อมูลที่ยังขาด</p>

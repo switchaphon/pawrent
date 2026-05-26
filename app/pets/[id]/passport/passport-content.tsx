@@ -59,6 +59,7 @@ interface PetData {
   photo_url: string | null;
   gotcha_day: string | null;
   is_spayed_neutered: boolean | null;
+  pawrent_id?: string | null;
 }
 
 interface PassportContentProps {
