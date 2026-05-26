@@ -3,9 +3,9 @@
  *
  * Route behaviour:
  *   front — public (no auth). Rate-limited by IP. Returns ImageResponse PNG.
- *   back  — auth required. Rate-limited by user ID. Fetches supplementary
- *           data (profile, vaccines, parasite, weight, counts) then returns
- *           ImageResponse PNG.
+ *   back  — public (no auth, UUID is unguessable). Rate-limited by IP.
+ *           Fetches supplementary data (profile, vaccines, parasite, weight,
+ *           counts) then returns ImageResponse PNG.
  *
  * Strategy:
  *   - Mock rate-limit, @supabase/supabase-js (service role), @/lib/supabase-api
@@ -396,7 +396,7 @@ describe("GET /api/pet-card/[petId]?side=front", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests — BACK side (auth required)
+// Tests — BACK side (public, no auth — UUID is unguessable)
 // ---------------------------------------------------------------------------
 
 describe("GET /api/pet-card/[petId]?side=back", () => {
@@ -404,68 +404,52 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
     vi.clearAllMocks();
   });
 
-  it("should return 401 when no Authorization header is present", async () => {
+  it("should return 200 without auth (back side is public)", async () => {
+    setupBackSideMocks();
     const req = makeRequest(PET_ID, "back"); // no token
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBe("Unauthorized");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("image/png");
   });
 
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest(PET_ID, "back", "bad-token");
-    const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBe("Unauthorized");
-  });
-
-  it("should return 429 when rate limit is exceeded after auth", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
+  it("should return 429 when rate limit is exceeded", async () => {
     mockCheckRateLimit.mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
     );
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(429);
   });
 
   it("should return 404 when pet is not found in the DB", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     mockServiceFrom.mockReturnValue(buildPetChain(null));
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(404);
   });
 
   it("should return 200 with image/png for a fully complete pet", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks();
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("image/png");
   });
 
   it("should show สมุดพกครบ badge when completion score is 100", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    // Full pet + all counts > 0 → score = 20+10+10+15+15+15+15 = 100
     setupBackSideMocks({
-      pet: MOCK_PET, // has name, breed, dob, sex, photo, microchip
+      pet: MOCK_PET,
       weightCount: 1,
       vaccCount: 1,
       parasiteCount: 1,
       diaryCount: 1,
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should not show สมุดพกครบ badge when completion score is below 100", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    // Missing photo, microchip, all counts 0 → score = 20 only
     setupBackSideMocks({
       pet: { ...MOCK_PET, photo_url: null, microchip_number: null },
       weightCount: 0,
@@ -473,21 +457,19 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
       parasiteCount: 0,
       diaryCount: 0,
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle no vaccines (empty array — shows ยังไม่มีข้อมูล)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({ vaccines: [] });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle vaccines with all status values (protected / due_soon / overdue)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({
       vaccines: [
         { name: "Rabies", last_date: "2024-01-01", status: "protected" },
@@ -495,79 +477,71 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
         { name: "FeLV", last_date: "2023-06-01", status: "overdue" },
       ],
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle vaccine with no last_date", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({
       vaccines: [{ name: "Rabies", last_date: null, status: "protected" }],
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle no parasite log (shows — fallback)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({ parasite: null });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle parasite log with null medicine_name", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({
       parasite: { medicine_name: null, administered_date: "2024-02-01" },
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle no weight log (shows — fallback)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({ weight: null });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle weight log with no recorded_at timestamp", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({
       weight: { weight_kg: 3.2, recorded_at: null },
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle no profile data (owner shows — fallback)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({ profile: null });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle profile with no phone (phone row omitted)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({ profile: { full_name: "สมศรี", phone: null } });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
   it("should handle a pet missing basic fields (basic = false, score < 100)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
     setupBackSideMocks({
       pet: {
         ...MOCK_PET,
-        name: null, // missing name → basic = false
+        name: null,
         breed: null,
         date_of_birth: null,
         sex: null,
@@ -579,13 +553,12 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
       parasiteCount: 0,
       diaryCount: 0,
     });
-    const req = makeRequest(PET_ID, "back", "valid-token");
+    const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
     expect(res.status).toBe(200);
   });
 
-  it("should use the x-real-ip header for rate limiting on front side when x-forwarded-for is absent", async () => {
-    // Front side — no auth, IP from x-real-ip fallback
+  it("should use the x-real-ip header for rate limiting when x-forwarded-for is absent", async () => {
     mockServiceFrom.mockReturnValue(buildPetChain(MOCK_PET));
     const req = new NextRequest(`http://localhost:3000/api/pet-card/${PET_ID}?side=front`, {
       headers: { "x-real-ip": "198.51.100.5" },
