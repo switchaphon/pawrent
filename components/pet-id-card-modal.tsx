@@ -190,7 +190,10 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
       </button>
 
       {/* Card area — near fullscreen portrait */}
-      <div className="relative z-10 flex flex-col items-center gap-4 w-full px-4" style={{ maxWidth: "390px" }}>
+      <div
+        className="relative z-10 flex flex-col items-center gap-4 w-full px-4"
+        style={{ maxWidth: "390px" }}
+      >
         {/* Loading */}
         {loadingCompletion && (
           <div className="flex items-center gap-2 text-white/70 text-sm">

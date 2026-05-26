@@ -279,7 +279,10 @@ export async function GET(
             ["วันเกิด", pet.date_of_birth ? `${pet.date_of_birth} (${age})` : "—"],
             ["เพศ", pet.sex === "female" ? "หญิง" : pet.sex === "male" ? "ชาย" : "—"],
           ].map(([label, value]) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div
+              key={label}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
               <span
                 style={{
                   fontSize: "14px",
@@ -429,12 +432,26 @@ export async function GET(
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "32px",
+        }}
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <div style={{ fontSize: "28px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
             {pet.name}
           </div>
-          <div style={{ fontSize: "13px", color: TEXT_MUTED, fontFamily: "monospace", display: "flex" }}>
+          <div
+            style={{
+              fontSize: "13px",
+              color: TEXT_MUTED,
+              fontFamily: "monospace",
+              display: "flex",
+            }}
+          >
             {pet.pawrent_id}
           </div>
         </div>
@@ -526,7 +543,12 @@ export async function GET(
               {latestWeight ? `${latestWeight.weight_kg} kg` : "—"}
               {latestWeight?.recorded_at && (
                 <span
-                  style={{ fontSize: "12px", color: TEXT_MUTED, marginLeft: "10px", display: "flex" }}
+                  style={{
+                    fontSize: "12px",
+                    color: TEXT_MUTED,
+                    marginLeft: "10px",
+                    display: "flex",
+                  }}
                 >
                   ({latestWeight.recorded_at.slice(0, 10)})
                 </span>
