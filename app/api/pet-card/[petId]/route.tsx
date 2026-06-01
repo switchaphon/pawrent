@@ -5,45 +5,23 @@ import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import QRCode from "qrcode";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  CARD_W,
+  CARD_H,
+  CARD_COLORS,
+  sexColor,
+  goodBadge,
+  sexWord,
+  calcAge,
+  formatThaiCardDate,
+  cardFallbackEmoji,
+} from "@/lib/pet-id-card";
 
 export const runtime = "nodejs";
 
 const limiter = createRateLimiter(10, "1 m");
 
-const CARD_W = 750;
-const CARD_H = 1050;
-
-const BEIGE = "#FAF7F2";
-const BEIGE_ALT = "#F0EDE6";
-const GOLD = "#B8730A";
-const TEXT_DARK = "#2E2A2E";
-const TEXT_MUTED = "#6B6560";
-const PINK = "#F06FA8";
-const BLUE = "#4A90D9";
-const BADGE_RED = "#D32F2F";
-const BADGE_GREEN = "#4C6B3C";
-
-function sexColor(sex: string | null): string | null {
-  if (sex === "female") return PINK;
-  if (sex === "male") return BLUE;
-  return null;
-}
-
-function goodBadge(sex: string | null): { label: string; bg: string } | null {
-  if (sex === "female") return { label: "GOOD GIRL", bg: BADGE_RED };
-  if (sex === "male") return { label: "GOOD BOY", bg: BADGE_GREEN };
-  return null;
-}
-
-function calcAge(dob: string | null): string {
-  if (!dob) return "";
-  const d = new Date(dob);
-  const now = new Date();
-  const years = now.getFullYear() - d.getFullYear();
-  const months = now.getMonth() - d.getMonth();
-  if (years < 1) return `${Math.max(years * 12 + months, 0)} เดือน`;
-  return `${years} ขวบ`;
-}
+const { BEIGE, BEIGE_ALT, GOLD, TEXT_DARK, TEXT_MUTED, BADGE_RED, BADGE_GREEN } = CARD_COLORS;
 
 function loadFont(filename: string): ArrayBuffer {
   const buf = readFileSync(join(process.cwd(), "public/fonts", filename));
@@ -219,7 +197,7 @@ export async function GET(
                 justifyContent: "center",
               }}
             >
-              {pet.species === "cat" ? "🐱" : "🐶"}
+              {cardFallbackEmoji(pet.species)}
             </div>
           )}
         </div>
@@ -276,8 +254,13 @@ export async function GET(
         >
           {[
             ["สายพันธุ์", pet.breed ?? "—"],
-            ["วันเกิด", pet.date_of_birth ? `${pet.date_of_birth} (${age})` : "—"],
-            ["เพศ", pet.sex === "female" ? "หญิง" : pet.sex === "male" ? "ชาย" : "—"],
+            [
+              "วันเกิด",
+              pet.date_of_birth
+                ? `${formatThaiCardDate(pet.date_of_birth)}${age ? ` (${age})` : ""}`
+                : "—",
+            ],
+            ["เพศ", sexWord(pet.sex)],
           ].map(([label, value]) => (
             <div
               key={label}
@@ -385,9 +368,9 @@ export async function GET(
       .limit(1),
     supabase
       .from("pet_weight_logs")
-      .select("weight_kg, recorded_at")
+      .select("weight_kg, measured_at")
       .eq("pet_id", petId)
-      .order("recorded_at", { ascending: false })
+      .order("measured_at", { ascending: false })
       .limit(1),
   ]);
 
@@ -541,7 +524,7 @@ export async function GET(
             </div>
             <div style={{ fontSize: "16px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
               {latestWeight ? `${latestWeight.weight_kg} kg` : "—"}
-              {latestWeight?.recorded_at && (
+              {latestWeight?.measured_at && (
                 <span
                   style={{
                     fontSize: "12px",
@@ -550,7 +533,7 @@ export async function GET(
                     display: "flex",
                   }}
                 >
-                  ({latestWeight.recorded_at.slice(0, 10)})
+                  ({latestWeight.measured_at.slice(0, 10)})
                 </span>
               )}
             </div>
