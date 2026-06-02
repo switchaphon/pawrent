@@ -26,25 +26,17 @@ export async function GET(request: NextRequest) {
   const todayMonthDay = `${month}-${day}`;
   const currentYear = today.getFullYear();
 
-  // Find pets whose birthday matches today (month-day)
-  const { data: birthdayPets, error: bErr } = await supabase
-    .from("pets")
-    .select("id, name, owner_id, date_of_birth")
-    .not("date_of_birth", "is", null);
+  const [{ data: birthdayPets, error: bErr }, { data: gotchaPets, error: gErr }] =
+    await Promise.all([
+      supabase
+        .from("pets")
+        .select("id, name, owner_id, date_of_birth")
+        .not("date_of_birth", "is", null),
+      supabase.from("pets").select("id, name, owner_id, gotcha_day").not("gotcha_day", "is", null),
+    ]);
 
-  if (bErr) {
-    return NextResponse.json({ error: bErr.message }, { status: 500 });
-  }
-
-  // Find pets whose gotcha_day matches today (month-day)
-  const { data: gotchaPets, error: gErr } = await supabase
-    .from("pets")
-    .select("id, name, owner_id, gotcha_day")
-    .not("gotcha_day", "is", null);
-
-  if (gErr) {
-    return NextResponse.json({ error: gErr.message }, { status: 500 });
-  }
+  if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
+  if (gErr) return NextResponse.json({ error: gErr.message }, { status: 500 });
 
   // Filter to today's month-day
   const birthdays = (birthdayPets ?? []).filter((p) => {
@@ -69,22 +61,19 @@ export async function GET(request: NextRequest) {
     ...new Set([...birthdays.map((p) => p.owner_id), ...gotchaDays.map((p) => p.owner_id)]),
   ];
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, line_user_id")
-    .in("id", allOwnerIds);
-
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.line_user_id]));
-
-  // Gather pet photos for collage (most recent 4)
   const allPetIds = [...new Set([...birthdays.map((p) => p.id), ...gotchaDays.map((p) => p.id)])];
 
-  const { data: photos } = await supabase
-    .from("pet_photos")
-    .select("pet_id, photo_url")
-    .in("pet_id", allPetIds)
-    .order("created_at", { ascending: false })
-    .limit(allPetIds.length * 4);
+  const [{ data: profiles }, { data: photos }] = await Promise.all([
+    supabase.from("profiles").select("id, line_user_id").in("id", allOwnerIds),
+    supabase
+      .from("pet_photos")
+      .select("pet_id, photo_url")
+      .in("pet_id", allPetIds)
+      .order("created_at", { ascending: false })
+      .limit(allPetIds.length * 4),
+  ]);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.line_user_id]));
 
   const photoMap = new Map<string, string[]>();
   for (const photo of photos ?? []) {

@@ -26,24 +26,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
-  // Auto-snapshot pet data from pets table
-  const { data: pet, error: petError } = await supabase
-    .from("pets")
-    .select("name, species, breed, color, sex, date_of_birth, neutered, microchip_number")
-    .eq("id", result.data.pet_id)
-    .eq("owner_id", user.id)
-    .single();
+  const [{ data: pet, error: petError }, { data: petPhotos }] = await Promise.all([
+    supabase
+      .from("pets")
+      .select("name, species, breed, color, sex, date_of_birth, neutered, microchip_number")
+      .eq("id", result.data.pet_id)
+      .eq("owner_id", user.id)
+      .single(),
+    supabase
+      .from("pet_photos")
+      .select("photo_url")
+      .eq("pet_id", result.data.pet_id)
+      .order("display_order", { ascending: true }),
+  ]);
 
   if (petError || !pet) {
     return NextResponse.json({ error: "Pet not found" }, { status: 404 });
   }
-
-  // Fetch pet photos from pet_photos table
-  const { data: petPhotos } = await supabase
-    .from("pet_photos")
-    .select("photo_url")
-    .eq("pet_id", result.data.pet_id)
-    .order("display_order", { ascending: true });
 
   const profilePhotoUrls = (petPhotos ?? []).map((p) => p.photo_url);
   // Merge profile photos with user-submitted photos (dedup)
