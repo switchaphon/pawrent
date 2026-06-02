@@ -5,12 +5,7 @@ import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import QRCode from "qrcode";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  CARD_W,
-  CARD_H,
-  CARD_COLORS,
-  goodBadge,
-} from "@/lib/pet-id-card";
+import { CARD_W, CARD_H, CARD_COLORS, goodBadge } from "@/lib/pet-id-card";
 
 export const runtime = "nodejs";
 

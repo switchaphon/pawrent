@@ -114,9 +114,18 @@ export function cardFallbackEmoji(species: string | null | undefined): string {
 // ── R3 card helpers ─────────────────────────────────────────────
 
 const TH_MONTHS_FULL = [
-  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
-  "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
-  "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+  "มกราคม",
+  "กุมภาพันธ์",
+  "มีนาคม",
+  "เมษายน",
+  "พฤษภาคม",
+  "มิถุนายน",
+  "กรกฎาคม",
+  "สิงหาคม",
+  "กันยายน",
+  "ตุลาคม",
+  "พฤศจิกายน",
+  "ธันวาคม",
 ];
 
 export function formatThaiCardDateFull(dateStr: string | null | undefined): string {
@@ -153,22 +162,22 @@ export function petPersonality(name: string): PetTrait[] {
 export function pawPrintSvg(color: string): string {
   return `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32">` +
-    `<ellipse cx="15" cy="24" rx="7" ry="6" fill="${color}"/>` +
-    `<ellipse cx="5" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
-    `<ellipse cx="11" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
-    `<ellipse cx="19" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
-    `<ellipse cx="25" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
-    `</svg>`
+      `<ellipse cx="15" cy="24" rx="7" ry="6" fill="${color}"/>` +
+      `<ellipse cx="5" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
+      `<ellipse cx="11" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
+      `<ellipse cx="19" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
+      `<ellipse cx="25" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
+      `</svg>`
   )}`;
 }
 
 export function paperclipSvg(color: string): string {
   return `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 64">` +
-    `<path d="M15,3 C9,3 5,7 5,13 L5,44 C5,52 9,56 15,56 C21,56 25,52 25,44 L25,18 ` +
-    `C25,13 22,10 18,10 C14,10 11,13 11,18 L11,40" ` +
-    `fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>` +
-    `</svg>`
+      `<path d="M15,3 C9,3 5,7 5,13 L5,44 C5,52 9,56 15,56 C21,56 25,52 25,44 L25,18 ` +
+      `C25,13 22,10 18,10 C14,10 11,13 11,18 L11,40" ` +
+      `fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>` +
+      `</svg>`
   )}`;
 }
 
@@ -181,7 +190,7 @@ const SEAL_PATH =
 export function sealBadgeSvg(color: string): string {
   return `data:image/svg+xml,${encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
-    `<path d="${SEAL_PATH}" fill="${color}"/>` +
-    `</svg>`
+      `<path d="${SEAL_PATH}" fill="${color}"/>` +
+      `</svg>`
   )}`;
 }
