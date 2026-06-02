@@ -21,6 +21,11 @@ export const CARD_COLORS = {
   BLUE: "#4A90D9",
   BADGE_RED: "#D32F2F",
   BADGE_GREEN: "#4C6B3C",
+  SAGE: "#8B9A6E",
+  PAPERCLIP: "#D4664E",
+  STAT_PAW: "#E8A0A0",
+  STAT_PAW_DIM: "#F2D5D5",
+  FOOTER_PINK: "#E91E63",
 } as const;
 
 /**
@@ -104,4 +109,79 @@ export function cardFallbackEmoji(species: string | null | undefined): string {
   if (s.includes("rabbit") || s.includes("กระต่าย")) return "🐰";
   if (s.includes("bird") || s.includes("นก")) return "🐦";
   return "🐶";
+}
+
+// ── R3 card helpers ─────────────────────────────────────────────
+
+const TH_MONTHS_FULL = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+  "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+  "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+
+export function formatThaiCardDateFull(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${d.getDate()} ${TH_MONTHS_FULL[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+export function sexWordCard(sex: string | null | undefined): string {
+  const s = normalizeSex(sex);
+  if (s === "female") return "หญิง";
+  if (s === "male") return "ชาย";
+  return "—";
+}
+
+export interface PetTrait {
+  label: string;
+  score: number;
+}
+
+export function petPersonality(name: string): PetTrait[] {
+  let h = 0;
+  for (const c of name) h = ((h << 5) - h + c.charCodeAt(0)) | 0;
+  h = Math.abs(h);
+  return [
+    { label: "พลังงาน", score: (h % 3) + 3 },
+    { label: "การเข้าสังคม", score: ((h >> 4) % 3) + 3 },
+    { label: "ความอ้อน", score: ((h >> 8) % 3) + 3 },
+    { label: "ฝึกง่ายหัวไว", score: ((h >> 12) % 3) + 3 },
+  ];
+}
+
+export function pawPrintSvg(color: string): string {
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32">` +
+    `<ellipse cx="15" cy="24" rx="7" ry="6" fill="${color}"/>` +
+    `<ellipse cx="5" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
+    `<ellipse cx="11" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
+    `<ellipse cx="19" cy="7" rx="3.5" ry="4" fill="${color}"/>` +
+    `<ellipse cx="25" cy="13" rx="3.5" ry="4" fill="${color}"/>` +
+    `</svg>`
+  )}`;
+}
+
+export function paperclipSvg(color: string): string {
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 64">` +
+    `<path d="M15,3 C9,3 5,7 5,13 L5,44 C5,52 9,56 15,56 C21,56 25,52 25,44 L25,18 ` +
+    `C25,13 22,10 18,10 C14,10 11,13 11,18 L11,40" ` +
+    `fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>` +
+    `</svg>`
+  )}`;
+}
+
+const SEAL_PATH =
+  "M50.0,4.0 L60.9,9.4 L73.0,10.2 L79.7,20.3 L89.8,27.0 L90.6,39.1 " +
+  "L96.0,50.0 L90.6,60.9 L89.8,73.0 L79.7,79.7 L73.0,89.8 L60.9,90.6 " +
+  "L50.0,96.0 L39.1,90.6 L27.0,89.8 L20.3,79.7 L10.2,73.0 L9.4,60.9 " +
+  "L4.0,50.0 L9.4,39.1 L10.2,27.0 L20.3,20.3 L27.0,10.2 L39.1,9.4 Z";
+
+export function sealBadgeSvg(color: string): string {
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+    `<path d="${SEAL_PATH}" fill="${color}"/>` +
+    `</svg>`
+  )}`;
 }
