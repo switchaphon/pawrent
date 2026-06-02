@@ -139,7 +139,7 @@ function setupBackSideMocks(cfg: BackSideConfig = {}) {
     profile = { full_name: "สมศรี", phone: "0891234567" },
     vaccines = [{ name: "Rabies", last_date: "2024-01-01", status: "protected" }],
     parasite = { medicine_name: "Frontline", administered_date: "2024-02-01" },
-    weight = { weight_kg: 4.5, recorded_at: "2024-03-01" },
+    weight = { weight_kg: 4.5, measured_at: "2024-03-01" },
     weightCount = 1,
     vaccCount = 1,
     parasiteCount = 1,
@@ -514,9 +514,9 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
     expect(res.status).toBe(200);
   });
 
-  it("should handle weight log with no recorded_at timestamp", async () => {
+  it("should handle weight log with no measured_at timestamp", async () => {
     setupBackSideMocks({
-      weight: { weight_kg: 3.2, recorded_at: null },
+      weight: { weight_kg: 3.2, measured_at: null },
     });
     const req = makeRequest(PET_ID, "back");
     const res = await GET(req, { params: Promise.resolve({ petId: PET_ID }) });
