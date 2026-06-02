@@ -22,38 +22,31 @@ export async function GET(request: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // Find reminders where (due_date - remind_days_before) <= today
-  const { data: reminders, error } = await supabase
-    .from("health_reminders")
-    .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
-    .eq("is_sent", false)
-    .eq("is_dismissed", false)
-    .lte("due_date", today)
-    .order("due_date", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Also find reminders where due_date is in the future but within
-  // remind_days_before window. We fetch upcoming and filter in JS since
-  // Supabase doesn't support computed column filters easily.
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 30);
   const futureDateStr = futureDate.toISOString().slice(0, 10);
 
-  const { data: upcomingReminders, error: upcomingError } = await supabase
-    .from("health_reminders")
-    .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
-    .eq("is_sent", false)
-    .eq("is_dismissed", false)
-    .gt("due_date", today)
-    .lte("due_date", futureDateStr)
-    .order("due_date", { ascending: true });
+  const [{ data: reminders, error }, { data: upcomingReminders, error: upcomingError }] =
+    await Promise.all([
+      supabase
+        .from("health_reminders")
+        .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
+        .eq("is_sent", false)
+        .eq("is_dismissed", false)
+        .lte("due_date", today)
+        .order("due_date", { ascending: true }),
+      supabase
+        .from("health_reminders")
+        .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
+        .eq("is_sent", false)
+        .eq("is_dismissed", false)
+        .gt("due_date", today)
+        .lte("due_date", futureDateStr)
+        .order("due_date", { ascending: true }),
+    ]);
 
-  if (upcomingError) {
-    return NextResponse.json({ error: upcomingError.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (upcomingError) return NextResponse.json({ error: upcomingError.message }, { status: 500 });
 
   // Filter upcoming reminders to those within their remind window
   const todayMs = new Date(today).getTime();
@@ -74,12 +67,10 @@ export async function GET(request: NextRequest) {
   const ownerIds = [...new Set(allReminders.map((r) => r.owner_id))];
   const petIds = [...new Set(allReminders.map((r) => r.pet_id))];
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, line_user_id")
-    .in("id", ownerIds);
-
-  const { data: pets } = await supabase.from("pets").select("id, name").in("id", petIds);
+  const [{ data: profiles }, { data: pets }] = await Promise.all([
+    supabase.from("profiles").select("id, line_user_id").in("id", ownerIds),
+    supabase.from("pets").select("id, name").in("id", petIds),
+  ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.line_user_id]));
   const petMap = new Map((pets ?? []).map((p) => [p.id, p.name]));
