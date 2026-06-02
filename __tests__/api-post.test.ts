@@ -415,6 +415,15 @@ describe("POST /api/post", () => {
         c.single = petSingle;
         return { select: vi.fn(() => c) };
       }
+      if (table === "pet_photos") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              order: vi.fn(() => Promise.resolve({ data: [], error: null })),
+            })),
+          })),
+        };
+      }
       return {};
     });
 
