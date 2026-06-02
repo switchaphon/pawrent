@@ -224,14 +224,13 @@ export default function DiaryPage() {
   const searchParams = useSearchParams();
 
   const [pets, setPets] = useState<UserPet[]>([]);
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(searchParams.get("pet_id"));
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [urgentItems, setUrgentItems] = useState<UrgentItem[]>([]);
 
-  // Fetch pets list, then apply pet_id URL param if present
   useEffect(() => {
     async function loadPets() {
       if (!getAuthToken()) return;
@@ -239,15 +238,14 @@ export default function DiaryPage() {
         const data: UserPet[] = await apiFetch("/api/pets");
         setPets(data);
         const urlPetId = searchParams.get("pet_id");
-        if (urlPetId && data.some((p) => p.id === urlPetId)) {
-          setSelectedPetId(urlPetId);
+        if (urlPetId && !data.some((p) => p.id === urlPetId)) {
+          setSelectedPetId(null);
         }
       } catch {
         // silently ignore — pets list failing doesn't block timeline
       }
     }
     loadPets();
-    // searchParams is stable across renders; omit to avoid re-fetching on unrelated param changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
