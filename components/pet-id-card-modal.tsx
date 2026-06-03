@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import Image from "next/image";
 import { X, Lock, Download, Share2, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
