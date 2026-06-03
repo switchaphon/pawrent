@@ -92,7 +92,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
               type: "image",
               url: `${appUrl}/api/pet-card/${pet.id}?side=front`,
               size: "full",
-              aspectRatio: "5:7",
+              aspectRatio: "9:16",
               aspectMode: "cover",
             },
             body: {
@@ -206,13 +206,13 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         {!loadingCompletion && !isUnlocked && (
           <div
             className="relative w-full rounded-[28px] overflow-hidden border border-white/20"
-            style={{ aspectRatio: "5/7" }}
+            style={{ aspectRatio: "9/16", maxHeight: "calc(100dvh - 280px)" }}
           >
             <Image
               src={frontSrc}
               alt={`บัตร ${pet.name}`}
               fill
-              className="object-cover"
+              className="object-contain"
               style={{ filter: "blur(10px)", transform: "scale(1.08)" }}
               unoptimized
             />
@@ -248,7 +248,11 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         {!loadingCompletion && isUnlocked && (
           <div
             className="w-full cursor-pointer"
-            style={{ perspective: "1200px", aspectRatio: "5/7" }}
+            style={{
+              perspective: "1200px",
+              aspectRatio: "9/16",
+              maxHeight: "calc(100dvh - 280px)",
+            }}
             onClick={() => setFlipped((f) => !f)}
             role="button"
             tabIndex={0}
@@ -286,7 +290,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   src={frontSrc}
                   alt={`บัตรหน้าหน้า ${pet.name}`}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   unoptimized
                   priority
                 />
@@ -309,7 +313,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   src={backSrc}
                   alt={`บัตรหน้าหลัง ${pet.name}`}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   unoptimized
                 />
               </div>
