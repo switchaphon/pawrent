@@ -430,4 +430,3 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
     </div>
   );
 }
-// ci
