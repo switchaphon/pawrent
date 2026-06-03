@@ -205,7 +205,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         {/* LOCKED state */}
         {!loadingCompletion && !isUnlocked && (
           <div
-            className="relative w-full rounded-[28px] overflow-hidden border border-white/20"
+            className="relative w-full overflow-hidden"
             style={{ aspectRatio: "9/16", maxHeight: "calc(100dvh - 280px)" }}
           >
             <Image
@@ -281,7 +281,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   inset: 0,
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
-                  borderRadius: "28px",
                   overflow: "hidden",
                   boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
@@ -304,7 +303,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
                   transform: "rotateY(180deg)",
-                  borderRadius: "28px",
                   overflow: "hidden",
                   boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
