@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+
 import Image from "next/image";
 import { X, Lock, Download, Share2, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -189,11 +190,8 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         <X className="w-5 h-5" />
       </button>
 
-      {/* Card area — near fullscreen portrait */}
-      <div
-        className="relative z-10 flex flex-col items-center gap-4 w-full px-4"
-        style={{ maxWidth: "390px" }}
-      >
+      {/* Card area — full width, no side gaps */}
+      <div className="relative z-10 flex flex-col items-center gap-3 w-full max-w-[430px]">
         {/* Loading */}
         {loadingCompletion && (
           <div className="flex items-center gap-2 text-white/70 text-sm">
@@ -204,15 +202,12 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
 
         {/* LOCKED state */}
         {!loadingCompletion && !isUnlocked && (
-          <div
-            className="relative w-full rounded-[28px] overflow-hidden border border-white/20"
-            style={{ aspectRatio: "9/16", maxHeight: "calc(100dvh - 280px)" }}
-          >
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "9/16" }}>
             <Image
               src={frontSrc}
               alt={`บัตร ${pet.name}`}
               fill
-              className="object-contain"
+              className="object-cover"
               style={{ filter: "blur(10px)", transform: "scale(1.08)" }}
               unoptimized
             />
@@ -248,11 +243,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         {!loadingCompletion && isUnlocked && (
           <div
             className="w-full cursor-pointer"
-            style={{
-              perspective: "1200px",
-              aspectRatio: "9/16",
-              maxHeight: "calc(100dvh - 280px)",
-            }}
+            style={{ perspective: "1200px", aspectRatio: "9/16" }}
             onClick={() => setFlipped((f) => !f)}
             role="button"
             tabIndex={0}
@@ -281,7 +272,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   inset: 0,
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
-                  borderRadius: "28px",
                   overflow: "hidden",
                   boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
@@ -290,7 +280,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   src={frontSrc}
                   alt={`บัตรหน้าหน้า ${pet.name}`}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   unoptimized
                   priority
                 />
@@ -304,7 +294,6 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   backfaceVisibility: "hidden",
                   WebkitBackfaceVisibility: "hidden",
                   transform: "rotateY(180deg)",
-                  borderRadius: "28px",
                   overflow: "hidden",
                   boxShadow: "0 24px 80px rgba(46,42,46,0.5)",
                 }}
@@ -313,7 +302,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
                   src={backSrc}
                   alt={`บัตรหน้าหลัง ${pet.name}`}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                   unoptimized
                 />
               </div>
@@ -323,14 +312,14 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
 
         {/* Flip hint */}
         {!loadingCompletion && isUnlocked && (
-          <p className="text-white/50 text-[11px]">
+          <p className="text-white/50 text-[11px] px-4">
             {flipped ? "แตะการ์ดเพื่อดูหน้าหน้า" : "แตะการ์ดเพื่อดูหน้าหลัง"}
           </p>
         )}
 
         {/* Action buttons — dual share + download */}
         {!loadingCompletion && isUnlocked && (
-          <div className="flex flex-col gap-2.5 w-full">
+          <div className="flex flex-col gap-2.5 w-full px-4">
             {/* Share row */}
             <div className="flex gap-2.5">
               <button
@@ -397,7 +386,7 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
 
         {/* Locked — missing items */}
         {!loadingCompletion && !isUnlocked && completion && (
-          <div className="w-full rounded-[16px] bg-white/10 border border-white/20 p-4">
+          <div className="w-full rounded-[16px] bg-white/10 border border-white/20 p-4 mx-4">
             <p className="text-white/80 text-xs font-bold mb-2">ข้อมูลที่ยังขาด</p>
             <div className="flex flex-wrap gap-1.5">
               {!completion.items.basic && (
