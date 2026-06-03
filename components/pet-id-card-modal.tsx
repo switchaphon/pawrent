@@ -189,11 +189,8 @@ export function PetIdCardModal({ pet, open, onClose }: PetIdCardModalProps) {
         <X className="w-5 h-5" />
       </button>
 
-      {/* Card area — width derived from available height to keep 9:16 gap-free */}
-      <div
-        className="relative z-10 flex flex-col items-center gap-3 w-full"
-        style={{ maxWidth: "min(100vw, calc((100dvh - 260px) * 9 / 16))" }}
-      >
+      {/* Card area — full width, no side gaps */}
+      <div className="relative z-10 flex flex-col items-center gap-3 w-full max-w-[430px]">
         {/* Loading */}
         {loadingCompletion && (
           <div className="flex items-center gap-2 text-white/70 text-sm">
