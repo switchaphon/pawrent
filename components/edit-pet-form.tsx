@@ -365,7 +365,7 @@ export function EditPetForm({ pet, onSuccess, onCancel, onDelete }: EditPetFormP
                 className="flex-1 py-3 text-sm font-semibold text-warning hover:bg-warning-bg rounded-2xl transition-colors flex items-center justify-center gap-2 touch-target"
               >
                 <Star className="w-4 h-4" aria-hidden />
-                กลับดาว
+                ส่งน้องกลับดาว
               </button>
               <button
                 type="button"
@@ -409,7 +409,7 @@ export function EditPetForm({ pet, onSuccess, onCancel, onDelete }: EditPetFormP
           open={showMemorialConfirm}
           title={`${pet.name} กลับดาวแล้ว?`}
           description="น้องจะถูกบันทึกเป็นความทรงจำ ข้อมูลทั้งหมดจะยังคงอยู่ แต่จะไม่แสดงการแจ้งเตือนวัคซีนและยาอีกต่อไป"
-          confirmLabel="กลับดาว 🌟"
+          confirmLabel="ส่งน้องกลับดาว 🌟"
           cancelLabel="ยกเลิก"
           variant="default"
           onConfirm={async () => {
