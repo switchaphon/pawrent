@@ -1,19 +1,12 @@
-import { createApiClient } from "@/lib/supabase-api";
-import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod/v4";
+import { verifyAuth } from "@/lib/auth";
+import { query, pets, healthEvents } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 
 const limiter = createRateLimiter(20, "1 m");
-
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ? { user, supabase } : null;
-}
 
 const healthEventSchema = z.object({
   pet_id: z.string().uuid(),
@@ -24,59 +17,73 @@ const healthEventSchema = z.object({
   photo_url: z.string().url().max(2048).optional(),
 });
 
-/**
- * POST /api/health-events
- * Create a health event (grooming or vet_visit) for a user's pet.
- */
+function mapHealthEvent(row: typeof healthEvents.$inferSelect) {
+  return {
+    id: row.id,
+    pet_id: row.petId,
+    event_type: row.eventType,
+    title: row.title,
+    description: row.description,
+    event_date: row.eventDate,
+    attachment_urls: row.attachmentUrls,
+    photo_url: row.photoUrl,
+    created_at: row.createdAt,
+  };
+}
+
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const parsed = healthEventSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // Verify pet ownership via RLS — select pet first
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", parsed.data.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const inserted = await query(auth.userId, async (tx: Tx) => {
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, parsed.data.pet_id), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .insert(healthEvents)
+        .values({
+          petId: parsed.data.pet_id,
+          eventType: parsed.data.event_type,
+          title: parsed.data.title,
+          description: parsed.data.description ?? null,
+          eventDate: parsed.data.event_date,
+          photoUrl: parsed.data.photo_url ?? null,
+          createdAt: new Date(),
+        })
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("health_events")
-    .insert({
-      pet_id: parsed.data.pet_id,
-      event_type: parsed.data.event_type,
-      title: parsed.data.title,
-      description: parsed.data.description ?? null,
-      event_date: parsed.data.event_date,
-      photo_url: parsed.data.photo_url ?? null,
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: "Failed to create health event" }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+    if (inserted === null) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+    return NextResponse.json(mapHealthEvent(inserted), { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Failed to create health event" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
-  const { id, ...rest } = body;
+  const body = await request.json().catch(() => null);
+  const { id, ...rest } = body ?? {};
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
@@ -87,66 +94,83 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("health_events")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const updated = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: healthEvents.petId })
+        .from(healthEvents)
+        .where(eq(healthEvents.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Health event not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      const updateValues: Partial<typeof healthEvents.$inferInsert> = {};
+      if (parsed.data.event_type !== undefined) updateValues.eventType = parsed.data.event_type;
+      if (parsed.data.title !== undefined) updateValues.title = parsed.data.title;
+      if (parsed.data.description !== undefined)
+        updateValues.description = parsed.data.description ?? null;
+      if (parsed.data.event_date !== undefined) updateValues.eventDate = parsed.data.event_date;
+      if (parsed.data.photo_url !== undefined) updateValues.photoUrl = parsed.data.photo_url ?? null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .update(healthEvents)
+        .set(updateValues)
+        .where(eq(healthEvents.id, id))
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("health_events")
-    .update(parsed.data)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (updated === "not_found") {
+      return NextResponse.json({ error: "Health event not found" }, { status: 404 });
+    }
+    if (!updated) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(mapHealthEvent(updated));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("health_events")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const result = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: healthEvents.petId })
+        .from(healthEvents)
+        .where(eq(healthEvents.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Health event not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      await tx.delete(healthEvents).where(eq(healthEvents.id, id));
+      return "ok" as const;
+    });
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
-
-  const { error } = await auth.supabase.from("health_events").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+    if (result === "not_found") {
+      return NextResponse.json({ error: "Health event not found" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

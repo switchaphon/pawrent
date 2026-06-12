@@ -1,97 +1,114 @@
-import { createApiClient } from "@/lib/supabase-api";
+import { NextRequest, NextResponse } from "next/server";
+import { and, eq, desc } from "drizzle-orm";
+import { z } from "zod";
+import { verifyAuth } from "@/lib/auth";
+import { query, pets, parasiteLogs } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { parasiteLogSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 const limiter = createRateLimiter(20, "1 m");
 
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ? { user, supabase } : null;
+function mapParasiteLog(row: typeof parasiteLogs.$inferSelect) {
+  return {
+    id: row.id,
+    pet_id: row.petId,
+    medicine_name: row.medicineName,
+    administered_date: row.administeredDate,
+    next_due_date: row.nextDueDate,
+    created_at: row.createdAt,
+  };
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const pet_id = request.nextUrl.searchParams.get("pet_id");
   if (!pet_id) return NextResponse.json({ error: "pet_id is required" }, { status: 400 });
 
   const uuidResult = z.string().uuid().safeParse(pet_id);
-  if (!uuidResult.success)
+  if (!uuidResult.success) {
     return NextResponse.json({ error: "pet_id must be a valid UUID" }, { status: 400 });
+  }
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const rows = await query(auth.userId, async (tx: Tx) => {
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, pet_id), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      return tx
+        .select()
+        .from(parasiteLogs)
+        .where(eq(parasiteLogs.petId, pet_id))
+        .orderBy(desc(parasiteLogs.administeredDate));
+    });
 
-  const { data, error } = await auth.supabase
-    .from("parasite_logs")
-    .select("*")
-    .eq("pet_id", pet_id)
-    .order("administered_date", { ascending: false });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (rows === null) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+    return NextResponse.json(rows.map(mapParasiteLog));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const result = parasiteLogSchema.safeParse(body);
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", result.data.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const inserted = await query(auth.userId, async (tx: Tx) => {
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, result.data.pet_id), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .insert(parasiteLogs)
+        .values({
+          petId: result.data.pet_id,
+          medicineName: result.data.medicine_name ?? null,
+          administeredDate: result.data.administered_date,
+          nextDueDate: result.data.next_due_date,
+          createdAt: new Date(),
+        })
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("parasite_logs")
-    .insert(result.data)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (inserted === null) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+    return NextResponse.json(mapParasiteLog(inserted));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
-  const { id, ...rest } = body;
+  const body = await request.json().catch(() => null);
+  const { id, ...rest } = body ?? {};
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
@@ -112,66 +129,83 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("parasite_logs")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const updated = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: parasiteLogs.petId })
+        .from(parasiteLogs)
+        .where(eq(parasiteLogs.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Parasite log not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      const updateValues: Partial<typeof parasiteLogs.$inferInsert> = {};
+      if (parsed.data.medicine_name !== undefined)
+        updateValues.medicineName = parsed.data.medicine_name ?? null;
+      if (parsed.data.administered_date !== undefined)
+        updateValues.administeredDate = parsed.data.administered_date;
+      if (parsed.data.next_due_date !== undefined)
+        updateValues.nextDueDate = parsed.data.next_due_date;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .update(parasiteLogs)
+        .set(updateValues)
+        .where(eq(parasiteLogs.id, id))
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("parasite_logs")
-    .update(parsed.data)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (updated === "not_found") {
+      return NextResponse.json({ error: "Parasite log not found" }, { status: 404 });
+    }
+    if (!updated) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(mapParasiteLog(updated));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("parasite_logs")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const result = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: parasiteLogs.petId })
+        .from(parasiteLogs)
+        .where(eq(parasiteLogs.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Parasite log not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      await tx.delete(parasiteLogs).where(eq(parasiteLogs.id, id));
+      return "ok" as const;
+    });
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
-
-  const { error } = await auth.supabase.from("parasite_logs").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+    if (result === "not_found") {
+      return NextResponse.json({ error: "Parasite log not found" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
