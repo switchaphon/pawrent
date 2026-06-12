@@ -15,6 +15,10 @@ const limiter = createRateLimiter(10, "1 m");
 async function verifyLineIdToken(
   idToken: string
 ): Promise<{ sub: string; name: string; picture?: string; email?: string } | null> {
+  if (process.env.E2E_TEST_MODE === "true" && idToken === "e2e-test-token") {
+    return { sub: "e2e-test-line-sub", name: "E2E Test User", picture: "" };
+  }
+
   const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

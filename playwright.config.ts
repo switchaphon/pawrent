@@ -8,30 +8,32 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
     trace: "on-first-retry",
   },
   projects: [
-    // Uncomment to enable authenticated E2E tests:
-    // {
-    //   name: "setup",
-    //   testMatch: /auth\.setup\.ts/,
-    // },
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: "chromium",
       use: { browserName: "chromium" },
-      // To use auth: dependencies: ["setup"],
-      // use: { browserName: "chromium", storageState: "e2e/.auth/user.json" },
+      dependencies: ["setup"],
     },
     {
       name: "firefox",
       use: { browserName: "firefox" },
     },
   ],
-  webServer: {
-    command: "npm run dev -- --webpack",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  ...(process.env.PLAYWRIGHT_BASE_URL
+    ? {}
+    : {
+        webServer: {
+          command: "npm run dev -- --webpack",
+          url: "http://localhost:3000",
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+        },
+      }),
 });
