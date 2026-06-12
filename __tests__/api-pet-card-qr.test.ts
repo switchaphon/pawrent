@@ -37,15 +37,25 @@ vi.mock("qrcode", () => ({
 // ---------------------------------------------------------------------------
 const mockMaybySingle = vi.fn();
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: mockMaybySingle,
-    })),
-  })),
-}));
+// Adapter: the route now uses adminQuery + Drizzle. mockMaybySingle stays the
+// per-test row source ({ data: { pawrent_id } } | { data: null }) — the stub
+// maps it to the camelCase row shape the route selects.
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  const stubTx = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn(async () => {
+      const result = (await mockMaybySingle()) as { data: { pawrent_id: string } | null };
+      return result?.data ? [{ pawrentId: result.data.pawrent_id }] : [];
+    }),
+  };
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Import route handler AFTER mocks

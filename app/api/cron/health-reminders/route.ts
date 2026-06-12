@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { eq, and, lte, gt, inArray, asc } from "drizzle-orm";
+import { adminQuery, healthReminders, profiles, pets } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { getLineClient } from "@/lib/line/client";
 import { buildHealthReminderMessage } from "@/lib/line-templates/health-reminder";
 
@@ -15,65 +17,105 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
   const today = new Date().toISOString().slice(0, 10);
 
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 30);
   const futureDateStr = futureDate.toISOString().slice(0, 10);
 
-  const [{ data: reminders, error }, { data: upcomingReminders, error: upcomingError }] =
-    await Promise.all([
-      supabase
-        .from("health_reminders")
-        .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
-        .eq("is_sent", false)
-        .eq("is_dismissed", false)
-        .lte("due_date", today)
-        .order("due_date", { ascending: true }),
-      supabase
-        .from("health_reminders")
-        .select("id, pet_id, owner_id, reminder_type, title, due_date, remind_days_before")
-        .eq("is_sent", false)
-        .eq("is_dismissed", false)
-        .gt("due_date", today)
-        .lte("due_date", futureDateStr)
-        .order("due_date", { ascending: true }),
-    ]);
+  type ReminderRow = {
+    id: string;
+    petId: string;
+    ownerId: string;
+    reminderType: string;
+    title: string;
+    dueDate: string;
+    remindDaysBefore: number | null;
+  };
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (upcomingError) return NextResponse.json({ error: upcomingError.message }, { status: 500 });
+  let overdueRows: ReminderRow[];
+  let upcomingRows: ReminderRow[];
+
+  try {
+    [overdueRows, upcomingRows] = await adminQuery(async (tx: Tx) => {
+      return Promise.all([
+        tx.select({
+            id: healthReminders.id,
+            petId: healthReminders.petId,
+            ownerId: healthReminders.ownerId,
+            reminderType: healthReminders.reminderType,
+            title: healthReminders.title,
+            dueDate: healthReminders.dueDate,
+            remindDaysBefore: healthReminders.remindDaysBefore,
+          })
+          .from(healthReminders)
+          .where(
+            and(
+              eq(healthReminders.isSent, false),
+              eq(healthReminders.isDismissed, false),
+              lte(healthReminders.dueDate, today)
+            )
+          )
+          .orderBy(asc(healthReminders.dueDate)),
+        tx.select({
+            id: healthReminders.id,
+            petId: healthReminders.petId,
+            ownerId: healthReminders.ownerId,
+            reminderType: healthReminders.reminderType,
+            title: healthReminders.title,
+            dueDate: healthReminders.dueDate,
+            remindDaysBefore: healthReminders.remindDaysBefore,
+          })
+          .from(healthReminders)
+          .where(
+            and(
+              eq(healthReminders.isSent, false),
+              eq(healthReminders.isDismissed, false),
+              gt(healthReminders.dueDate, today),
+              lte(healthReminders.dueDate, futureDateStr)
+            )
+          )
+          .orderBy(asc(healthReminders.dueDate)),
+      ]);
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "DB error" },
+      { status: 500 }
+    );
+  }
 
   // Filter upcoming reminders to those within their remind window
   const todayMs = new Date(today).getTime();
-  const dueNow =
-    upcomingReminders?.filter((r) => {
-      const dueMs = new Date(r.due_date).getTime();
-      const daysDiff = Math.ceil((dueMs - todayMs) / (1000 * 60 * 60 * 24));
-      return daysDiff <= r.remind_days_before;
-    }) ?? [];
+  const dueNow = upcomingRows.filter((r) => {
+    const dueMs = new Date(r.dueDate).getTime();
+    const daysDiff = Math.ceil((dueMs - todayMs) / (1000 * 60 * 60 * 24));
+    return daysDiff <= (r.remindDaysBefore ?? 3);
+  });
 
-  const allReminders = [...(reminders ?? []), ...dueNow];
+  const allReminders = [...overdueRows, ...dueNow];
 
   if (allReminders.length === 0) {
     return NextResponse.json({ sent: 0, message: "No reminders due" });
   }
 
   // Get owner LINE IDs and pet info
-  const ownerIds = [...new Set(allReminders.map((r) => r.owner_id))];
-  const petIds = [...new Set(allReminders.map((r) => r.pet_id))];
+  const ownerIds = [...new Set(allReminders.map((r) => r.ownerId))];
+  const petIds = [...new Set(allReminders.map((r) => r.petId))];
 
-  const [{ data: profiles }, { data: pets }] = await Promise.all([
-    supabase.from("profiles").select("id, line_user_id").in("id", ownerIds),
-    supabase.from("pets").select("id, name").in("id", petIds),
-  ]);
+  const [ownerRows, petRows] = await adminQuery(async (tx: Tx) => {
+    return Promise.all([
+      tx.select({ id: profiles.id, lineUserId: profiles.lineUserId })
+        .from(profiles)
+        .where(inArray(profiles.id, ownerIds)),
+      tx.select({ id: pets.id, name: pets.name })
+        .from(pets)
+        .where(inArray(pets.id, petIds)),
+    ]);
+  });
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.line_user_id]));
-  const petMap = new Map((pets ?? []).map((p) => [p.id, p.name]));
+  const profileMap = new Map(ownerRows.map((p) => [p.id, p.lineUserId]));
+  const petMap = new Map(petRows.map((p) => [p.id, p.name]));
 
   const line = getLineClient();
   let sent = 0;
@@ -82,27 +124,28 @@ export async function GET(request: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://pawrent.app";
 
   for (const reminder of allReminders) {
-    const lineUserId = profileMap.get(reminder.owner_id);
+    const lineUserId = profileMap.get(reminder.ownerId);
     if (!lineUserId) continue;
 
-    const petName = petMap.get(reminder.pet_id) ?? "สัตว์เลี้ยง";
-    const dueMs = new Date(reminder.due_date).getTime();
+    const petName = petMap.get(reminder.petId) ?? "สัตว์เลี้ยง";
+    const dueMs = new Date(reminder.dueDate).getTime();
     const daysUntilDue = Math.ceil((dueMs - todayMs) / (1000 * 60 * 60 * 24));
 
     const message = buildHealthReminderMessage({
       petName,
       reminderTitle: reminder.title,
-      dueDate: reminder.due_date,
+      dueDate: reminder.dueDate,
       daysUntilDue,
-      passportUrl: `${appUrl}/pets/${reminder.pet_id}/passport`,
+      passportUrl: `${appUrl}/pets/${reminder.petId}/passport`,
     });
 
     try {
       await line.pushMessage({ to: lineUserId, messages: [message] });
-      await supabase
-        .from("health_reminders")
-        .update({ is_sent: true, sent_at: new Date().toISOString() })
-        .eq("id", reminder.id);
+      await adminQuery(async (tx: Tx) => {
+        await tx.update(healthReminders)
+          .set({ isSent: true, sentAt: new Date() })
+          .where(eq(healthReminders.id, reminder.id));
+      });
       sent++;
     } catch (err) {
       errors.push(

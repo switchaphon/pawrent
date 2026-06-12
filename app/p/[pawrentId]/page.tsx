@@ -1,4 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
+import { adminQuery, pets } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -8,18 +10,21 @@ interface Props {
 }
 
 async function getPetByPawrentId(pawrentId: string) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { data } = await supabase
-    .from("pets")
-    .select("id, name, species, breed, photo_url, pawrent_id")
-    .eq("pawrent_id", pawrentId)
-    .maybeSingle();
-
-  return data;
+  return adminQuery(async (tx: Tx) => {
+    const rows = await tx
+      .select({
+        id: pets.id,
+        name: pets.name,
+        species: pets.species,
+        breed: pets.breed,
+        photoUrl: pets.photoUrl,
+        pawrentId: pets.pawrentId,
+      })
+      .from(pets)
+      .where(eq(pets.pawrentId, pawrentId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${pet.name} · Pawrent`,
       description: `${pet.breed ?? pet.species ?? "สัตว์เลี้ยง"} · สแกนโดย PAWRENTS`,
-      images: pet.photo_url ? [{ url: pet.photo_url }] : [],
+      images: pet.photoUrl ? [{ url: pet.photoUrl }] : [],
     },
   };
 }
@@ -92,9 +97,9 @@ export default async function PawrentPublicPage({ params }: Props) {
             flexShrink: 0,
           }}
         >
-          {pet.photo_url ? (
+          {pet.photoUrl ? (
             <Image
-              src={pet.photo_url}
+              src={pet.photoUrl}
               alt={pet.name}
               width={140}
               height={140}
@@ -130,7 +135,7 @@ export default async function PawrentPublicPage({ params }: Props) {
               marginTop: "4px",
             }}
           >
-            {pet.pawrent_id}
+            {pet.pawrentId}
           </p>
         </div>
 

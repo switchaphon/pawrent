@@ -1,12 +1,22 @@
 /**
- * Integration tests for GET /api/cron/health-reminders.
+ * Tests for GET /api/cron/health-reminders.
+ *
+ * Mock strategy (Drizzle):
+ *   - @/lib/db/index: vi.mock — adminQuery intercepted; returns pre-loaded values.
+ *   - @/lib/line/client: vi.mock — pushMessage mock.
+ *   - @/lib/line-templates/health-reminder: vi.mock — buildHealthReminderMessage stub.
+ *
+ * adminQuery call order when reminders exist:
+ *   call 1 — [overdueRows, upcomingRows]    (two parallel selects)
+ *   call 2 — [ownerRows, petRows]           (two parallel selects)
+ *   call 3+— update reminder (one per sent reminder, inside try block)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock LINE client
+// Mock @/lib/line/client
 // ---------------------------------------------------------------------------
 const mockPushMessage = vi.fn().mockResolvedValue({});
 
@@ -15,40 +25,35 @@ vi.mock("@/lib/line/client", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @supabase/supabase-js — call-index based
+// Mock @/lib/line-templates/health-reminder
 // ---------------------------------------------------------------------------
-type QueryResult = { data: unknown; error: unknown };
-let fromCallResults: QueryResult[];
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => {
-    let callIdx = 0;
-    return {
-      from: vi.fn(() => {
-        const idx = callIdx++;
-        const getResult = (): QueryResult => {
-          return fromCallResults[idx] ?? { data: [], error: null };
-        };
-        const chain: Record<string, unknown> = {};
-        chain.select = vi.fn(() => chain);
-        chain.eq = vi.fn(() => chain);
-        chain.in = vi.fn(() => chain);
-        chain.lte = vi.fn(() => chain);
-        chain.gt = vi.fn(() => chain);
-        chain.order = vi.fn(() => chain);
-        chain.limit = vi.fn(() => chain);
-        chain.maybeSingle = vi.fn(() => getResult());
-        chain.update = vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null })),
-        }));
-        chain.then = (resolve: (v: QueryResult) => void) => {
-          resolve(getResult());
-        };
-        return chain;
-      }),
-    };
-  },
+vi.mock("@/lib/line-templates/health-reminder", () => ({
+  buildHealthReminderMessage: vi.fn().mockReturnValue({ type: "text", text: "Reminder!" }),
 }));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index
+// ---------------------------------------------------------------------------
+let _adminResponses: unknown[] = [];
+let _adminCallIdx = 0;
+let _adminError: Error | null = null;
+
+function setupAdmin(responses: unknown[], error: Error | null = null) {
+  _adminResponses = responses;
+  _adminCallIdx = 0;
+  _adminError = error;
+}
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (_fn: unknown) => {
+      if (_adminError) throw _adminError;
+      return _adminResponses[_adminCallIdx++];
+    }),
+  };
+});
 
 import { GET } from "@/app/api/cron/health-reminders/route";
 
@@ -62,6 +67,16 @@ function makeCronRequest(secret = "test-secret"): NextRequest {
   });
 }
 
+const BASE_REMINDER = {
+  id: "r1",
+  petId: "p1",
+  ownerId: "o1",
+  reminderType: "vaccination",
+  title: "Rabies vaccine due",
+  dueDate: "2026-04-14",
+  remindDaysBefore: 3,
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -71,20 +86,22 @@ describe("GET /api/cron/health-reminders", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-14T08:00:00Z"));
     process.env.CRON_SECRET = "test-secret";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
     process.env.NEXT_PUBLIC_APP_URL = "https://pawrent.app";
-    fromCallResults = [];
+    setupAdmin([]);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
   it("returns 401 without correct cron secret", async () => {
     const req = makeCronRequest("wrong-secret");
     const res = await GET(req);
     expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBeDefined();
   });
 
   it("returns 401 without any auth header", async () => {
@@ -93,49 +110,49 @@ describe("GET /api/cron/health-reminders", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns sent: 0 when no reminders are due", async () => {
-    // Call order: from("health_reminders") overdue, from("health_reminders") upcoming
-    fromCallResults = [
-      { data: [], error: null }, // overdue
-      { data: [], error: null }, // upcoming
-    ];
+  // ── No reminders ─────────────────────────────────────────────────────────
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+  it("returns sent: 0 + message when no reminders are due", async () => {
+    setupAdmin([[[], []]]);
+
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.message).toBe("No reminders due");
+  });
+
+  it("excludes upcoming reminder outside remind window (10 days out, window=3)", async () => {
+    setupAdmin([
+      [
+        [],
+        [
+          {
+            ...BASE_REMINDER,
+            id: "r3",
+            title: "Far away vaccine",
+            dueDate: "2026-04-24", // 10 days out
+            remindDaysBefore: 3,
+          },
+        ],
+      ],
+    ]);
+
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(0);
   });
 
-  it("sends LINE push for due reminders and marks as sent", async () => {
-    // Call order:
-    // 0: from("health_reminders") overdue query
-    // 1: from("health_reminders") upcoming query
-    // 2: from("profiles")
-    // 3: from("pets")
-    // 4: from("health_reminders") update (mark sent)
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "r1",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Rabies vaccine due",
-            due_date: "2026-04-14",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null }, // upcoming
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null }, // profiles
-      { data: [{ id: "p1", name: "Buddy" }], error: null }, // pets
-    ];
+  // ── Happy paths ───────────────────────────────────────────────────────────
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+  it("sends push for overdue reminder and marks as sent", async () => {
+    setupAdmin([
+      [[BASE_REMINDER], []],
+      [[{ id: "o1", lineUserId: "Uabc123" }], [{ id: "p1", name: "Buddy" }]],
+      undefined, // update call
+    ]);
+
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.sent).toBe(1);
@@ -144,31 +161,52 @@ describe("GET /api/cron/health-reminders", () => {
     expect(mockPushMessage).toHaveBeenCalledWith(expect.objectContaining({ to: "Uabc123" }));
   });
 
-  it("handles LINE push error gracefully", async () => {
-    fromCallResults = [
-      {
-        data: [
+  it("includes upcoming reminder within remind window (2 days out, window=3)", async () => {
+    setupAdmin([
+      [
+        [],
+        [
           {
-            id: "r1",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Rabies vaccine due",
-            due_date: "2026-04-14",
-            remind_days_before: 3,
+            ...BASE_REMINDER,
+            id: "r2",
+            title: "Heartworm prevention",
+            dueDate: "2026-04-16", // 2 days out
+            remindDaysBefore: 3,
           },
         ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      { data: [{ id: "p1", name: "Buddy" }], error: null },
-    ];
+      ],
+      [[{ id: "o1", lineUserId: "Uabc123" }], [{ id: "p1", name: "Buddy" }]],
+      undefined,
+    ]);
 
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(1);
+    expect(json.total).toBe(1);
+  });
+
+  // ── Skip / error paths ────────────────────────────────────────────────────
+
+  it("skips reminder when owner has no LINE user ID (lineUserId null)", async () => {
+    setupAdmin([
+      [[BASE_REMINDER], []],
+      [[{ id: "o1", lineUserId: null }], [{ id: "p1", name: "Buddy" }]],
+    ]);
+
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
+  it("handles LINE push error gracefully", async () => {
+    setupAdmin([
+      [[BASE_REMINDER], []],
+      [[{ id: "o1", lineUserId: "Uabc123" }], [{ id: "p1", name: "Buddy" }]],
+    ]);
     mockPushMessage.mockRejectedValueOnce(new Error("LINE API error"));
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.sent).toBe(0);
@@ -176,205 +214,60 @@ describe("GET /api/cron/health-reminders", () => {
     expect(json.errors[0]).toContain("LINE API error");
   });
 
-  it("skips reminders when owner has no LINE user ID", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "r1",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Rabies vaccine due",
-            due_date: "2026-04-14",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: null }], error: null },
-      { data: [{ id: "p1", name: "Buddy" }], error: null },
-    ];
+  it("returns 500 when first adminQuery throws", async () => {
+    setupAdmin([], new Error("DB connection error"));
 
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-    expect(mockPushMessage).not.toHaveBeenCalled();
-  });
-
-  it("includes upcoming reminders within remind window", async () => {
-    // Reminder due in 2 days, remind_days_before = 3, so it should be included
-    fromCallResults = [
-      { data: [], error: null }, // overdue — none
-      {
-        data: [
-          {
-            id: "r2",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "parasite_prevention",
-            title: "Heartworm prevention due",
-            due_date: "2026-04-16",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      }, // upcoming
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      { data: [{ id: "p1", name: "Buddy" }], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(1);
-    expect(json.total).toBe(1);
-  });
-
-  it("returns 500 when overdue query fails", async () => {
-    fromCallResults = [{ data: null, error: { message: "DB connection error" } }];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toBe("DB connection error");
   });
 
-  it("returns 500 when upcoming query fails", async () => {
-    fromCallResults = [
-      { data: [], error: null }, // overdue OK
-      { data: null, error: { message: "Upcoming query failed" } },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Upcoming query failed");
-  });
-
   it("uses default pet name when pet not found in map", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "r1",
-            pet_id: "unknown-pet",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Vaccine due",
-            due_date: "2026-04-14",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      { data: [], error: null }, // pets returns empty
-    ];
+    setupAdmin([
+      [[{ ...BASE_REMINDER, petId: "unknown-pet" }], []],
+      [[{ id: "o1", lineUserId: "Uabc123" }], []], // pets returns empty
+      undefined,
+    ]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
-    // Should still send with default name
     expect(json.sent).toBe(1);
     expect(mockPushMessage).toHaveBeenCalledOnce();
   });
 
-  it("handles null data from profiles and pets gracefully", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "r1",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Vaccine due",
-            due_date: "2026-04-14",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: null, error: null }, // profiles returns null
-      { data: null, error: null }, // pets returns null
-    ];
+  it("handles empty owner rows gracefully (no LINE ID found)", async () => {
+    setupAdmin([
+      [[BASE_REMINDER], []],
+      [[], [{ id: "p1", name: "Buddy" }]],
+    ]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    // No LINE ID found, so 0 sent
-    expect(json.sent).toBe(0);
-  });
-
-  it("handles null data from overdue reminders", async () => {
-    fromCallResults = [
-      { data: null, error: null }, // overdue returns null
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(0);
   });
 
-  it("handles null data from upcoming reminders", async () => {
-    fromCallResults = [
-      { data: [], error: null },
-      { data: null, error: null }, // upcoming returns null
-    ];
+  it("does not re-send already sent reminders (isSent filter is DB-level)", async () => {
+    setupAdmin([[[], []]]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-  });
-
-  it("does not re-send already sent reminders (idempotency)", async () => {
-    // Both overdue and upcoming queries return empty because is_sent filter
-    // excludes already-sent reminders at the DB level
-    fromCallResults = [
-      { data: [], error: null }, // overdue — all already sent
-      { data: [], error: null }, // upcoming — all already sent
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(0);
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("excludes upcoming reminders outside remind window", async () => {
-    // Reminder due in 10 days, remind_days_before = 3, should NOT be included
-    fromCallResults = [
-      { data: [], error: null },
-      {
-        data: [
-          {
-            id: "r3",
-            pet_id: "p1",
-            owner_id: "o1",
-            reminder_type: "vaccination",
-            title: "Far away vaccine",
-            due_date: "2026-04-24",
-            remind_days_before: 3,
-          },
-        ],
-        error: null,
-      },
-    ];
+  it("response shape: sent + total + errors always present when reminders found", async () => {
+    setupAdmin([
+      [[BASE_REMINDER], []],
+      [[{ id: "o1", lineUserId: "Uabc123" }], [{ id: "p1", name: "Buddy" }]],
+      undefined,
+    ]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
-    expect(json.sent).toBe(0);
+    expect(json).toHaveProperty("sent");
+    expect(json).toHaveProperty("total");
+    expect(json).toHaveProperty("errors");
+    expect(Array.isArray(json.errors)).toBe(true);
   });
 });

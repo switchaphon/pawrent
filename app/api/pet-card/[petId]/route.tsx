@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { eq, desc } from "drizzle-orm";
+import { adminQuery, pets, profiles, vaccinations, parasiteLogs, petWeightLogs, diaryEntries } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import QRCode from "qrcode";
 import { readFileSync } from "node:fs";
@@ -54,22 +56,43 @@ export async function GET(
   const rateLimited = await checkRateLimit(limiter, `card:${ipKey}`);
   if (rateLimited) return rateLimited;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const petRow = await adminQuery(async (tx: Tx) => {
+    const rows = await tx
+      .select({
+        id: pets.id,
+        ownerId: pets.ownerId,
+        name: pets.name,
+        species: pets.species,
+        breed: pets.breed,
+        sex: pets.sex,
+        dateOfBirth: pets.dateOfBirth,
+        photoUrl: pets.photoUrl,
+        microchipNumber: pets.microchipNumber,
+        pawrentId: pets.pawrentId,
+      })
+      .from(pets)
+      .where(eq(pets.id, petId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
 
-  const { data: pet } = await supabase
-    .from("pets")
-    .select(
-      "id, owner_id, name, species, breed, sex, date_of_birth, photo_url, microchip_number, pawrent_id"
-    )
-    .eq("id", petId)
-    .maybeSingle();
-
-  if (!pet) {
+  if (!petRow) {
     return new Response("Pet not found", { status: 404 });
   }
+
+  // Map to snake_case shape used throughout the JSX below (parity with previous response shape)
+  const pet = {
+    id: petRow.id,
+    owner_id: petRow.ownerId,
+    name: petRow.name,
+    species: petRow.species,
+    breed: petRow.breed,
+    sex: petRow.sex,
+    date_of_birth: petRow.dateOfBirth,
+    photo_url: petRow.photoUrl,
+    microchip_number: petRow.microchipNumber,
+    pawrent_id: petRow.pawrentId,
+  };
 
   const badge = goodBadge(pet.sex);
 
@@ -104,53 +127,70 @@ export async function GET(
     color: { dark: "#2E2A2E", light: "#FAF7F2" },
   });
 
-  const [profileResult, vaccinationsResult, parasiteResult, weightResult] = await Promise.all([
-    supabase.from("profiles").select("full_name, phone").eq("id", pet.owner_id).maybeSingle(),
-    supabase
-      .from("vaccinations")
-      .select("name, last_date, status")
-      .eq("pet_id", petId)
-      .order("last_date", { ascending: false })
-      .limit(5),
-    supabase
-      .from("parasite_logs")
-      .select("medicine_name, administered_date")
-      .eq("pet_id", petId)
-      .order("administered_date", { ascending: false })
-      .limit(1),
-    supabase
-      .from("pet_weight_logs")
-      .select("weight_kg, measured_at")
-      .eq("pet_id", petId)
-      .order("measured_at", { ascending: false })
-      .limit(1),
-  ]);
+  const [profile, vaccines, latestParasite, latestWeight, wCount, vCount, pCount, dCount] =
+    await adminQuery(async (tx: Tx) => {
+      const [
+        profileRows,
+        vaccRows,
+        parasiteRows,
+        weightRows,
+        wRows,
+        vRows,
+        pRows,
+        dRows,
+      ] = await Promise.all([
+        tx.select({ fullName: profiles.fullName, phone: profiles.phone })
+          .from(profiles)
+          .where(eq(profiles.id, pet.owner_id))
+          .limit(1),
+        tx.select({ name: vaccinations.name, lastDate: vaccinations.lastDate, status: vaccinations.status })
+          .from(vaccinations)
+          .where(eq(vaccinations.petId, petId))
+          .orderBy(desc(vaccinations.lastDate))
+          .limit(5),
+        tx.select({ medicineName: parasiteLogs.medicineName, administeredDate: parasiteLogs.administeredDate })
+          .from(parasiteLogs)
+          .where(eq(parasiteLogs.petId, petId))
+          .orderBy(desc(parasiteLogs.administeredDate))
+          .limit(1),
+        tx.select({ weightKg: petWeightLogs.weightKg, measuredAt: petWeightLogs.measuredAt })
+          .from(petWeightLogs)
+          .where(eq(petWeightLogs.petId, petId))
+          .orderBy(desc(petWeightLogs.measuredAt))
+          .limit(1),
+        // Completion counts — SELECT id to count rows
+        tx.select({ id: petWeightLogs.id }).from(petWeightLogs).where(eq(petWeightLogs.petId, petId)),
+        tx.select({ id: vaccinations.id }).from(vaccinations).where(eq(vaccinations.petId, petId)),
+        tx.select({ id: parasiteLogs.id }).from(parasiteLogs).where(eq(parasiteLogs.petId, petId)),
+        tx.select({ id: diaryEntries.id }).from(diaryEntries).where(eq(diaryEntries.petId, petId)),
+      ]);
+      return [
+        profileRows[0] ?? null,
+        // Map to snake_case shape used in JSX (v.last_date etc)
+        vaccRows.map((v) => ({ name: v.name, last_date: v.lastDate, status: v.status })),
+        parasiteRows[0]
+          ? { medicine_name: parasiteRows[0].medicineName, administered_date: parasiteRows[0].administeredDate }
+          : null,
+        weightRows[0]
+          ? { weight_kg: weightRows[0].weightKg, measured_at: weightRows[0].measuredAt }
+          : null,
+        wRows.length,
+        vRows.length,
+        pRows.length,
+        dRows.length,
+      ] as const;
+    });
 
-  const profile = profileResult.data;
-  const vaccines = vaccinationsResult.data ?? [];
-  const latestParasite = parasiteResult.data?.[0] ?? null;
-  const latestWeight = weightResult.data?.[0] ?? null;
-
-  // Completion check for สมุดพก badge
-  const [wCount, vCount, pCount, dCount] = await Promise.all([
-    supabase
-      .from("pet_weight_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("pet_id", petId),
-    supabase.from("vaccinations").select("id", { count: "exact", head: true }).eq("pet_id", petId),
-    supabase.from("parasite_logs").select("id", { count: "exact", head: true }).eq("pet_id", petId),
-    supabase.from("diary_entries").select("id", { count: "exact", head: true }).eq("pet_id", petId),
-  ]);
-
+  // profile shape from Drizzle: { fullName, phone } — map inline in JSX via profile?.fullName
   const basicDone = Boolean(pet.name && pet.breed && pet.date_of_birth && pet.sex);
   const completionScore =
     (basicDone ? 20 : 0) +
     (pet.photo_url ? 10 : 0) +
     (pet.microchip_number ? 10 : 0) +
-    ((wCount.count ?? 0) > 0 ? 15 : 0) +
-    ((vCount.count ?? 0) > 0 ? 15 : 0) +
-    ((pCount.count ?? 0) > 0 ? 15 : 0) +
-    ((dCount.count ?? 0) > 0 ? 15 : 0);
+    (wCount > 0 ? 15 : 0) +
+    (vCount > 0 ? 15 : 0) +
+    (pCount > 0 ? 15 : 0) +
+    (dCount > 0 ? 15 : 0);
 
   const isComplete = completionScore >= 100;
 
@@ -226,7 +266,7 @@ export async function GET(
               เจ้าของ
             </div>
             <div style={{ fontSize: "16px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
-              {profile?.full_name ?? "—"}
+              {profile?.fullName ?? "—"}
             </div>
             {profile?.phone && (
               <div style={{ fontSize: "14px", color: TEXT_MUTED, display: "flex" }}>
@@ -306,7 +346,7 @@ export async function GET(
             </div>
             <div style={{ fontSize: "15px", fontWeight: 700, color: TEXT_DARK, display: "flex" }}>
               {latestParasite
-                ? `${latestParasite.medicine_name ?? "—"} (${latestParasite.administered_date.slice(0, 10)})`
+                ? `${latestParasite.medicine_name ?? "—"} (${latestParasite.administered_date?.slice(0, 10) ?? "—"})`
                 : "—"}
             </div>
           </div>

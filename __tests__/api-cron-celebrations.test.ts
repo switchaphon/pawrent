@@ -1,12 +1,22 @@
 /**
- * Integration tests for GET /api/cron/celebrations.
+ * Tests for GET /api/cron/celebrations.
+ *
+ * Mock strategy (Drizzle):
+ *   - @/lib/db/index: vi.mock — adminQuery executes callback with a stubbed tx.
+ *   - @/lib/line/client: vi.mock — pushMessage mock.
+ *   - @/lib/line-templates/celebration: vi.mock — buildCelebrationMessage stub.
+ *
+ * adminQuery is called twice per request when celebrations exist:
+ *   call 1 — birthday pets + gotcha pets (two parallel selects → [rows, rows])
+ *   call 2 — owner profiles + pet photos   (two parallel selects → [rows, rows])
+ * Each select chain resolves via the _seq slot array; slots are consumed in order.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock LINE client
+// Mock @/lib/line/client
 // ---------------------------------------------------------------------------
 const mockPushMessage = vi.fn().mockResolvedValue({});
 
@@ -15,35 +25,44 @@ vi.mock("@/lib/line/client", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @supabase/supabase-js
+// Mock @/lib/line-templates/celebration
 // ---------------------------------------------------------------------------
-type QueryResult = { data: unknown; error: unknown };
-let fromCallResults: QueryResult[];
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => {
-    let callIdx = 0;
-    return {
-      from: vi.fn(() => {
-        const idx = callIdx++;
-        const getResult = (): QueryResult => {
-          return fromCallResults[idx] ?? { data: [], error: null };
-        };
-        const chain: Record<string, unknown> = {};
-        chain.select = vi.fn(() => chain);
-        chain.eq = vi.fn(() => chain);
-        chain.in = vi.fn(() => chain);
-        chain.not = vi.fn(() => chain);
-        chain.order = vi.fn(() => chain);
-        chain.limit = vi.fn(() => chain);
-        chain.then = (resolve: (v: QueryResult) => void) => {
-          resolve(getResult());
-        };
-        return chain;
-      }),
-    };
-  },
+vi.mock("@/lib/line-templates/celebration", () => ({
+  buildCelebrationMessage: vi.fn().mockReturnValue({ type: "text", text: "Happy!" }),
 }));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index — adminQuery with a stubbed tx.
+//
+// Each test configures _adminResponses: an array of values that adminQuery
+// calls return in order. For the celebrations route:
+//   _adminResponses[0] = [birthdayRows, gotchaRows]   (first adminQuery)
+//   _adminResponses[1] = [ownerRows, photoRows]        (second adminQuery)
+// If adminQuery should throw, set _adminError.
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
+
+let _adminResponses: unknown[] = [];
+let _adminCallIdx = 0;
+let _adminError: Error | null = null;
+
+function setupAdmin(responses: unknown[], error: Error | null = null) {
+  _adminResponses = responses;
+  _adminCallIdx = 0;
+  _adminError = error;
+}
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (_fn: unknown) => {
+      if (_adminError) throw _adminError;
+      const result = _adminResponses[_adminCallIdx++];
+      return result;
+    }),
+  };
+});
 
 import { GET } from "@/app/api/cron/celebrations/route";
 
@@ -66,408 +85,187 @@ describe("GET /api/cron/celebrations", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-14T07:00:00Z"));
     process.env.CRON_SECRET = "test-secret";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
     process.env.NEXT_PUBLIC_APP_URL = "https://pawrent.app";
-    fromCallResults = [];
+    setupAdmin([]);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
   it("returns 401 without correct cron secret", async () => {
     const req = makeCronRequest("wrong-secret");
     const res = await GET(req);
     expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.error).toBeDefined();
   });
 
-  it("returns sent: 0 when no celebrations today", async () => {
-    // Call order: from("pets") for birthdays, from("pets") for gotcha
-    fromCallResults = [
-      { data: [], error: null }, // birthday pets
-      { data: [], error: null }, // gotcha pets
-    ];
+  // ── No celebrations ───────────────────────────────────────────────────────
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+  it("returns sent: 0 + message when no pets have today's date", async () => {
+    // birthdayPets with wrong month-day, no gotcha pets
+    setupAdmin([
+      [
+        [{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-05-15" }], // May 15 ≠ Apr 14
+        [],
+      ],
+    ]);
+
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.sent).toBe(0);
     expect(json.message).toBe("No celebrations today");
   });
 
-  it("sends birthday celebration for matching pet", async () => {
-    // Call order: from("pets") birthdays, from("pets") gotcha,
-    //   from("profiles"), from("pet_photos")
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null }, // gotcha query
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null }, // profiles
-      {
-        data: [{ pet_id: "p1", photo_url: "https://example.com/photo.jpg" }],
-        error: null,
-      }, // pet_photos
-    ];
+  it("returns sent: 0 when both birthday and gotcha arrays are empty", async () => {
+    setupAdmin([[[], []]]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.message).toBe("No celebrations today");
+  });
+
+  // ── Birthday happy path ───────────────────────────────────────────────────
+
+  it("sends birthday celebration and returns sent: 1", async () => {
+    setupAdmin([
+      // call 1: [birthdayPets, gotchaPets]
+      [
+        [{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }],
+        [],
+      ],
+      // call 2: [ownerRows, photoRows]
+      [
+        [{ id: "o1", lineUserId: "Uabc123" }],
+        [{ petId: "p1", photoUrl: "https://example.com/photo.jpg" }],
+      ],
+    ]);
+
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.sent).toBe(1);
     expect(json.birthdays).toBe(1);
+    expect(json.gotchaDays).toBe(0);
     expect(mockPushMessage).toHaveBeenCalledOnce();
     expect(mockPushMessage).toHaveBeenCalledWith(expect.objectContaining({ to: "Uabc123" }));
   });
 
-  it("sends gotcha-day celebration for matching pet", async () => {
-    fromCallResults = [
-      { data: [], error: null }, // birthday query — no match
-      {
-        data: [
-          {
-            id: "p2",
-            name: "Mochi",
-            owner_id: "o2",
-            gotcha_day: "2024-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [{ id: "o2", line_user_id: "Uxyz789" }], error: null }, // profiles
-      { data: [], error: null }, // pet_photos
-    ];
+  // ── Gotcha-day happy path ─────────────────────────────────────────────────
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+  it("sends gotcha-day celebration", async () => {
+    setupAdmin([
+      [[],[{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2024-04-14" }]],
+      [[{ id: "o2", lineUserId: "Uxyz789" }], []],
+    ]);
+
+    const res = await GET(makeCronRequest());
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.sent).toBe(1);
     expect(json.gotchaDays).toBe(1);
   });
 
-  it("handles LINE push error gracefully", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      { data: [], error: null },
-    ];
+  it("sends both birthday and gotcha for same owner (2 pushes)", async () => {
+    setupAdmin([
+      [
+        [{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }],
+        [{ id: "p2", name: "Mochi", ownerId: "o1", gotchaDay: "2024-04-14" }],
+      ],
+      [[{ id: "o1", lineUserId: "Uabc" }], []],
+    ]);
 
-    mockPushMessage.mockRejectedValueOnce(new Error("LINE push failed"));
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-    expect(json.errors).toHaveLength(1);
-    expect(json.errors[0]).toContain("LINE push failed");
-  });
-
-  it("returns 500 when birthday query fails", async () => {
-    fromCallResults = [{ data: null, error: { message: "Birthday DB error" } }];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Birthday DB error");
-  });
-
-  it("returns 500 when gotcha query fails", async () => {
-    fromCallResults = [
-      { data: [], error: null }, // birthday OK
-      { data: null, error: { message: "Gotcha DB error" } },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Gotcha DB error");
-  });
-
-  it("calculates correct age for birthday (3 years)", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-04-14", // 3 years ago
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(1);
-    // Verify the message was sent (age = 3)
-    expect(mockPushMessage).toHaveBeenCalledOnce();
-  });
-
-  it("handles pet with no matching dates (different month-day)", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-05-14", // May 14, not April 14
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-    expect(json.message).toBe("No celebrations today");
-  });
-
-  it("handles null birthdayPets data", async () => {
-    fromCallResults = [
-      { data: null, error: null }, // birthday null
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-  });
-
-  it("handles null gotchaPets data", async () => {
-    fromCallResults = [
-      { data: [], error: null },
-      { data: null, error: null }, // gotcha null
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-  });
-
-  it("handles null photos data gracefully", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc" }], error: null },
-      { data: null, error: null }, // photos null
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(1);
-  });
-
-  it("handles gotcha day with age 0 (same year)", async () => {
-    fromCallResults = [
-      { data: [], error: null },
-      {
-        data: [
-          {
-            id: "p2",
-            name: "Mochi",
-            owner_id: "o2",
-            gotcha_day: "2026-04-14", // same year
-          },
-        ],
-        error: null,
-      },
-      { data: [{ id: "o2", line_user_id: "Uxyz" }], error: null },
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(1);
-  });
-
-  it("sends both birthday and gotcha for same owner", async () => {
-    fromCallResults = [
-      {
-        data: [{ id: "p1", name: "Buddy", owner_id: "o1", date_of_birth: "2023-04-14" }],
-        error: null,
-      },
-      {
-        data: [{ id: "p2", name: "Mochi", owner_id: "o1", gotcha_day: "2024-04-14" }],
-        error: null,
-      },
-      { data: [{ id: "o1", line_user_id: "Uabc" }], error: null },
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(2);
     expect(json.birthdays).toBe(1);
     expect(json.gotchaDays).toBe(1);
   });
 
-  it("caps photo collage at 4 photos per pet", async () => {
-    fromCallResults = [
-      {
-        data: [{ id: "p1", name: "Buddy", owner_id: "o1", date_of_birth: "2023-04-14" }],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc123" }], error: null },
-      {
-        data: [
-          { pet_id: "p1", photo_url: "https://example.com/1.jpg" },
-          { pet_id: "p1", photo_url: "https://example.com/2.jpg" },
-          { pet_id: "p1", photo_url: "https://example.com/3.jpg" },
-          { pet_id: "p1", photo_url: "https://example.com/4.jpg" },
-          { pet_id: "p1", photo_url: "https://example.com/5.jpg" },
-        ],
-        error: null,
-      },
-    ];
+  // ── Error paths ───────────────────────────────────────────────────────────
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+  it("returns 500 when first adminQuery throws", async () => {
+    setupAdmin([], new Error("Birthday DB error"));
+
+    const res = await GET(makeCronRequest());
+    expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.sent).toBe(1);
-    expect(mockPushMessage).toHaveBeenCalledOnce();
-    // The route caps at 4 photos per pet (line 92: existing.length < 4)
-    // Confirm push was called successfully (photo cap doesn't cause errors)
+    expect(json.error).toBe("Birthday DB error");
   });
 
-  it("handles gotcha-day push error gracefully", async () => {
-    fromCallResults = [
-      { data: [], error: null },
-      {
-        data: [
-          {
-            id: "p2",
-            name: "Mochi",
-            owner_id: "o2",
-            gotcha_day: "2024-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [{ id: "o2", line_user_id: "Uxyz" }], error: null },
-      { data: [], error: null },
-    ];
+  it("handles LINE push error gracefully (birthday)", async () => {
+    setupAdmin([
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }], []],
+      [[{ id: "o1", lineUserId: "Uabc123" }], []],
+    ]);
+    mockPushMessage.mockRejectedValueOnce(new Error("LINE push failed"));
 
+    const res = await GET(makeCronRequest());
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.errors).toHaveLength(1);
+    expect(json.errors[0]).toContain("LINE push failed");
+    expect(json.errors[0]).toContain("Birthday push failed");
+  });
+
+  it("handles LINE push error gracefully (gotcha-day, non-Error thrown)", async () => {
+    setupAdmin([
+      [[], [{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2024-04-14" }]],
+      [[{ id: "o2", lineUserId: "Uxyz" }], []],
+    ]);
     mockPushMessage.mockRejectedValueOnce("non-error-string");
 
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(0);
     expect(json.errors).toHaveLength(1);
     expect(json.errors[0]).toContain("Gotcha-day push failed");
   });
 
-  it("handles birthday push with non-Error thrown", async () => {
-    fromCallResults = [
-      {
-        data: [{ id: "p1", name: "Buddy", owner_id: "o1", date_of_birth: "2023-04-14" }],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: "Uabc" }], error: null },
-      { data: [], error: null },
-    ];
+  // ── Edge cases ────────────────────────────────────────────────────────────
 
-    mockPushMessage.mockRejectedValueOnce("string-error");
+  it("skips when owner has no LINE user ID (lineUserId null)", async () => {
+    setupAdmin([
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }], []],
+      [[{ id: "o1", lineUserId: null }], []],
+    ]);
 
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-    expect(json.errors).toHaveLength(1);
-    expect(json.errors[0]).toContain("Birthday push failed");
-  });
-
-  it("handles null profiles data", async () => {
-    fromCallResults = [
-      {
-        data: [{ id: "p1", name: "Buddy", owner_id: "o1", date_of_birth: "2023-04-14" }],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: null, error: null }, // profiles null
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.sent).toBe(0);
-  });
-
-  it("skips celebrations when owner has no LINE ID", async () => {
-    fromCallResults = [
-      {
-        data: [
-          {
-            id: "p1",
-            name: "Buddy",
-            owner_id: "o1",
-            date_of_birth: "2023-04-14",
-          },
-        ],
-        error: null,
-      },
-      { data: [], error: null },
-      { data: [{ id: "o1", line_user_id: null }], error: null },
-      { data: [], error: null },
-    ];
-
-    const req = makeCronRequest();
-    const res = await GET(req);
+    const res = await GET(makeCronRequest());
     const json = await res.json();
     expect(json.sent).toBe(0);
     expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
+  it("calculates age 0 for same-year gotcha (sends with undefined years)", async () => {
+    setupAdmin([
+      [[], [{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2026-04-14" }]],
+      [[{ id: "o2", lineUserId: "Uxyz" }], []],
+    ]);
+
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(1);
+  });
+
+  it("response shape: sent + birthdays + gotchaDays + errors always present", async () => {
+    setupAdmin([
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }], []],
+      [[{ id: "o1", lineUserId: "Uabc" }], []],
+    ]);
+
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json).toHaveProperty("sent");
+    expect(json).toHaveProperty("birthdays");
+    expect(json).toHaveProperty("gotchaDays");
+    expect(json).toHaveProperty("errors");
+    expect(Array.isArray(json.errors)).toBe(true);
   });
 });

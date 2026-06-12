@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateSignature, parseWebhookEvents } from "@/lib/line/webhook";
-import { createClient } from "@supabase/supabase-js";
+import { eq, asc } from "drizzle-orm";
+import { adminQuery, profiles, pets } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { getLineClient } from "@/lib/line/client";
 import type { messagingApi } from "@line/bot-sdk";
 
@@ -53,35 +55,36 @@ export async function POST(request: NextRequest) {
  * one bubble per pet, with the front card PNG as hero image.
  */
 async function handlePetCardPostback(lineUserId: string): Promise<void> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Resolve pawrent profile by LINE sub stored in profiles.line_id
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("line_id", lineUserId)
-    .maybeSingle();
+  // Resolve pawrent profile by LINE user ID stored in profiles.line_user_id
+  // NOTE: old code used .eq("line_id", ...) which was wrong; schema column is line_user_id.
+  const profile = await adminQuery(async (tx: Tx) => {
+    const rows = await tx
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.lineUserId, lineUserId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
 
   if (!profile) return;
 
-  const { data: pets } = await supabase
-    .from("pets")
-    .select("id, name, pawrent_id, photo_url")
-    .eq("owner_id", profile.id)
-    .order("created_at", { ascending: true })
-    .limit(10);
+  const petRows = await adminQuery(async (tx: Tx) => {
+    return tx
+      .select({ id: pets.id, name: pets.name, pawrentId: pets.pawrentId, photoUrl: pets.photoUrl })
+      .from(pets)
+      .where(eq(pets.ownerId, profile.id))
+      .orderBy(asc(pets.createdAt))
+      .limit(10);
+  });
 
-  if (!pets || pets.length === 0) return;
+  if (!petRows || petRows.length === 0) return;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://pawrent.app";
   const liffUrl = process.env.NEXT_PUBLIC_LIFF_ID
     ? `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID}`
     : appUrl;
 
-  const bubbles: messagingApi.FlexBubble[] = pets.map((pet) => ({
+  const bubbles: messagingApi.FlexBubble[] = petRows.map((pet) => ({
     type: "bubble" as const,
     hero: {
       type: "image" as const,
@@ -103,7 +106,7 @@ async function handlePetCardPostback(lineUserId: string): Promise<void> {
         },
         {
           type: "text" as const,
-          text: pet.pawrent_id,
+          text: pet.pawrentId,
           size: "xs" as const,
           color: "#6B6560",
           margin: "xs" as const,
@@ -149,7 +152,7 @@ async function handlePetCardPostback(lineUserId: string): Promise<void> {
     messages: [
       {
         type: "flex" as const,
-        altText: `บัตรประจำตัวสัตว์เลี้ยงของคุณ (${pets.length} ตัว)`,
+        altText: `บัตรประจำตัวสัตว์เลี้ยงของคุณ (${petRows.length} ตัว)`,
         contents: carousel,
       },
     ],
