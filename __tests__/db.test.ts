@@ -257,6 +257,22 @@ describe("Pet Report Operations", () => {
     expect(url).toMatch(/active=true/);
   });
 
+  it("getActivePetReportForPet returns null when the report list is empty", async () => {
+    mockApiFetch.mockResolvedValueOnce({ data: [] });
+
+    const result = await getActivePetReportForPet("pet-1");
+    expect(result.data).toBeNull();
+    expect(result.error).toBeNull();
+  });
+
+  it("getActivePetReportForPet passes through a non-array payload", async () => {
+    const alert = { id: "a2", pet_id: "pet-2" };
+    mockApiFetch.mockResolvedValueOnce({ data: alert });
+
+    const result = await getActivePetReportForPet("pet-2");
+    expect(result.data).toEqual(alert);
+  });
+
   it("resolvePetReport calls PUT /api/post with alertId and resolution", async () => {
     const resolved = { id: "a1", is_active: false, resolution_status: "found" };
     mockApiFetch.mockResolvedValueOnce(resolved);
