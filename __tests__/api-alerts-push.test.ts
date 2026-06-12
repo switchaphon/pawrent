@@ -1,8 +1,13 @@
 /**
- * Integration tests for POST /api/alerts/push.
+ * Tests for POST /api/alerts/push — Drizzle conversion.
  *
- * Strategy: mock supabase-api, rate-limit, line-messaging, and line-templates.
- * The route authenticates via webhook secret, not user auth.
+ * Mock strategy:
+ *   - @/lib/db/index: adminQuery executes callback; stubbed tx
+ *   - @/lib/db/rpc: usersWithinRadius mocked directly
+ *   - @/lib/rate-limit: allow all through
+ *   - @/lib/line-messaging: multicastMessage + isQuietHours
+ *   - @/lib/line-templates/lost-pet-alert: lostPetFlexMessage
+ *   - @/lib/line-templates/found-pet-alert: foundPetFlexMessage
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -51,17 +56,70 @@ vi.mock("@/lib/line-templates/found-pet-alert", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Mock @/lib/db/rpc — usersWithinRadius
 // ---------------------------------------------------------------------------
-const mockRpc = vi.fn();
-const mockFrom = vi.fn();
+const mockUsersWithinRadius = vi.fn<() => Promise<string[]>>().mockResolvedValue([]);
 
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    rpc: mockRpc,
-    from: mockFrom,
-  })),
+vi.mock("@/lib/db/rpc", () => ({
+  usersWithinRadius: (_tx: unknown, params: unknown) => mockUsersWithinRadius(),
 }));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index — adminQuery executes callback against a stubbed tx
+// ---------------------------------------------------------------------------
+type MockProfileRow = {
+  lineUserId: string | null;
+  pushSpeciesFilter: string[] | null;
+  pushQuietStart: string | null;
+  pushQuietEnd: string | null;
+};
+
+let _profileRows: MockProfileRow[] = [];
+let _pushLogInsertCalled = false;
+let _pushLogInsertValues: unknown = null;
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn(async (vals: unknown) => {
+    _pushLogInsertValues = vals;
+    _pushLogInsertCalled = true;
+    return stubTx;
+  }),
+  // For the profiles SELECT, return _profileRows
+  then: undefined as unknown,
+};
+
+// Override the chain: select().from().where() ends at the awaited tx query.
+// We make the stubTx thenable so `await tx.select()...` resolves correctly.
+// Instead, we mock adminQuery to handle the two calls inside the route:
+// 1. usersWithinRadius (mocked at rpc level)
+// 2. profiles SELECT (stubbed via the tx)
+// 3. pushLogs INSERT (stubbed via the tx)
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      // Build a tx that handles both SELECT (profiles) and INSERT (push_logs)
+      const tx = {
+        select: vi.fn(() => tx),
+        from: vi.fn(() => tx),
+        where: vi.fn(() => Promise.resolve(_profileRows)),
+        insert: vi.fn(() => tx),
+        values: vi.fn((vals: unknown) => {
+          _pushLogInsertCalled = true;
+          _pushLogInsertValues = vals;
+          return Promise.resolve();
+        }),
+      };
+      return fn(tx);
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Import route AFTER mocks
@@ -110,9 +168,15 @@ describe("POST /api/alerts/push", () => {
     vi.clearAllMocks();
     process.env.PUSH_WEBHOOK_SECRET = WEBHOOK_SECRET;
     process.env.NEXT_PUBLIC_LIFF_ID = "test-liff-id";
+    _profileRows = [];
+    _pushLogInsertCalled = false;
+    _pushLogInsertValues = null;
+    mockMulticastMessage.mockResolvedValue(3);
+    mockIsQuietHours.mockReturnValue(false);
+    mockUsersWithinRadius.mockResolvedValue([]);
   });
 
-  it("should return 401 without valid webhook secret", async () => {
+  it("returns 401 without valid webhook secret", async () => {
     const req = makeRequest(validPayload, "wrong-secret");
     const res = await POST(req);
     expect(res.status).toBe(401);
@@ -120,14 +184,14 @@ describe("POST /api/alerts/push", () => {
     expect(json.error).toBe("Unauthorized");
   });
 
-  it("should return 401 when PUSH_WEBHOOK_SECRET is not set", async () => {
+  it("returns 401 when PUSH_WEBHOOK_SECRET is not set", async () => {
     delete process.env.PUSH_WEBHOOK_SECRET;
     const req = makeRequest(validPayload, WEBHOOK_SECRET);
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
 
-  it("should return 400 for malformed JSON body", async () => {
+  it("returns 400 for malformed JSON body", async () => {
     const req = new NextRequest("http://localhost/api/alerts/push", {
       method: "POST",
       headers: {
@@ -142,24 +206,20 @@ describe("POST /api/alerts/push", () => {
     expect(json.error).toBe("Invalid JSON");
   });
 
-  it("should return 400 for invalid payload", async () => {
+  it("returns 400 for invalid payload", async () => {
     const req = makeRequest({ alert_id: "not-uuid" });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 for missing required fields", async () => {
+  it("returns 400 for missing required fields", async () => {
     const req = makeRequest({ alert_id: VALID_UUID });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it("should return 500 when RPC fails", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: null,
-      error: { message: "RPC error" },
-    });
-
+  it("returns 500 when usersWithinRadius RPC throws", async () => {
+    mockUsersWithinRadius.mockRejectedValueOnce(new Error("RPC error"));
     const req = makeRequest(validPayload);
     const res = await POST(req);
     expect(res.status).toBe(500);
@@ -167,9 +227,8 @@ describe("POST /api/alerts/push", () => {
     expect(json.error).toBe("Failed to query nearby users");
   });
 
-  it("should return { sent: 0 } when no nearby users found", async () => {
-    mockRpc.mockResolvedValueOnce({ data: [], error: null });
-
+  it("returns { sent: 0, reason: 'no_nearby_users' } when no nearby users", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce([]);
     const req = makeRequest(validPayload);
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -178,77 +237,25 @@ describe("POST /api/alerts/push", () => {
     expect(json.reason).toBe("no_nearby_users");
   });
 
-  it("should filter users by species preference", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }, { line_user_id: "U2" }],
-      error: null,
-    });
-
-    // U1 wants only cat alerts, U2 wants dog alerts
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["cat"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-          {
-            line_user_id: "U2",
-            push_species_filter: ["dog"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("filters users by species preference (dog alert → cat-only user excluded)", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1", "U2"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["cat"], pushQuietStart: null, pushQuietEnd: null },
+      { lineUserId: "U2", pushSpeciesFilter: ["dog"], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
     const req = makeRequest(validPayload); // pet_species: "dog"
     const res = await POST(req);
     expect(res.status).toBe(200);
-
-    // Should only send to U2 (dog filter matches dog alert)
     expect(mockMulticastMessage).toHaveBeenCalledWith(["U2"], expect.anything());
   });
 
-  it("should filter users in quiet hours", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["dog"],
-            push_quiet_start: "22:00",
-            push_quiet_end: "07:00",
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      return {};
-    });
-
-    // Mock quiet hours as active
+  it("filters users in quiet hours", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["dog"], pushQuietStart: "22:00", pushQuietEnd: "07:00" },
+    ];
     mockIsQuietHours.mockReturnValueOnce(true);
 
     const req = makeRequest(validPayload);
@@ -259,40 +266,16 @@ describe("POST /api/alerts/push", () => {
     expect(json.reason).toBe("all_filtered");
   });
 
-  it("should send lost pet flex message for lost alert type", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["dog"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("sends lost pet flex message for lost alert type", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["dog"], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
     const req = makeRequest(validPayload);
     const res = await POST(req);
     expect(res.status).toBe(200);
-
     expect(mockLostPetFlex).toHaveBeenCalledWith(
       expect.objectContaining({
         petName: "บุญมี",
@@ -302,107 +285,43 @@ describe("POST /api/alerts/push", () => {
     );
   });
 
-  it("should send found pet flex message for found alert type", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["dog"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("sends found pet flex message for found alert type", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["dog"], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
     const req = makeRequest({ ...validPayload, alert_type: "found" });
     const res = await POST(req);
     expect(res.status).toBe(200);
-
     expect(mockFoundPetFlex).toHaveBeenCalled();
     expect(mockLostPetFlex).not.toHaveBeenCalled();
   });
 
-  it("should log push delivery to push_logs", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }, { line_user_id: "U2" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["dog"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-          {
-            line_user_id: "U2",
-            push_species_filter: ["dog"],
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("logs push delivery to push_logs with correct values", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1", "U2"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["dog"], pushQuietStart: null, pushQuietEnd: null },
+      { lineUserId: "U2", pushSpeciesFilter: ["dog"], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(2);
 
     const req = makeRequest(validPayload);
     await POST(req);
 
-    expect(mockInsert).toHaveBeenCalledWith({
-      alert_id: VALID_UUID,
-      alert_type: "lost",
-      recipient_count: 2,
+    expect(_pushLogInsertCalled).toBe(true);
+    expect(_pushLogInsertValues).toMatchObject({
+      alertId: VALID_UUID,
+      alertType: "lost",
+      recipientCount: 2,
     });
   });
 
-  it("should handle null profiles query result gracefully", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: null,
-        error: { message: "query error" },
-      }),
-    });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      return {};
-    });
+  it("handles null profiles gracefully — all_filtered", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    // profiles select returns empty (simulate query error path)
+    _profileRows = [];
 
     const req = makeRequest(validPayload);
     const res = await POST(req);
@@ -412,37 +331,13 @@ describe("POST /api/alerts/push", () => {
     expect(json.reason).toBe("all_filtered");
   });
 
-  it("should not filter by species when pet_species is null", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: ["cat"], // Only wants cats
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("does not filter by species when pet_species is null", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: ["cat"], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
-    // pet_species is null — should NOT filter by species
     const req = makeRequest({ ...validPayload, pet_species: null });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -450,34 +345,11 @@ describe("POST /api/alerts/push", () => {
     expect(json.sent).toBe(1);
   });
 
-  it("should pass through when species filter is empty array", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: [], // Empty = accept all
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("passes through when species filter is empty array", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: [], pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
     const req = makeRequest(validPayload);
@@ -487,34 +359,11 @@ describe("POST /api/alerts/push", () => {
     expect(json.sent).toBe(1);
   });
 
-  it("should use LIFF_ID in alert URL", async () => {
-    mockRpc.mockResolvedValueOnce({
-      data: [{ line_user_id: "U1" }],
-      error: null,
-    });
-
-    const mockSelect = vi.fn().mockReturnValue({
-      in: vi.fn().mockResolvedValue({
-        data: [
-          {
-            line_user_id: "U1",
-            push_species_filter: null,
-            push_quiet_start: null,
-            push_quiet_end: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-
-    const mockInsert = vi.fn().mockResolvedValue({ error: null });
-
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "profiles") return { select: mockSelect };
-      if (table === "push_logs") return { insert: mockInsert };
-      return {};
-    });
-
+  it("uses LIFF_ID in alert URL", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: null, pushQuietStart: null, pushQuietEnd: null },
+    ];
     mockMulticastMessage.mockResolvedValueOnce(1);
 
     const req = makeRequest(validPayload);

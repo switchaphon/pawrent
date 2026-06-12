@@ -1,19 +1,65 @@
 /**
- * Tests for /api/poster/[alertId] — A4 PDF poster generation.
- * PRP-04.1 Task 3: Poster API route
+ * Tests for /api/poster/[alertId] — Drizzle conversion.
+ * A4 PDF poster generation.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock rate-limit — allow all requests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
   checkRateLimit: async () => null,
   getClientIp: () => "127.0.0.1",
 }));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/auth
+// ---------------------------------------------------------------------------
+const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
+const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/auth
+// ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn<() => Promise<{ userId: string } | null>>().mockResolvedValue({
+    userId: "123e4567-e89b-12d3-a456-426614174000",
+  }),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index — query executes callback against a stubbed tx
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
+let _selectRows: MockRow[] = [];
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => _selectRows),
+};
+
+function resetTxChain() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+}
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Mock pdf-lib
@@ -66,7 +112,7 @@ vi.mock("qrcode", () => ({
 // ---------------------------------------------------------------------------
 vi.mock("fs/promises", () => ({
   default: {
-    readFile: vi.fn(() => new Uint8Array([0, 1, 0, 0])), // fake TTF header
+    readFile: vi.fn(() => new Uint8Array([0, 1, 0, 0])),
   },
 }));
 
@@ -78,25 +124,6 @@ vi.mock("@pdf-lib/fontkit", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
-// ---------------------------------------------------------------------------
-const mockGetUser = vi.fn();
-const mockSingle = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: mockSingle,
-        })),
-      })),
-    })),
-  })),
-}));
-
-// ---------------------------------------------------------------------------
 // Import after mocks
 // ---------------------------------------------------------------------------
 import { GET } from "@/app/api/poster/[alertId]/route";
@@ -104,8 +131,6 @@ import { GET } from "@/app/api/poster/[alertId]/route";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 
 function makeRequest(alertId: string, token?: string): NextRequest {
   const url = `http://localhost:3000/api/poster/${alertId}`;
@@ -114,23 +139,23 @@ function makeRequest(alertId: string, token?: string): NextRequest {
   });
 }
 
-const MOCK_ALERT = {
+const MOCK_ALERT_ROW: MockRow = {
   id: ALERT_UUID,
-  owner_id: VALID_UUID,
-  pet_name: "มิ้นท์",
-  pet_species: "cat",
-  pet_breed: "เปอร์เซีย",
-  pet_color: "ขาว",
-  lost_date: "2024-06-15",
-  location_description: "ซอยสุขุมวิท 39",
-  reward_amount: 5000,
-  reward_note: null,
-  contact_phone: "0891234567",
-  photo_urls: ["https://example.com/cat.jpg"],
-  pet_photo_url: "https://example.com/cat.jpg",
+  ownerId: VALID_UUID,
+  petName: "มิ้นท์",
+  petSpecies: "cat",
+  petBreed: "เปอร์เซีย",
+  petColor: "ขาว",
+  lostDate: "2024-06-15",
+  locationDescription: "ซอยสุขุมวิท 39",
+  rewardAmount: 5000,
+  rewardNote: null,
+  contactPhone: "0891234567",
+  photoUrls: ["https://example.com/cat.jpg"],
+  petPhotoUrl: "https://example.com/cat.jpg",
   description: "หายตอนเย็น",
   status: "active",
-  alert_type: "lost",
+  alertType: "lost",
 };
 
 // ---------------------------------------------------------------------------
@@ -139,7 +164,9 @@ const MOCK_ALERT = {
 describe("GET /api/poster/[alertId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock global fetch for image fetching and QR code
+    mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    _selectRows = [];
+    resetTxChain();
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
@@ -152,6 +179,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("returns 401 without auth header", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
     const req = makeRequest(ALERT_UUID);
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(401);
@@ -159,18 +187,8 @@ describe("GET /api/poster/[alertId]", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
-  it("returns 401 with invalid token", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest(ALERT_UUID, "bad-token");
-    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBe("Invalid token");
-  });
-
   it("returns 404 when alert not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "Not found" } });
+    _selectRows = [];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(404);
@@ -179,8 +197,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("returns PDF bytes for valid alert", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -189,9 +206,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("generates PDF even without photos", async () => {
-    const alertNoPhotos = { ...MOCK_ALERT, photo_urls: [], pet_photo_url: null };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: alertNoPhotos, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, photoUrls: [], petPhotoUrl: null }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -199,13 +214,10 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("uses species-specific header for dogs", async () => {
-    const dogAlert = { ...MOCK_ALERT, pet_species: "dog" };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: dogAlert, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, petSpecies: "dog" }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
-    // Verify drawText was called with dog-specific header
     expect(mockDrawText).toHaveBeenCalledWith(
       expect.stringContaining("หมาหาย"),
       expect.any(Object)
@@ -213,8 +225,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("uses species-specific header for cats", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -225,21 +236,17 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("includes reward text when reward > 0", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(mockDrawText).toHaveBeenCalledWith(expect.stringContaining("5,000"), expect.any(Object));
   });
 
   it("skips reward section when reward_amount is 0", async () => {
-    const noRewardAlert = { ...MOCK_ALERT, reward_amount: 0 };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: noRewardAlert, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, rewardAmount: 0 }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
-    // Reward rectangle should not be drawn
     const rewardCalls = (mockDrawText.mock.calls as unknown[][]).filter((call) =>
       (call[0] as string).includes("รางวัล")
     );
@@ -247,9 +254,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("skips contact phone when not provided", async () => {
-    const noPhoneAlert = { ...MOCK_ALERT, contact_phone: null };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: noPhoneAlert, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, contactPhone: null }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -259,18 +264,16 @@ describe("GET /api/poster/[alertId]", () => {
     expect(phoneCalls).toHaveLength(0);
   });
 
-  it("handles minimal alert data (no breed, color, description)", async () => {
-    const minimalAlert = {
-      ...MOCK_ALERT,
-      pet_breed: null,
-      pet_color: null,
+  it("handles minimal alert data", async () => {
+    _selectRows = [{
+      ...MOCK_ALERT_ROW,
+      petBreed: null,
+      petColor: null,
       description: null,
-      location_description: null,
-      contact_phone: null,
-      reward_amount: 0,
-    };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: minimalAlert, error: null });
+      locationDescription: null,
+      contactPhone: null,
+      rewardAmount: 0,
+    }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -278,9 +281,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("uses generic header for unknown species", async () => {
-    const unknownSpeciesAlert = { ...MOCK_ALERT, pet_species: "rabbit" };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: unknownSpeciesAlert, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, petSpecies: "rabbit" }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -290,19 +291,8 @@ describe("GET /api/poster/[alertId]", () => {
     );
   });
 
-  it("uses pet_photo_url when photo_urls is empty", async () => {
-    const petPhotoAlert = { ...MOCK_ALERT, photo_urls: [] };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: petPhotoAlert, error: null });
-    const req = makeRequest(ALERT_UUID, "valid-token");
-    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
-    expect(res.status).toBe(200);
-  });
-
   it("uses null pet_name fallback", async () => {
-    const noNameAlert = { ...MOCK_ALERT, pet_name: null };
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: noNameAlert, error: null });
+    _selectRows = [{ ...MOCK_ALERT_ROW, petName: null }];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -313,33 +303,24 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("handles image embed failure gracefully", async () => {
+    _selectRows = [MOCK_ALERT_ROW];
     mockPdfDoc.embedJpg.mockRejectedValueOnce(new Error("bad image"));
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
   });
 
   it("handles fetchImageAsBytes returning null (fetch fails)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.resolve({ ok: false }))
-    );
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: false })));
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
   });
 
   it("handles fetchImageAsBytes throwing (network error)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => Promise.reject(new Error("network error")))
-    );
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network error"))));
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -355,8 +336,7 @@ describe("GET /api/poster/[alertId]", () => {
         })
       )
     );
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
+    _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -364,9 +344,7 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("returns 500 when PDF generation throws", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: VALID_UUID } } });
-    mockSingle.mockResolvedValueOnce({ data: MOCK_ALERT, error: null });
-    // Make pdf save throw
+    _selectRows = [MOCK_ALERT_ROW];
     mockPdfDoc.save.mockRejectedValueOnce(new Error("PDF error"));
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });

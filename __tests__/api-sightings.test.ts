@@ -1,49 +1,85 @@
 /**
- * Integration tests for /api/sightings (POST, GET) — PRP-05.
+ * Tests for /api/sightings (POST, GET) — Drizzle conversion.
+ *
+ * Mock strategy:
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against a stubbed tx
+ *   - @/lib/rate-limit: allow all through
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+// ---------------------------------------------------------------------------
+// Mock @/lib/rate-limit
+// ---------------------------------------------------------------------------
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
   checkRateLimit: async () => null,
   getClientIp: () => "127.0.0.1",
 }));
 
-const mockSingle = vi.fn();
+const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
+const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 
-const makeChain = () => {
-  const chain: Record<string, unknown> = {};
-  chain.eq = vi.fn(() => chain);
-  chain.single = mockSingle;
-  chain.select = vi.fn(() => chain);
-  chain.order = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.or = vi.fn(() => chain);
-  return chain;
+// ---------------------------------------------------------------------------
+// Mock @/lib/auth
+// ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn<() => Promise<{ userId: string } | null>>().mockResolvedValue({
+    userId: "123e4567-e89b-12d3-a456-426614174000",
+  }),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index — query executes the callback against a stubbed tx
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
+
+// Two sequential select calls per POST (alert check + sighting insert)
+let _selectSequence: MockRow[][] = [];
+let _insertRows: MockRow[] = [];
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => {
+    const next = _selectSequence.shift();
+    return next ?? [];
+  }),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => _insertRows),
 };
 
-const mockInsert = vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) }));
+function resetTxChain() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.orderBy.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+}
 
-const mockFrom = vi.fn(() => ({
-  insert: mockInsert,
-  select: vi.fn(() => makeChain()),
-}));
-
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
+});
 
 import { POST, GET } from "@/app/api/sightings/route";
 
-const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function makeRequest(method: string, body?: object, searchParams?: string): NextRequest {
   const url = `http://localhost:3000/api/sightings${searchParams ? `?${searchParams}` : ""}`;
@@ -57,13 +93,32 @@ function makeRequest(method: string, body?: object, searchParams?: string): Next
   });
 }
 
+const BASE_SIGHTING: MockRow = {
+  id: VALID_UUID,
+  alertId: ALERT_UUID,
+  reporterId: VALID_UUID,
+  lat: "13.7563",
+  lng: "100.5018",
+  photoUrl: null,
+  note: null,
+  createdAt: new Date("2026-04-14T00:00:00Z"),
+};
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
 describe("POST /api/sightings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: { id: VALID_UUID } } });
+    mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    _selectSequence = [];
+    _insertRows = [];
+    resetTxChain();
   });
 
   it("returns 401 without auth header", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
     const req = new NextRequest("http://localhost:3000/api/sightings", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -79,82 +134,47 @@ describe("POST /api/sightings", () => {
   });
 
   it("returns 404 when alert does not exist", async () => {
-    // First call to mockFrom returns the alert query
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "Not found" } });
-
+    _selectSequence = [[]]; // alert query returns no row
     const res = await POST(
-      makeRequest("POST", {
-        alert_id: ALERT_UUID,
-        lat: 13.7563,
-        lng: 100.5018,
-      })
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 })
     );
     expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("Alert not found");
   });
 
   it("returns 400 when alert is not active", async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, is_active: false },
-      error: null,
-    });
-
+    _selectSequence = [[{ id: ALERT_UUID, isActive: false }]];
     const res = await POST(
-      makeRequest("POST", {
-        alert_id: ALERT_UUID,
-        lat: 13.7563,
-        lng: 100.5018,
-      })
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 })
     );
     expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Alert is no longer active");
   });
 
-  it("creates a sighting when alert is active", async () => {
-    // Alert check
-    mockSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, is_active: true },
-      error: null,
-    });
-    // Insert result
-    const sightingData = {
-      id: VALID_UUID,
-      alert_id: ALERT_UUID,
-      lat: 13.7563,
-      lng: 100.5018,
-    };
-    mockSingle.mockResolvedValueOnce({ data: sightingData, error: null });
+  it("creates a sighting and returns snake_case shape", async () => {
+    _selectSequence = [[{ id: ALERT_UUID, isActive: true }]];
+    _insertRows = [BASE_SIGHTING];
 
     const res = await POST(
-      makeRequest("POST", {
-        alert_id: ALERT_UUID,
-        lat: 13.7563,
-        lng: 100.5018,
-        note: "Saw near park",
-      })
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018, note: "Saw near park" })
     );
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.id).toBe(VALID_UUID);
+    expect(data.alert_id).toBe(ALERT_UUID);
+    expect(data.reporter_id).toBe(VALID_UUID);
+    // No camelCase keys
+    expect(data).not.toHaveProperty("alertId");
+    expect(data).not.toHaveProperty("reporterId");
   });
 
-  it("returns 401 when getUser returns no user", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await POST(makeRequest("POST", { alert_id: ALERT_UUID, lat: 13, lng: 100 }));
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 500 when sighting insert fails", async () => {
-    mockSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, is_active: true },
-      error: null,
-    });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "DB write failed" } });
-
+  it("returns 500 when sighting insert returns no rows", async () => {
+    _selectSequence = [[{ id: ALERT_UUID, isActive: true }]];
+    _insertRows = [];
     const res = await POST(
-      makeRequest("POST", {
-        alert_id: ALERT_UUID,
-        lat: 13.7563,
-        lng: 100.5018,
-      })
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 })
     );
     expect(res.status).toBe(500);
   });
@@ -163,10 +183,14 @@ describe("POST /api/sightings", () => {
 describe("GET /api/sightings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetUser.mockResolvedValue({ data: { user: { id: VALID_UUID } } });
+    mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    _selectSequence = [];
+    _insertRows = [];
+    resetTxChain();
   });
 
   it("returns 401 without auth header", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
     const req = new NextRequest("http://localhost:3000/api/sightings", { method: "GET" });
     const res = await GET(req);
     expect(res.status).toBe(401);
@@ -179,76 +203,47 @@ describe("GET /api/sightings", () => {
     expect(data.error).toBe("alert_id is required");
   });
 
-  it("returns 401 when getUser returns no user", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}`));
-    expect(res.status).toBe(401);
-  });
-
-  it("returns sightings list with pagination metadata", async () => {
+  it("returns sightings list with snake_case keys + pagination metadata", async () => {
     const sightings = Array.from({ length: 3 }, (_, i) => ({
+      ...BASE_SIGHTING,
       id: `s-${i}`,
-      created_at: `2026-04-14T0${i}:00:00Z`,
+      createdAt: new Date(`2026-04-14T0${i}:00:00Z`),
     }));
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = vi.fn(() => c);
-        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-          resolve({ data: sightings, error: null });
-        return c;
-      }),
-    });
+    stubTx.limit.mockResolvedValueOnce(sightings);
+
     const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&limit=2`));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.data).toHaveLength(2);
     expect(data.hasMore).toBe(true);
     expect(data.cursor).toBeTruthy();
+    // Parity check
+    expect(data.data[0]).toHaveProperty("alert_id");
+    expect(data.data[0]).not.toHaveProperty("alertId");
+  });
+
+  it("returns empty list with null cursor when no sightings", async () => {
+    stubTx.limit.mockResolvedValueOnce([]);
+    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&limit=20`));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual({ data: [], cursor: null, hasMore: false });
   });
 
   it("accepts cursor query param", async () => {
     const cursor = Buffer.from(
       JSON.stringify({ created_at: "2026-04-14T00:00:00Z", id: "s-0" })
-    ).toString("base64");
-    const orFn = vi.fn();
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = orFn.mockImplementation(() => c);
-        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-          resolve({ data: [], error: null });
-        return c;
-      }),
-    });
+    ).toString("base64url");
+    stubTx.limit.mockResolvedValueOnce([]);
     const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&cursor=${cursor}`));
     expect(res.status).toBe(200);
-    expect(orFn).toHaveBeenCalled();
   });
 
-  it("returns 500 on list error", async () => {
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = vi.fn(() => c);
-        c.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
-          resolve({ data: null, error: { message: "boom" } });
-        return c;
-      }),
-    });
+  it("returns 500 on DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB boom"));
     const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}`));
     expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
   });
 });

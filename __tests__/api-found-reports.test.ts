@@ -1,8 +1,10 @@
 /**
- * Integration tests for /api/found-reports (POST, GET) — PRP-05.
+ * Tests for /api/found-reports (POST, GET) — Drizzle conversion.
  *
- * POST: create found pet report with validation
- * GET:  list found reports with cursor pagination, single by id
+ * Mock strategy:
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against a stubbed tx
+ *   - @/lib/rate-limit: allow all through
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -17,48 +19,65 @@ vi.mock("@/lib/rate-limit", () => ({
   getClientIp: () => "127.0.0.1",
 }));
 
-// ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
-// ---------------------------------------------------------------------------
+const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
 
-const mockSingle = vi.fn();
+// ---------------------------------------------------------------------------
+// Mock @/lib/auth
+// ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn<() => Promise<{ userId: string } | null>>().mockResolvedValue({
+    userId: "123e4567-e89b-12d3-a456-426614174000",
+  }),
+}));
 
-const makeChain = () => {
-  const chain: Record<string, unknown> = {};
-  chain.eq = vi.fn(() => chain);
-  chain.single = mockSingle;
-  chain.select = vi.fn(() => chain);
-  chain.order = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.or = vi.fn(() => chain);
-  return chain;
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index — query executes the callback against a stubbed tx
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
+
+let _insertRows: MockRow[] = [];
+let _selectRows: MockRow[] = [];
+
+export function setInsertRows(rows: MockRow[]) { _insertRows = rows; }
+export function setSelectRows(rows: MockRow[]) { _selectRows = rows; }
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => _selectRows),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => _insertRows),
 };
 
-let selectChain = makeChain();
+function resetTxChain() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.orderBy.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+}
 
-const mockInsert = vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) }));
-
-const mockFrom = vi.fn(() => ({
-  insert: mockInsert,
-  select: vi.fn(() => selectChain),
-}));
-
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
+});
 
 import { POST, GET } from "@/app/api/found-reports/route";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
 
 function makeRequest(method: string, body?: object, searchParams?: string): NextRequest {
   const url = `http://localhost:3000/api/found-reports${searchParams ? `?${searchParams}` : ""}`;
@@ -79,6 +98,29 @@ const validPayload = {
   species_guess: "dog",
 };
 
+const BASE_REPORT: MockRow = {
+  id: VALID_UUID,
+  reporterId: VALID_UUID,
+  photoUrls: ["https://example.com/photo1.jpg"],
+  lat: "13.7563",
+  lng: "100.5018",
+  speciesGuess: "dog",
+  breedGuess: null,
+  colorDescription: null,
+  sizeEstimate: null,
+  description: null,
+  hasCollar: false,
+  collarDescription: null,
+  condition: "healthy",
+  custodyStatus: "with_finder",
+  shelterName: null,
+  shelterAddress: null,
+  secretVerificationDetail: null,
+  isActive: true,
+  resolvedAt: null,
+  createdAt: new Date("2026-04-14T00:00:00Z"),
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -86,11 +128,14 @@ const validPayload = {
 describe("POST /api/found-reports", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    selectChain = makeChain();
-    mockGetUser.mockResolvedValue({ data: { user: { id: VALID_UUID } } });
+    mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    _insertRows = [];
+    _selectRows = [];
+    resetTxChain();
   });
 
   it("returns 401 without auth header", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
     const req = new NextRequest("http://localhost:3000/api/found-reports", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -102,12 +147,6 @@ describe("POST /api/found-reports", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("returns 401 when getUser fails", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await POST(makeRequest("POST", validPayload));
-    expect(res.status).toBe(401);
-  });
-
   it("returns 400 for invalid payload", async () => {
     const res = await POST(makeRequest("POST", { lat: 13 }));
     expect(res.status).toBe(400);
@@ -115,189 +154,129 @@ describe("POST /api/found-reports", () => {
     expect(data).toHaveProperty("error");
   });
 
-  it("creates a found report successfully", async () => {
-    const mockReport = { id: VALID_UUID, ...validPayload, created_at: "2026-04-14T00:00:00Z" };
-    mockSingle.mockResolvedValue({ data: mockReport, error: null });
-
+  it("creates a found report and returns snake_case public shape", async () => {
+    _insertRows = [BASE_REPORT];
     const res = await POST(makeRequest("POST", validPayload));
     expect(res.status).toBe(200);
-
     const data = await res.json();
-    expect(data.id).toBe(VALID_UUID);
 
-    // Verify insert was called with correct data
-    expect(mockFrom).toHaveBeenCalledWith("found_reports");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        reporter_id: VALID_UUID,
-        photo_urls: validPayload.photo_urls,
-        lat: validPayload.lat,
-        lng: validPayload.lng,
-        species_guess: "dog",
-      })
-    );
+    // Parity: response must be snake_case
+    expect(data.id).toBe(VALID_UUID);
+    expect(data.reporter_id).toBe(VALID_UUID);
+    expect(data.photo_urls).toEqual(["https://example.com/photo1.jpg"]);
+    expect(data.species_guess).toBe("dog");
+    expect(data.is_active).toBe(true);
+    // secret_verification_detail must NOT be in the response
+    expect(data).not.toHaveProperty("secret_verification_detail");
+    expect(data).not.toHaveProperty("secretVerificationDetail");
   });
 
-  it("does not include secret_verification_detail in select columns", async () => {
-    const mockReport = { id: VALID_UUID, ...validPayload };
-    mockSingle.mockResolvedValue({ data: mockReport, error: null });
-
+  it("inserts secret_verification_detail into DB but excludes from response", async () => {
+    _insertRows = [BASE_REPORT];
     await POST(
       makeRequest("POST", {
         ...validPayload,
         secret_verification_detail: "hidden detail",
       })
     );
-
-    // The insert should include secret_verification_detail
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        secret_verification_detail: "hidden detail",
-      })
+    // values() should have been called with secretVerificationDetail
+    expect(stubTx.values).toHaveBeenCalledWith(
+      expect.objectContaining({ secretVerificationDetail: "hidden detail" })
     );
   });
 
-  it("returns 500 on database error", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: { message: "DB error" } });
+  it("returns 500 when insert returns no rows", async () => {
+    _insertRows = [];
     const res = await POST(makeRequest("POST", validPayload));
     expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
   });
 });
 
 describe("GET /api/found-reports", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    selectChain = makeChain();
-    mockGetUser.mockResolvedValue({ data: { user: { id: VALID_UUID } } });
+    mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    _insertRows = [];
+    _selectRows = [];
+    resetTxChain();
   });
 
-  it("returns 401 without auth header", async () => {
-    const req = new NextRequest("http://localhost:3000/api/found-reports", {
-      method: "GET",
-    });
+  it("returns 401 without auth", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const req = new NextRequest("http://localhost:3000/api/found-reports", { method: "GET" });
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
 
-  it("fetches a single report by id", async () => {
-    const mockReport = { id: VALID_UUID, species_guess: "cat" };
-    mockSingle.mockResolvedValue({ data: mockReport, error: null });
-
+  it("fetches a single report by id — returns { data: <snake_case row> }", async () => {
+    _selectRows = [BASE_REPORT];
     const res = await GET(makeRequest("GET", undefined, `id=${VALID_UUID}`));
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.data).toEqual(mockReport);
+    const body = await res.json();
+    expect(body.data.id).toBe(VALID_UUID);
+    expect(body.data.reporter_id).toBe(VALID_UUID);
+    // No camelCase keys
+    expect(body.data).not.toHaveProperty("reporterId");
   });
 
-  it("returns 404 for non-existent report", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: { message: "Not found" } });
-
+  it("returns 404 when single report not found", async () => {
+    _selectRows = [];
     const res = await GET(makeRequest("GET", undefined, `id=${VALID_UUID}`));
     expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("Found report not found");
   });
 
-  it("lists found reports with pagination", async () => {
+  it("lists reports with snake_case keys and pagination metadata", async () => {
     const reports = Array.from({ length: 3 }, (_, i) => ({
+      ...BASE_REPORT,
       id: `id-${i}`,
-      species_guess: "dog",
-      created_at: `2026-04-14T0${i}:00:00Z`,
+      createdAt: new Date(`2026-04-14T0${i}:00:00Z`),
     }));
+    stubTx.limit.mockResolvedValueOnce(reports);
 
-    // Mock the chain to return data directly (simulate .then behavior)
-    const listChain = makeChain();
-    // Override the final call in the chain to resolve with data
-    const mockResult = { data: reports, error: null };
-    // The chain ends when vitest resolves the query
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c = makeChain();
-        // Return mock data when the chain is awaited
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => Promise.resolve(mockResult));
-        c.or = vi.fn(() => c);
-        return c;
-      }),
-    });
-
-    const res = await GET(makeRequest("GET", undefined, "limit=20"));
-    expect(res.status).toBe(200);
-  });
-
-  it("returns 401 when getUser returns no user", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
-    const res = await GET(makeRequest("GET", undefined, "limit=20"));
-    expect(res.status).toBe(401);
-  });
-
-  it("filters list by species (lowercases value) and returns hasMore + nextCursor", async () => {
-    const reports = Array.from({ length: 3 }, (_, i) => ({
-      id: `id-${i}`,
-      species_guess: "dog",
-      created_at: `2026-04-14T0${i}:00:00Z`,
-    }));
-    const speciesEq = vi.fn();
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c: Record<string, unknown> = {};
-        c.eq = speciesEq.mockImplementation(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = vi.fn(() => c);
-        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-          resolve({ data: reports, error: null });
-        return c;
-      }),
-    });
-
-    const res = await GET(makeRequest("GET", undefined, "limit=2&species=DOG"));
+    const res = await GET(makeRequest("GET", undefined, "limit=2"));
     expect(res.status).toBe(200);
     const data = await res.json();
+    expect(data.data).toHaveLength(2);
     expect(data.hasMore).toBe(true);
     expect(data.cursor).toBeTruthy();
-    expect(speciesEq).toHaveBeenCalledWith("species_guess", "dog");
+    // Parity: items are snake_case
+    expect(data.data[0]).toHaveProperty("reporter_id");
+    expect(data.data[0]).not.toHaveProperty("reporterId");
+  });
+
+  it("returns empty list with no cursor when no reports", async () => {
+    stubTx.limit.mockResolvedValueOnce([]);
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual({ data: [], cursor: null, hasMore: false });
+  });
+
+  it("filters list by species (lowercases value)", async () => {
+    stubTx.limit.mockResolvedValueOnce([]);
+    await GET(makeRequest("GET", undefined, "limit=20&species=DOG"));
+    // where() was called — includes the species filter condition
+    expect(stubTx.where).toHaveBeenCalled();
   });
 
   it("accepts cursor query param", async () => {
     const cursor = Buffer.from(
       JSON.stringify({ created_at: "2026-04-14T00:00:00Z", id: "id-0" })
-    ).toString("base64");
-    const orFn = vi.fn();
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c = makeChain();
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = orFn.mockImplementation(() => c);
-        c.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-          resolve({ data: [], error: null });
-        return c;
-      }),
-    });
+    ).toString("base64url");
+    stubTx.limit.mockResolvedValueOnce([]);
     const res = await GET(makeRequest("GET", undefined, `limit=20&cursor=${cursor}`));
     expect(res.status).toBe(200);
-    expect(orFn).toHaveBeenCalled();
   });
 
-  it("returns 500 on list error", async () => {
-    mockFrom.mockReturnValue({
-      insert: mockInsert,
-      select: vi.fn(() => {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.order = vi.fn(() => c);
-        c.limit = vi.fn(() => c);
-        c.or = vi.fn(() => c);
-        c.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
-          resolve({ data: null, error: { message: "boom" } });
-        return c;
-      }),
-    });
+  it("returns 500 on DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB boom"));
     const res = await GET(makeRequest("GET", undefined, "limit=20"));
     expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
   });
 });

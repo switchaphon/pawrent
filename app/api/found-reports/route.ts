@@ -1,105 +1,115 @@
-import { createApiClient } from "@/lib/supabase-api";
+import { verifyAuth } from "@/lib/auth";
 import { foundReportSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { encodeCursor, decodeCursor } from "@/lib/pagination";
 import { NextRequest, NextResponse } from "next/server";
+import { query, foundReports } from "@/lib/db/index";
+import type { FoundReport } from "@/lib/db/index";
+import { eq, and, or, lt, desc } from "drizzle-orm";
 
 const postLimiter = createRateLimiter(5, "24 h");
 
 // Fields safe for public API responses (excludes secret_verification_detail)
-const PUBLIC_COLUMNS = [
-  "id",
-  "reporter_id",
-  "photo_urls",
-  "lat",
-  "lng",
-  "species_guess",
-  "breed_guess",
-  "color_description",
-  "size_estimate",
-  "description",
-  "has_collar",
-  "collar_description",
-  "condition",
-  "custody_status",
-  "shelter_name",
-  "shelter_address",
-  "is_active",
-  "resolved_at",
-  "created_at",
-].join(",");
+// These map directly to the snake_case response shape the client expects.
+function toPublicRow(row: FoundReport) {
+  return {
+    id: row.id,
+    reporter_id: row.reporterId,
+    photo_urls: row.photoUrls,
+    lat: row.lat,
+    lng: row.lng,
+    species_guess: row.speciesGuess,
+    breed_guess: row.breedGuess,
+    color_description: row.colorDescription,
+    size_estimate: row.sizeEstimate,
+    description: row.description,
+    has_collar: row.hasCollar,
+    collar_description: row.collarDescription,
+    condition: row.condition,
+    custody_status: row.custodyStatus,
+    shelter_name: row.shelterName,
+    shelter_address: row.shelterAddress,
+    is_active: row.isActive,
+    resolved_at: row.resolvedAt,
+    created_at: row.createdAt,
+  };
+}
 
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await verifyAuth(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-  const rateLimited = await checkRateLimit(postLimiter, user.id);
+  const rateLimited = await checkRateLimit(postLimiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const result = foundReportSchema.safeParse(body);
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
   }
 
-  const { data, error } = await supabase
-    .from("found_reports")
-    .insert({
-      reporter_id: user.id,
-      photo_urls: result.data.photo_urls,
-      lat: result.data.lat,
-      lng: result.data.lng,
-      species_guess: result.data.species_guess ?? null,
-      breed_guess: result.data.breed_guess ?? null,
-      color_description: result.data.color_description ?? null,
-      size_estimate: result.data.size_estimate ?? null,
-      description: result.data.description ?? null,
-      has_collar: result.data.has_collar,
-      collar_description: result.data.collar_description ?? null,
-      condition: result.data.condition,
-      custody_status: result.data.custody_status,
-      shelter_name: result.data.shelter_name ?? null,
-      shelter_address: result.data.shelter_address ?? null,
-      secret_verification_detail: result.data.secret_verification_detail ?? null,
-    })
-    .select(PUBLIC_COLUMNS)
-    .single();
+  try {
+    const row = await query(auth.userId, async (tx) => {
+      const inserted = await tx
+        .insert(foundReports)
+        .values({
+          reporterId: auth.userId,
+          photoUrls: result.data.photo_urls,
+          lat: String(result.data.lat),
+          lng: String(result.data.lng),
+          speciesGuess: result.data.species_guess ?? null,
+          breedGuess: result.data.breed_guess ?? null,
+          colorDescription: result.data.color_description ?? null,
+          sizeEstimate: result.data.size_estimate ?? null,
+          description: result.data.description ?? null,
+          hasCollar: result.data.has_collar,
+          collarDescription: result.data.collar_description ?? null,
+          condition: result.data.condition,
+          custodyStatus: result.data.custody_status,
+          shelterName: result.data.shelter_name ?? null,
+          shelterAddress: result.data.shelter_address ?? null,
+          secretVerificationDetail: result.data.secret_verification_detail ?? null,
+        })
+        .returning();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+      if (!inserted[0]) throw new Error("Insert returned no rows");
+      return inserted[0];
+    });
+
+    return NextResponse.json(toPublicRow(row));
+  } catch (err) {
+    console.error("[found-reports POST] error:", err instanceof Error ? err.message : "unknown");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  const auth = await verifyAuth(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
 
   // Single fetch by id
   const id = searchParams.get("id");
   if (id) {
-    const { data, error } = await supabase
-      .from("found_reports")
-      .select(PUBLIC_COLUMNS)
-      .eq("id", id)
-      .single();
+    try {
+      const row = await query(auth.userId, async (tx) => {
+        const rows = await tx
+          .select()
+          .from(foundReports)
+          .where(eq(foundReports.id, id))
+          .limit(1);
+        return rows[0] ?? null;
+      });
 
-    if (error || !data) {
-      return NextResponse.json({ error: "Found report not found" }, { status: 404 });
+      if (!row) {
+        return NextResponse.json({ error: "Found report not found" }, { status: 404 });
+      }
+      return NextResponse.json({ data: toPublicRow(row) });
+    } catch (err) {
+      console.error("[found-reports GET/id] error:", err instanceof Error ? err.message : "unknown");
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-    return NextResponse.json({ data });
   }
 
   // List with cursor pagination
@@ -108,39 +118,53 @@ export async function GET(request: NextRequest) {
   const limitParam = searchParams.get("limit");
   const limit = limitParam ? Math.min(parseInt(limitParam, 10), 50) : 20;
 
-  let query = supabase
-    .from("found_reports")
-    .select(PUBLIC_COLUMNS)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(limit + 1);
+  try {
+    const rows = await query(auth.userId, async (tx) => {
+      const conditions = [eq(foundReports.isActive, true)];
 
-  if (species) {
-    query = query.eq("species_guess", species.toLowerCase());
+      if (species) {
+        conditions.push(eq(foundReports.speciesGuess, species.toLowerCase()));
+      }
+
+      if (cursorParam) {
+        const decoded = decodeCursor(cursorParam);
+        if (decoded) {
+          conditions.push(
+            or(
+              lt(foundReports.createdAt, new Date(decoded.created_at)),
+              and(
+                eq(foundReports.createdAt, new Date(decoded.created_at)),
+                lt(foundReports.id, decoded.id)
+              )
+            )!
+          );
+        }
+      }
+
+      return tx
+        .select()
+        .from(foundReports)
+        .where(and(...conditions))
+        .orderBy(desc(foundReports.createdAt), desc(foundReports.id))
+        .limit(limit + 1);
+    });
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    const lastRow = page[page.length - 1];
+    const nextCursor =
+      hasMore && lastRow
+        ? encodeCursor(new Date(lastRow.createdAt!).toISOString(), lastRow.id)
+        : null;
+
+    return NextResponse.json({
+      data: page.map(toPublicRow),
+      cursor: nextCursor,
+      hasMore,
+    });
+  } catch (err) {
+    console.error("[found-reports GET list] error:", err instanceof Error ? err.message : "unknown");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  if (cursorParam) {
-    const decoded = decodeCursor(cursorParam);
-    if (decoded) {
-      query = query.or(
-        `created_at.lt.${decoded.created_at},and(created_at.eq.${decoded.created_at},id.lt.${decoded.id})`
-      );
-    }
-  }
-
-  const { data: listData, error: listError } = await query;
-
-  if (listError) {
-    return NextResponse.json({ error: listError.message }, { status: 500 });
-  }
-
-  const rows = listData ?? [];
-  const hasMore = rows.length > limit;
-  const page = hasMore ? rows.slice(0, limit) : rows;
-
-  const lastRow = page[page.length - 1] as unknown as Record<string, string> | undefined;
-  const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.created_at, lastRow.id) : null;
-
-  return NextResponse.json({ data: page, cursor: nextCursor, hasMore });
 }
