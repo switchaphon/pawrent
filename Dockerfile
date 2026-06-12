@@ -26,6 +26,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Standalone trace misses sharp's dlopen'd libvips (.so) — overlay the full
+# install from deps so NEXT_SHARP_PATH resolves to a working module.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/@img ./node_modules/@img
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
