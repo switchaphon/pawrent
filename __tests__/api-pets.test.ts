@@ -93,7 +93,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { GET, POST, PUT, DELETE } from "@/app/api/pets/route";
 
 const USER_ID = "aaaaaaaa-0000-4000-a000-000000000001";
-const PET_ID  = "pet00000-0000-4000-a000-000000000001";
+const PET_ID = "pet00000-0000-4000-a000-000000000001";
 const PET_ID2 = "pet00000-0000-4000-a000-000000000002";
 
 // Drizzle camelCase row (what stubTx returns)
@@ -218,10 +218,25 @@ describe("GET /api/pets", () => {
     const body = (await (await GET(makeReq("GET"))).json()) as Record<string, unknown>[];
     expect(Object.keys(body[0])).toEqual(
       expect.arrayContaining([
-        "id", "owner_id", "name", "species", "breed", "sex", "color",
-        "weight_kg", "date_of_birth", "microchip_number", "photo_url",
-        "neutered", "is_spayed_neutered", "special_notes", "status",
-        "memorial_date", "gotcha_day", "pawrent_id", "created_at",
+        "id",
+        "owner_id",
+        "name",
+        "species",
+        "breed",
+        "sex",
+        "color",
+        "weight_kg",
+        "date_of_birth",
+        "microchip_number",
+        "photo_url",
+        "neutered",
+        "is_spayed_neutered",
+        "special_notes",
+        "status",
+        "memorial_date",
+        "gotcha_day",
+        "pawrent_id",
+        "created_at",
       ])
     );
   });
@@ -284,7 +299,7 @@ describe("POST /api/pets", () => {
     stubTx.returning.mockResolvedValueOnce([BASE_PET]);
     const res = await POST(makeReq("POST", validPetBody));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.id).toBe(PET_ID);
     expect(body.owner_id).toBe(USER_ID);
     expect(body.name).toBe("Luna");
@@ -310,18 +325,20 @@ describe("POST /api/pets", () => {
   it("handles nullable optional fields as null — exercises all null-coalescing arms in POST", async () => {
     // Send null for all nullable fields — covers ?? null / ?? false / ?? "active" coalescing arms
     stubTx.returning.mockResolvedValueOnce([BASE_PET]);
-    const res = await POST(makeReq("POST", {
-      name: "Minimal",
-      species: null,
-      breed: null,
-      sex: null,
-      color: null,
-      weight_kg: null,
-      date_of_birth: null,
-      microchip_number: null,
-      neutered: null,
-      special_notes: null,
-    }));
+    const res = await POST(
+      makeReq("POST", {
+        name: "Minimal",
+        species: null,
+        breed: null,
+        sex: null,
+        color: null,
+        weight_kg: null,
+        date_of_birth: null,
+        microchip_number: null,
+        neutered: null,
+        special_notes: null,
+      })
+    );
     expect(res.status).toBe(200);
   });
 });
@@ -368,7 +385,7 @@ describe("PUT /api/pets", () => {
     stubTx.returning.mockResolvedValueOnce([updated]);
     const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "NewName" }));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.name).toBe("NewName");
     expect(body.owner_id).toBe(USER_ID);
     expect(body).not.toHaveProperty("ownerId");
@@ -399,19 +416,21 @@ describe("PUT /api/pets", () => {
     // Send null for nullable optional fields — exercises the `?? null` coalescing arms
     const updated = { ...BASE_PET, dateOfBirth: null, memorialDate: null };
     stubTx.returning.mockResolvedValueOnce([updated]);
-    const res = await PUT(makeReq("PUT", {
-      petId: PET_ID,
-      date_of_birth: null,
-      memorial_date: null,
-      microchip_number: null,
-      special_notes: null,
-      photo_url: null,
-      color: null,
-      breed: null,
-      sex: null,
-    }));
+    const res = await PUT(
+      makeReq("PUT", {
+        petId: PET_ID,
+        date_of_birth: null,
+        memorial_date: null,
+        microchip_number: null,
+        special_notes: null,
+        photo_url: null,
+        color: null,
+        breed: null,
+        sex: null,
+      })
+    );
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.date_of_birth).toBeNull();
     expect(body.memorial_date).toBeNull();
   });
@@ -421,7 +440,7 @@ describe("PUT /api/pets", () => {
     stubTx.returning.mockResolvedValueOnce([updated]);
     const res = await PUT(makeReq("PUT", { petId: PET_ID, weight_kg: null }));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.weight_kg).toBeNull();
   });
 

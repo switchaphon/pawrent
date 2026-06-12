@@ -192,7 +192,15 @@ describe("POST /api/conversations", () => {
   it("creates conversation for found_report_id with finder_id null when current user is owner", async () => {
     mockVerifyAuth.mockResolvedValue({ userId: OWNER_UUID });
     _selectSequence = [[]];
-    _insertRows = [{ ...BASE_CONVO, foundReportId: FOUND_UUID, alertId: null, ownerId: OWNER_UUID, finderId: null }];
+    _insertRows = [
+      {
+        ...BASE_CONVO,
+        foundReportId: FOUND_UUID,
+        alertId: null,
+        ownerId: OWNER_UUID,
+        finderId: null,
+      },
+    ];
 
     const res = await POST(
       makeRequest("POST", { owner_id: OWNER_UUID, found_report_id: FOUND_UUID })
@@ -236,7 +244,9 @@ describe("POST /api/conversations", () => {
 
   it("creates conversation when only found_report_id provided (alert_id null)", async () => {
     _selectSequence = [[]];
-    _insertRows = [{ ...BASE_CONVO, alertId: null, foundReportId: FOUND_UUID, finderId: USER_UUID }];
+    _insertRows = [
+      { ...BASE_CONVO, alertId: null, foundReportId: FOUND_UUID, finderId: USER_UUID },
+    ];
     const res = await POST(
       makeRequest("POST", { owner_id: OWNER_UUID, found_report_id: FOUND_UUID })
     );

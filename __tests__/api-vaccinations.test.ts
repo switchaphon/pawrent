@@ -30,7 +30,9 @@ vi.mock("@/lib/rate-limit", () => ({
 // Mock @/lib/auth
 // ---------------------------------------------------------------------------
 const { mockVerifyAuth } = vi.hoisted(() => ({
-  mockVerifyAuth: vi.fn().mockResolvedValue({ userId: "user-00000000-0000-0000-0000-000000000001" }),
+  mockVerifyAuth: vi
+    .fn()
+    .mockResolvedValue({ userId: "user-00000000-0000-0000-0000-000000000001" }),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -44,7 +46,7 @@ vi.mock("@/lib/auth", () => ({
 type MockRow = Record<string, unknown>;
 
 // Slots filled per test
-let _limitRows: MockRow[] = [];    // what .limit() resolves to (SELECT)
+let _limitRows: MockRow[] = []; // what .limit() resolves to (SELECT)
 let _returningRows: MockRow[] = []; // what .returning() resolves to (INSERT/UPDATE)
 
 // Call-order counter — some tests need to differentiate first vs subsequent
@@ -108,7 +110,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { POST, PUT, DELETE } from "@/app/api/vaccinations/route";
 
 const USER_ID = "user-00000000-0000-0000-0000-000000000001";
-const PET_ID  = "123e4567-e89b-12d3-a456-426614174000";
+const PET_ID = "123e4567-e89b-12d3-a456-426614174000";
 const VACC_ID = "vacc0000-0000-4000-a000-000000000001";
 
 // Drizzle camelCase row
@@ -203,7 +205,7 @@ describe("POST /api/vaccinations", () => {
     _returningRows = [BASE_VACC];
     const res = await POST(makeReq("POST", validBody));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.id).toBe(VACC_ID);
     expect(body.pet_id).toBe(PET_ID);
     expect(body.name).toBe("Rabies");
@@ -257,7 +259,7 @@ describe("POST /api/vaccinations", () => {
     _returningRows = [{ ...BASE_VACC, lastDate: null, nextDueDate: null }];
     const res = await POST(makeReq("POST", { ...validBody, last_date: null, next_due_date: null }));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.last_date).toBeNull();
     expect(body.next_due_date).toBeNull();
   });
@@ -310,7 +312,7 @@ describe("PUT /api/vaccinations", () => {
     _returningRows = [updated];
     const res = await PUT(makeReq("PUT", { id: VACC_ID, name: "Rabies Updated" }));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.name).toBe("Rabies Updated");
     expect(body).not.toHaveProperty("petId");
     expect(body).not.toHaveProperty("lastDate");
@@ -372,7 +374,7 @@ describe("PUT /api/vaccinations", () => {
     _returningRows = [updated];
     const res = await PUT(makeReq("PUT", { id: VACC_ID, last_date: null, next_due_date: null }));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.last_date).toBeNull();
     expect(body.next_due_date).toBeNull();
   });

@@ -43,9 +43,7 @@ vi.mock("ioredis", () => {
         this.zsets.set(key, active);
 
         if (active.length < requests) {
-          const withoutDuplicate = active.filter(
-            (entry) => entry.member !== member
-          );
+          const withoutDuplicate = active.filter((entry) => entry.member !== member);
           withoutDuplicate.push({ score: now, member });
           withoutDuplicate.sort((a, b) => a.score - b.score);
           this.zsets.set(key, withoutDuplicate);
@@ -102,9 +100,7 @@ describe("createRateLimiter", () => {
   });
 
   it("rejects invalid duration strings", () => {
-    expect(() => createRateLimiter(1, "1 minute" as never)).toThrow(
-      "Invalid rate limit window"
-    );
+    expect(() => createRateLimiter(1, "1 minute" as never)).toThrow("Invalid rate limit window");
   });
 });
 
@@ -234,9 +230,7 @@ describe("ZSET sliding window", () => {
     vi.setSystemTime(2_001);
 
     expect(await limiter.limit("user-b")).toMatchObject({ success: true });
-    expect(redisMock.instances[0].zsets.get("ratelimit:user-b:1000")).toHaveLength(
-      1
-    );
+    expect(redisMock.instances[0].zsets.get("ratelimit:user-b:1000")).toHaveLength(1);
   });
 
   it("computes blocked reset from the oldest active entry", async () => {
@@ -258,8 +252,6 @@ describe("ZSET sliding window", () => {
 
     await limiter.limit("same-user");
 
-    expect(redisMock.instances[0].zsets.has("ratelimit:same-user:60000")).toBe(
-      true
-    );
+    expect(redisMock.instances[0].zsets.has("ratelimit:same-user:60000")).toBe(true);
   });
 });

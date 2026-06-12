@@ -31,9 +31,7 @@ import * as schema from "./schema";
 // Type alias for a transaction handle (used in rpc.ts callers)
 // ---------------------------------------------------------------------------
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-export type Tx = Parameters<
-  Parameters<PostgresJsDatabase<typeof schema>["transaction"]>[0]
->[0];
+export type Tx = Parameters<Parameters<PostgresJsDatabase<typeof schema>["transaction"]>[0]>[0];
 
 // ---------------------------------------------------------------------------
 // Lazy pool construction — deferred to first use so the module can be imported
@@ -67,14 +65,11 @@ function getAdminDb(): DbHandle {
 // UUID validation — fail fast before any SQL round-trip.
 // A malformed userId mid-transaction would explode inside an RLS policy cast.
 // ---------------------------------------------------------------------------
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function assertValidUuid(userId: string): void {
   if (!UUID_RE.test(userId)) {
-    throw new Error(
-      `query(): userId must be a valid UUID, got: "${userId.slice(0, 64)}"`
-    );
+    throw new Error(`query(): userId must be a valid UUID, got: "${userId.slice(0, 64)}"`);
   }
 }
 
@@ -89,10 +84,7 @@ function assertValidUuid(userId: string): void {
 // is_local=true means the setting is rolled back at transaction end —
 // guarantees isolation between concurrent requests on different user IDs.
 // ---------------------------------------------------------------------------
-export async function query<T>(
-  userId: string,
-  fn: (tx: Tx) => Promise<T>
-): Promise<T> {
+export async function query<T>(userId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
   assertValidUuid(userId);
 
   return getAppDb().transaction(async (tx) => {

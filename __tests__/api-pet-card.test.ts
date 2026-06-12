@@ -91,21 +91,29 @@ const MOCK_PET_ROW = {
 };
 
 // Back-side tuple: [profile, vaccines, latestParasite, latestWeight, wCount, vCount, pCount, dCount]
-function makeBackTuple(overrides: {
-  profile?: unknown;
-  vaccines?: unknown[];
-  latestParasite?: unknown;
-  latestWeight?: unknown;
-  wCount?: number;
-  vCount?: number;
-  pCount?: number;
-  dCount?: number;
-} = {}) {
+function makeBackTuple(
+  overrides: {
+    profile?: unknown;
+    vaccines?: unknown[];
+    latestParasite?: unknown;
+    latestWeight?: unknown;
+    wCount?: number;
+    vCount?: number;
+    pCount?: number;
+    dCount?: number;
+  } = {}
+) {
   return [
-    overrides.profile !== undefined ? overrides.profile : { fullName: "สมศรี", phone: "0891234567" },
+    overrides.profile !== undefined
+      ? overrides.profile
+      : { fullName: "สมศรี", phone: "0891234567" },
     overrides.vaccines ?? [{ name: "Rabies", last_date: "2024-01-01", status: "protected" }],
-    overrides.latestParasite !== undefined ? overrides.latestParasite : { medicine_name: "Frontline", administered_date: "2024-02-01" },
-    overrides.latestWeight !== undefined ? overrides.latestWeight : { weight_kg: 4.5, measured_at: "2024-03-01" },
+    overrides.latestParasite !== undefined
+      ? overrides.latestParasite
+      : { medicine_name: "Frontline", administered_date: "2024-02-01" },
+    overrides.latestWeight !== undefined
+      ? overrides.latestWeight
+      : { weight_kg: 4.5, measured_at: "2024-03-01" },
     overrides.wCount ?? 1,
     overrides.vCount ?? 1,
     overrides.pCount ?? 1,
@@ -131,13 +139,17 @@ describe("GET /api/pet-card/[petId]?side=front", () => {
 
   it("returns 404 when pet is not found", async () => {
     setupAdmin([null]);
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(404);
   });
 
   it("returns 200 image/png for a valid pet", async () => {
     setupAdmin([MOCK_PET_ROW]);
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("image/png");
   });
@@ -164,13 +176,17 @@ describe("GET /api/pet-card/[petId]?side=front", () => {
     mockCheckRateLimit.mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
     );
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(429);
   });
 
   it("works for a pet with null sex (goodBadge null-safety)", async () => {
     setupAdmin([{ ...MOCK_PET_ROW, sex: null }]);
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
@@ -185,13 +201,17 @@ describe("GET /api/pet-card/[petId]?side=front", () => {
 
   it("works for a pet with no breed", async () => {
     setupAdmin([{ ...MOCK_PET_ROW, breed: null }]);
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("works for a pet with no photo_url", async () => {
     setupAdmin([{ ...MOCK_PET_ROW, photoUrl: null }]);
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 });
@@ -208,7 +228,9 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
 
   it("returns 200 without auth (back side is public)", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple()]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toContain("image/png");
   });
@@ -217,58 +239,83 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
     mockCheckRateLimit.mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Too many requests" }), { status: 429 })
     );
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(429);
   });
 
   it("returns 404 when pet is not found", async () => {
     setupAdmin([null]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(404);
   });
 
   it("handles no vaccines (empty array)", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ vaccines: [] })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles null latestParasite (shows — fallback)", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ latestParasite: null })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles null latestWeight (shows — fallback)", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ latestWeight: null })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles null profile (owner shows — fallback)", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ profile: null })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles profile with null phone", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ profile: { fullName: "สมศรี", phone: null } })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles completion score < 100 (no สมุดพกครบ badge)", async () => {
     setupAdmin([
-      { ...MOCK_PET_ROW, breed: null, dateOfBirth: null, sex: null, photoUrl: null, microchipNumber: null },
+      {
+        ...MOCK_PET_ROW,
+        breed: null,
+        dateOfBirth: null,
+        sex: null,
+        photoUrl: null,
+        microchipNumber: null,
+      },
       makeBackTuple({ wCount: 0, vCount: 0, pCount: 0, dCount: 0 }),
     ]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
   it("handles สมุดพกครบ badge when score is 100", async () => {
     setupAdmin([MOCK_PET_ROW, makeBackTuple({ wCount: 1, vCount: 1, pCount: 1, dCount: 1 })]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
@@ -283,7 +330,9 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
         ],
       }),
     ]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
@@ -292,7 +341,9 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
       MOCK_PET_ROW,
       makeBackTuple({ vaccines: [{ name: "Rabies", last_date: null, status: "protected" }] }),
     ]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
@@ -301,7 +352,9 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
       MOCK_PET_ROW,
       makeBackTuple({ latestParasite: { medicine_name: null, administered_date: "2024-02-01" } }),
     ]);
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 });
@@ -335,7 +388,9 @@ describe("GET /api/pet-card — adminQuery callback pass-through", () => {
       return fn(stubTx);
     });
 
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(404);
   });
 
@@ -356,7 +411,9 @@ describe("GET /api/pet-card — adminQuery callback pass-through", () => {
       return fn(stubTx);
     });
 
-    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "front"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     expect(res.status).toBe(200);
   });
 
@@ -385,12 +442,12 @@ describe("GET /api/pet-card — adminQuery callback pass-through", () => {
       const perCallResults: unknown[][] = [
         [{ fullName: "สมศรี", phone: "0891234567" }], // profiles (idx 0) — via limit
         [{ name: "Rabies", lastDate: "2024-01-01", status: "protected" }], // vaccinations (idx 1) — via orderBy.limit
-        [],  // parasiteLogs (idx 2) — via orderBy.limit
-        [],  // petWeightLogs latest (idx 3) — via orderBy.limit
-        [],  // wRows count (idx 4) — via where thenable
-        [],  // vRows count (idx 5) — via where thenable
-        [],  // pRows count (idx 6) — via where thenable
-        [],  // dRows count (idx 7) — via where thenable
+        [], // parasiteLogs (idx 2) — via orderBy.limit
+        [], // petWeightLogs latest (idx 3) — via orderBy.limit
+        [], // wRows count (idx 4) — via where thenable
+        [], // vRows count (idx 5) — via where thenable
+        [], // pRows count (idx 6) — via where thenable
+        [], // dRows count (idx 7) — via where thenable
       ];
 
       const stubTx = {
@@ -407,10 +464,8 @@ describe("GET /api/pet-card — adminQuery callback pass-through", () => {
                 // limit() directly — for profiles select
                 limit: vi.fn().mockReturnValue(Promise.resolve(result)),
                 // Thenable — for count selects (await tx.select().from().where())
-                then: (
-                  resolve: (v: unknown[]) => unknown,
-                  reject: (e: unknown) => unknown
-                ) => Promise.resolve(result).then(resolve, reject),
+                then: (resolve: (v: unknown[]) => unknown, reject: (e: unknown) => unknown) =>
+                  Promise.resolve(result).then(resolve, reject),
               }),
             }),
           };
@@ -419,7 +474,9 @@ describe("GET /api/pet-card — adminQuery callback pass-through", () => {
       return fn(stubTx);
     });
 
-    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    const res = await GET(makeRequest(PET_ID, "back"), {
+      params: Promise.resolve({ petId: PET_ID }),
+    });
     // The callback returns the as const tuple; ImageResponse mock gives status 200
     expect(res.status).toBe(200);
   });

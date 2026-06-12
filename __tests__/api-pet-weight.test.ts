@@ -56,13 +56,13 @@ const stubTx = {
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
   orderBy: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   update: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
   delete: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => _returningQueue.length > 0 ? _returningQueue.shift()! : []),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -97,9 +97,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 
 import { GET, POST, PUT, DELETE } from "@/app/api/pet-weight/route";
 
-const USER_ID  = "user-abc-0000-0000-0000-000000000001";
-const PET_ID   = "123e4567-e89b-12d3-a456-426614174000";
-const LOG_ID   = "wlog-001-0000-4000-a000-000000000001";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
+const PET_ID = "123e4567-e89b-12d3-a456-426614174000";
+const LOG_ID = "wlog-001-0000-4000-a000-000000000001";
 
 const BASE_LOG: MockRow = {
   id: LOG_ID,
@@ -236,7 +236,7 @@ describe("GET /api/pet-weight", () => {
     queueLimit(logs);
     const res = await GET(makeGetReq({ pet_id: PET_ID, limit: "5" }));
     expect(res.status).toBe(200);
-    expect((await res.json())).toHaveLength(3);
+    expect(await res.json()).toHaveLength(3);
   });
 
   it("returns 500 on unhandled DB error", async () => {
@@ -315,8 +315,8 @@ describe("POST /api/pet-weight", () => {
   });
 
   it("creates weight log and returns snake_case shape", async () => {
-    queueLimit([{ id: PET_ID }]);  // pet found
-    queueReturning([BASE_LOG]);     // insert returns
+    queueLimit([{ id: PET_ID }]); // pet found
+    queueReturning([BASE_LOG]); // insert returns
     const res = await POST(makePostReq(validBody));
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
@@ -373,7 +373,7 @@ describe("PUT /api/pet-weight", () => {
 
   it("returns 404 when pet not owned by user", async () => {
     queueLimit([{ petId: PET_ID }]); // log found
-    queueLimit([]);                   // pet ownership fails
+    queueLimit([]); // pet ownership fails
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Weight log not found");
@@ -382,8 +382,8 @@ describe("PUT /api/pet-weight", () => {
   it("updates log and returns snake_case row", async () => {
     const updated = { ...BASE_LOG, weightKg: "6.10" };
     queueLimit([{ petId: PET_ID }]); // log lookup
-    queueLimit([{ id: PET_ID }]);    // pet ownership
-    queueReturning([updated]);        // update returns
+    queueLimit([{ id: PET_ID }]); // pet ownership
+    queueReturning([updated]); // update returns
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
@@ -394,7 +394,7 @@ describe("PUT /api/pet-weight", () => {
   it("returns 500 when update returns empty (null row)", async () => {
     queueLimit([{ petId: PET_ID }]);
     queueLimit([{ id: PET_ID }]);
-    queueReturning([]);  // empty → !updated → 500
+    queueReturning([]); // empty → !updated → 500
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(500);
   });
@@ -407,19 +407,27 @@ describe("PUT /api/pet-weight", () => {
 
   it("updates all optional fields when all are provided", async () => {
     // Exercises all update field branches (weight_kg, measured_at, note, photo_url)
-    const updated = { ...BASE_LOG, weightKg: "7.00", measuredAt: "2026-06-01", note: "Good", photoUrl: "https://img.example.com/w.jpg" };
+    const updated = {
+      ...BASE_LOG,
+      weightKg: "7.00",
+      measuredAt: "2026-06-01",
+      note: "Good",
+      photoUrl: "https://img.example.com/w.jpg",
+    };
     queueLimit([{ petId: PET_ID }]);
     queueLimit([{ id: PET_ID }]);
     queueReturning([updated]);
-    const res = await PUT(makePutReq({
-      id: LOG_ID,
-      weight_kg: 7.0,
-      measured_at: "2026-06-01",
-      note: "Good",
-      photo_url: "https://img.example.com/w.jpg",
-    }));
+    const res = await PUT(
+      makePutReq({
+        id: LOG_ID,
+        weight_kg: 7.0,
+        measured_at: "2026-06-01",
+        note: "Good",
+        photo_url: "https://img.example.com/w.jpg",
+      })
+    );
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.weight_kg).toBe("7.00");
     expect(body.measured_at).toBe("2026-06-01");
     expect(body.note).toBe("Good");
@@ -473,7 +481,7 @@ describe("DELETE /api/pet-weight", () => {
 
   it("returns 404 when pet not owned by user", async () => {
     queueLimit([{ petId: PET_ID }]); // log found
-    queueLimit([]);                   // pet ownership fails
+    queueLimit([]); // pet ownership fails
     const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Weight log not found");
@@ -481,7 +489,7 @@ describe("DELETE /api/pet-weight", () => {
 
   it("deletes log and returns { success: true }", async () => {
     queueLimit([{ petId: PET_ID }]); // log lookup
-    queueLimit([{ id: PET_ID }]);    // pet ownership
+    queueLimit([{ id: PET_ID }]); // pet ownership
     // delete() does not use returning; stubTx.delete returns this (no queue needed)
     const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(200);

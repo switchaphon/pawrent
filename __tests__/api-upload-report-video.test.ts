@@ -46,9 +46,9 @@ vi.mock("@/lib/auth", () => ({
 // Mock @/lib/storage/index — upload()
 // ---------------------------------------------------------------------------
 const { mockUpload } = vi.hoisted(() => ({
-  mockUpload: vi.fn<() => Promise<string>>().mockResolvedValue(
-    "https://storage.example.com/report-media/test-video.mp4"
-  ),
+  mockUpload: vi
+    .fn<() => Promise<string>>()
+    .mockResolvedValue("https://storage.example.com/report-media/test-video.mp4"),
 }));
 
 vi.mock("@/lib/storage/index", () => ({
@@ -79,11 +79,7 @@ function makeFormRequest(fields: Record<string, string | File>): NextRequest {
   return req;
 }
 
-function makeVideoFile(
-  name = "clip.mp4",
-  type = "video/mp4",
-  sizeBytes = 1024 * 1024
-): File {
+function makeVideoFile(name = "clip.mp4", type = "video/mp4", sizeBytes = 1024 * 1024): File {
   const buf = new Uint8Array(sizeBytes);
   return new File([buf], name, { type });
 }
@@ -97,9 +93,7 @@ describe("POST /api/upload/report-video", () => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
     mockCheckRateLimit.mockResolvedValue(null);
-    mockUpload.mockResolvedValue(
-      "https://storage.example.com/report-media/test-video.mp4"
-    );
+    mockUpload.mockResolvedValue("https://storage.example.com/report-media/test-video.mp4");
   });
 
   it("returns 401 without auth header", async () => {
@@ -220,7 +214,9 @@ describe("POST /api/upload/report-video", () => {
     });
     // Override formData to throw
     Object.defineProperty(req, "formData", {
-      value: async () => { throw new Error("Failed to parse form data"); },
+      value: async () => {
+        throw new Error("Failed to parse form data");
+      },
     });
     const res = await POST(req);
     expect(res.status).toBe(400);

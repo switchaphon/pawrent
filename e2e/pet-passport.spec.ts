@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Pet Passport page", () => {
-  test("passport route is public — renders without redirect for anonymous visitor", async ({ page }) => {
+  test("passport route is public — renders without redirect for anonymous visitor", async ({
+    page,
+  }) => {
     // Decision #21: passport is a public share page — no auth gate, no redirect.
     // Unknown-but-valid uuid → not-found UI streams in; URL must stay on /passport.
     await page.goto("/pets/00000000-0000-0000-0000-000000000000/passport");

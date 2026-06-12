@@ -29,10 +29,22 @@ export async function GET(request: NextRequest) {
   try {
     [birthdayPets, gotchaPets] = await adminQuery(async (tx: Tx) => {
       const [bRows, gRows] = await Promise.all([
-        tx.select({ id: pets.id, name: pets.name, ownerId: pets.ownerId, dateOfBirth: pets.dateOfBirth })
+        tx
+          .select({
+            id: pets.id,
+            name: pets.name,
+            ownerId: pets.ownerId,
+            dateOfBirth: pets.dateOfBirth,
+          })
           .from(pets)
           .where(isNotNull(pets.dateOfBirth)),
-        tx.select({ id: pets.id, name: pets.name, ownerId: pets.ownerId, gotchaDay: pets.gotchaDay })
+        tx
+          .select({
+            id: pets.id,
+            name: pets.name,
+            ownerId: pets.ownerId,
+            gotchaDay: pets.gotchaDay,
+          })
           .from(pets)
           .where(isNotNull(pets.gotchaDay)),
       ]);
@@ -72,10 +84,12 @@ export async function GET(request: NextRequest) {
 
   const [ownerRows, photoRows] = await adminQuery(async (tx: Tx) => {
     return Promise.all([
-      tx.select({ id: profiles.id, lineUserId: profiles.lineUserId })
+      tx
+        .select({ id: profiles.id, lineUserId: profiles.lineUserId })
         .from(profiles)
         .where(inArray(profiles.id, allOwnerIds)),
-      tx.select({ petId: petPhotos.petId, photoUrl: petPhotos.photoUrl })
+      tx
+        .select({ petId: petPhotos.petId, photoUrl: petPhotos.photoUrl })
         .from(petPhotos)
         .where(inArray(petPhotos.petId, allPetIds))
         .orderBy(petPhotos.createdAt)

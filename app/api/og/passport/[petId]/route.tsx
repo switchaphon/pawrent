@@ -22,7 +22,8 @@ export async function GET(
 
   const [petRow, vaccineRows] = await adminQuery(async (tx: Tx) => {
     return Promise.all([
-      tx.select({
+      tx
+        .select({
           id: pets.id,
           name: pets.name,
           species: pets.species,
@@ -34,7 +35,8 @@ export async function GET(
         .where(eq(pets.id, petId))
         .limit(1)
         .then((rows) => rows[0] ?? null),
-      tx.select({ id: vaccinations.id, status: vaccinations.status })
+      tx
+        .select({ id: vaccinations.id, status: vaccinations.status })
         .from(vaccinations)
         .where(eq(vaccinations.petId, petId)),
     ]);

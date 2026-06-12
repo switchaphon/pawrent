@@ -59,10 +59,7 @@ export async function POST(request: NextRequest) {
   // Validate file size and MIME type (server-side mirrors client-side checks)
   const fileValidation = imageFileSchema.safeParse({ size: file.size, type: file.type });
   if (!fileValidation.success) {
-    return NextResponse.json(
-      { error: fileValidation.error.issues[0].message },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: fileValidation.error.issues[0].message }, { status: 400 });
   }
 
   // Verify pet ownership before uploading

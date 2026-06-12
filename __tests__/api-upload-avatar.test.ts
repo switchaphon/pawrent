@@ -51,10 +51,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/index")>();
   return {
     ...actual,
-    query: vi.fn(async (
-      _userId: string,
-      fn: (tx: typeof stubTx) => Promise<unknown>
-    ) => fn(stubTx)),
+    query: vi.fn(async (_userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) =>
+      fn(stubTx)
+    ),
   };
 });
 
@@ -86,7 +85,9 @@ describe("POST /api/upload/avatar", () => {
 
   it("returns 401 when verifyAuth returns null", async () => {
     mockVerifyAuth.mockResolvedValueOnce(null);
-    const res = await POST(makeFormRequest({ file: new File(["x"], "a.jpg", { type: "image/jpeg" }) }));
+    const res = await POST(
+      makeFormRequest({ file: new File(["x"], "a.jpg", { type: "image/jpeg" }) })
+    );
     expect(res.status).toBe(401);
   });
 
@@ -97,7 +98,9 @@ describe("POST /api/upload/avatar", () => {
       headers: { Authorization: "Bearer fake-token" },
     });
     Object.defineProperty(req, "formData", {
-      value: async () => { throw new Error("multipart parse error"); },
+      value: async () => {
+        throw new Error("multipart parse error");
+      },
     });
     const res = await POST(req);
     expect(res.status).toBe(400);

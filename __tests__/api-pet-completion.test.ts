@@ -57,7 +57,7 @@ const stubTx = {
   select: vi.fn().mockReturnThis(),
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -82,7 +82,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { GET } from "@/app/api/pets/[petId]/completion/route";
 
 const USER_ID = "user-abc-0000-0000-0000-000000000001";
-const PET_ID  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+const PET_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
 function makeReq(petId: string): NextRequest {
   return new NextRequest(`http://localhost/api/pets/${petId}/completion`, {
@@ -189,16 +189,26 @@ describe("GET /api/pets/[petId]/completion — score calculation", () => {
 
   it("returns score=0 when all fields are empty and all counts are 0", async () => {
     const emptyPet: MockRow = {
-      id: PET_ID, name: null, breed: null, dateOfBirth: null,
-      sex: null, photoUrl: null, microchipNumber: null,
+      id: PET_ID,
+      name: null,
+      breed: null,
+      dateOfBirth: null,
+      sex: null,
+      photoUrl: null,
+      microchipNumber: null,
     };
     queueCompletionCheck(emptyPet);
     const res = await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) });
     const body = await res.json();
     expect(body.score).toBe(0);
     expect(body.items).toEqual({
-      basic: false, photo: false, microchip: false,
-      weight: false, vaccination: false, parasite: false, diary: false,
+      basic: false,
+      photo: false,
+      microchip: false,
+      weight: false,
+      vaccination: false,
+      parasite: false,
+      diary: false,
     });
   });
 
@@ -214,7 +224,9 @@ describe("GET /api/pets/[petId]/completion — score calculation", () => {
 
   it("returns score=30 when basic + photo", async () => {
     queueCompletionCheck({ ...FULL_PET, microchipNumber: null });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(30);
     expect(body.items.photo).toBe(true);
     expect(body.items.microchip).toBe(false);
@@ -222,7 +234,9 @@ describe("GET /api/pets/[petId]/completion — score calculation", () => {
 
   it("returns score=40 when basic + photo + microchip", async () => {
     queueCompletionCheck(FULL_PET);
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(40);
     expect(body.items.microchip).toBe(true);
     expect(body.items.weight).toBe(false);
@@ -230,28 +244,36 @@ describe("GET /api/pets/[petId]/completion — score calculation", () => {
 
   it("returns score=35 when basic only + weight log", async () => {
     queueCompletionCheck({ ...FULL_PET, photoUrl: null, microchipNumber: null }, { weight: 1 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(35);
     expect(body.items.weight).toBe(true);
   });
 
   it("returns score=35 when basic only + vaccination", async () => {
     queueCompletionCheck({ ...FULL_PET, photoUrl: null, microchipNumber: null }, { vac: 1 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(35);
     expect(body.items.vaccination).toBe(true);
   });
 
   it("returns score=35 when basic only + parasite log", async () => {
     queueCompletionCheck({ ...FULL_PET, photoUrl: null, microchipNumber: null }, { parasite: 1 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(35);
     expect(body.items.parasite).toBe(true);
   });
 
   it("returns score=35 when basic only + diary", async () => {
     queueCompletionCheck({ ...FULL_PET, photoUrl: null, microchipNumber: null }, { diary: 1 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(35);
     expect(body.items.diary).toBe(true);
   });
@@ -261,46 +283,67 @@ describe("GET /api/pets/[petId]/completion — score calculation", () => {
       { ...FULL_PET, photoUrl: null, microchipNumber: null },
       { weight: 1, vac: 1, parasite: 1, diary: 1 }
     );
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(80); // 20 + 15 + 15 + 15 + 15
   });
 
   it("treats basic as false when only name is present (requires all 4)", async () => {
-    const partialPet = { ...FULL_PET, breed: null, dateOfBirth: null, sex: null, photoUrl: null, microchipNumber: null };
+    const partialPet = {
+      ...FULL_PET,
+      breed: null,
+      dateOfBirth: null,
+      sex: null,
+      photoUrl: null,
+      microchipNumber: null,
+    };
     queueCompletionCheck(partialPet);
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.items.basic).toBe(false);
     expect(body.score).toBe(0);
   });
 
   it("treats basic as false when breed is missing", async () => {
     queueCompletionCheck({ ...FULL_PET, breed: null, photoUrl: null, microchipNumber: null });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.items.basic).toBe(false);
   });
 
   it("treats basic as false when dateOfBirth is missing", async () => {
     queueCompletionCheck({ ...FULL_PET, dateOfBirth: null, photoUrl: null, microchipNumber: null });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.items.basic).toBe(false);
   });
 
   it("treats basic as false when sex is missing", async () => {
     queueCompletionCheck({ ...FULL_PET, sex: null, photoUrl: null, microchipNumber: null });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.items.basic).toBe(false);
   });
 
   it("counts > 1 still give the same single-item points", async () => {
     // Multiple records should not inflate the score beyond 15 pts per category
     queueCompletionCheck(FULL_PET, { weight: 5, vac: 10, parasite: 3, diary: 20 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.score).toBe(100);
   });
 
   it("returns well-formed CompletionResponse shape", async () => {
     queueCompletionCheck(FULL_PET, { weight: 1, vac: 1, parasite: 1, diary: 1 });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(typeof body.score).toBe("number");
     expect(typeof body.items).toBe("object");
     const keys = ["basic", "photo", "microchip", "weight", "vaccination", "parasite", "diary"];

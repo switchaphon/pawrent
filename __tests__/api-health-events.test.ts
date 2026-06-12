@@ -49,13 +49,13 @@ const stubTx = {
   select: vi.fn().mockReturnThis(),
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   update: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
   delete: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => _returningQueue.length > 0 ? _returningQueue.shift()! : []),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -81,9 +81,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 
 import { POST, PUT, DELETE } from "@/app/api/health-events/route";
 
-const USER_ID       = "user-abc-0000-0000-0000-000000000001";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const VALID_PET_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const EVT_ID        = "evt-0001-0000-4000-a000-000000000001";
+const EVT_ID = "evt-0001-0000-4000-a000-000000000001";
 
 const BASE_EVENT: MockRow = {
   id: EVT_ID,
@@ -223,7 +223,9 @@ describe("POST /api/health-events", () => {
   it("creates vet_visit event successfully", async () => {
     _limitQueue.push([{ id: VALID_PET_UUID }]);
     _returningQueue.push([{ ...BASE_EVENT, eventType: "vet_visit" }]);
-    const res = await POST(makePostReq({ ...validBody, event_type: "vet_visit", title: "Annual checkup" }));
+    const res = await POST(
+      makePostReq({ ...validBody, event_type: "vet_visit", title: "Annual checkup" })
+    );
     expect(res.status).toBe(201);
     expect((await res.json()).event_type).toBe("vet_visit");
   });
@@ -300,7 +302,7 @@ describe("PUT /api/health-events", () => {
 
   it("returns 404 when pet is not owned by the user", async () => {
     _limitQueue.push([{ petId: VALID_PET_UUID }]); // event found
-    _limitQueue.push([]);                           // pet ownership fails
+    _limitQueue.push([]); // pet ownership fails
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Health event not found");
@@ -374,7 +376,9 @@ describe("PUT /api/health-events", () => {
     _limitQueue.push([{ petId: VALID_PET_UUID }]);
     _limitQueue.push([{ id: VALID_PET_UUID }]);
     _returningQueue.push([{ ...BASE_EVENT, eventType: "vet_visit", eventDate: "2026-01-10" }]);
-    const res = await PUT(makePutReq({ id: EVT_ID, event_type: "vet_visit", event_date: "2026-01-10" }));
+    const res = await PUT(
+      makePutReq({ id: EVT_ID, event_type: "vet_visit", event_date: "2026-01-10" })
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.event_type).toBe("vet_visit");
@@ -384,22 +388,26 @@ describe("PUT /api/health-events", () => {
   it("updates all five optional fields in a single call (all branches true)", async () => {
     _limitQueue.push([{ petId: VALID_PET_UUID }]);
     _limitQueue.push([{ id: VALID_PET_UUID }]);
-    _returningQueue.push([{
-      ...BASE_EVENT,
-      eventType: "checkup",
-      title: "Full checkup",
-      description: "All clear",
-      eventDate: "2026-03-01",
-      photoUrl: "https://x.com/p.jpg",
-    }]);
-    const res = await PUT(makePutReq({
-      id: EVT_ID,
-      event_type: "checkup",
-      title: "Full checkup",
-      description: "All clear",
-      event_date: "2026-03-01",
-      photo_url: "https://x.com/p.jpg",
-    }));
+    _returningQueue.push([
+      {
+        ...BASE_EVENT,
+        eventType: "checkup",
+        title: "Full checkup",
+        description: "All clear",
+        eventDate: "2026-03-01",
+        photoUrl: "https://x.com/p.jpg",
+      },
+    ]);
+    const res = await PUT(
+      makePutReq({
+        id: EVT_ID,
+        event_type: "checkup",
+        title: "Full checkup",
+        description: "All clear",
+        event_date: "2026-03-01",
+        photo_url: "https://x.com/p.jpg",
+      })
+    );
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBe("Full checkup");
   });

@@ -81,7 +81,7 @@ const stubTx = {
   limit: vi.fn(async () => _selectRows),
   update: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => (_updateRow ? [_updateRow] : (_insertRow ? [_insertRow] : []))),
+  returning: vi.fn(async () => (_updateRow ? [_updateRow] : _insertRow ? [_insertRow] : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
 };
@@ -168,9 +168,7 @@ function mockLineVerifyThenAvatar(overrides: Record<string, unknown> = {}) {
     ok: true,
     arrayBuffer: async () => new ArrayBuffer(8),
   };
-  global.fetch = vi.fn()
-    .mockResolvedValueOnce(lineResp)
-    .mockResolvedValueOnce(avatarResp);
+  global.fetch = vi.fn().mockResolvedValueOnce(lineResp).mockResolvedValueOnce(avatarResp);
 }
 
 /** No-picture LINE verify (single fetch only — no avatar download). */

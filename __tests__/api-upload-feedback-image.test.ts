@@ -74,7 +74,9 @@ describe("POST /api/upload/feedback-image", () => {
       method: "POST",
     });
     Object.defineProperty(req, "formData", {
-      value: async () => { throw new Error("multipart parse error"); },
+      value: async () => {
+        throw new Error("multipart parse error");
+      },
     });
     const res = await POST(req);
     expect(res.status).toBe(400);

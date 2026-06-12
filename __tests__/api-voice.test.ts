@@ -94,10 +94,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/index")>();
   return {
     ...actual,
-    query: vi.fn(async (
-      _userId: string,
-      fn: (tx: typeof stubTx) => Promise<unknown>
-    ) => fn(stubTx)),
+    query: vi.fn(async (_userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) =>
+      fn(stubTx)
+    ),
   };
 });
 

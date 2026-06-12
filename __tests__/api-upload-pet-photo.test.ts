@@ -39,7 +39,7 @@ vi.mock("@/lib/rate-limit", () => ({
 // Mock @/lib/auth
 // ---------------------------------------------------------------------------
 const VALID_USER_ID = "123e4567-e89b-12d3-a456-426614174000";
-const VALID_PET_ID  = "aabbccdd-1234-5678-abcd-aabbccddeeff";
+const VALID_PET_ID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 
 const { mockVerifyAuth } = vi.hoisted(() => ({
   mockVerifyAuth: vi.fn<() => Promise<{ userId: string } | null>>().mockResolvedValue({
@@ -55,9 +55,9 @@ vi.mock("@/lib/auth", () => ({
 // Mock @/lib/storage/index — upload()
 // ---------------------------------------------------------------------------
 const { mockUpload } = vi.hoisted(() => ({
-  mockUpload: vi.fn<() => Promise<string>>().mockResolvedValue(
-    "https://storage.example.com/pet-photos/gallery/pet-id/photo-uuid.jpg"
-  ),
+  mockUpload: vi
+    .fn<() => Promise<string>>()
+    .mockResolvedValue("https://storage.example.com/pet-photos/gallery/pet-id/photo-uuid.jpg"),
 }));
 
 vi.mock("@/lib/storage/index", () => ({
@@ -224,15 +224,17 @@ describe("POST /api/upload/pet-photo", () => {
   // ── Ownership check ───────────────────────────────────────────────────────
 
   it("returns 404 when pet does not belong to authenticated user", async () => {
-    mockQuery.mockImplementationOnce(async (_userId: string, fn: (tx: unknown) => Promise<unknown>) => {
-      const fakeTx = {
-        select: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([]), // empty — pet not found or not owned
-      };
-      return fn(fakeTx);
-    });
+    mockQuery.mockImplementationOnce(
+      async (_userId: string, fn: (tx: unknown) => Promise<unknown>) => {
+        const fakeTx = {
+          select: vi.fn().mockReturnThis(),
+          from: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue([]), // empty — pet not found or not owned
+        };
+        return fn(fakeTx);
+      }
+    );
     const req = makeFormRequest({ file: makeImageFile(), pet_id: VALID_PET_ID });
     const res = await POST(req);
     expect(res.status).toBe(404);
@@ -247,9 +249,7 @@ describe("POST /api/upload/pet-photo", () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.url).toBe(
-      "https://storage.example.com/pet-photos/gallery/pet-id/photo-uuid.jpg"
-    );
+    expect(body.url).toBe("https://storage.example.com/pet-photos/gallery/pet-id/photo-uuid.jpg");
     expect(mockUpload).toHaveBeenCalledWith(
       "pet-photos",
       expect.stringMatching(new RegExp(`^gallery/${VALID_PET_ID}/`)),

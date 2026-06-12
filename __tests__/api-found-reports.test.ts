@@ -44,8 +44,12 @@ type MockRow = Record<string, unknown>;
 let _insertRows: MockRow[] = [];
 let _selectRows: MockRow[] = [];
 
-export function setInsertRows(rows: MockRow[]) { _insertRows = rows; }
-export function setSelectRows(rows: MockRow[]) { _selectRows = rows; }
+export function setInsertRows(rows: MockRow[]) {
+  _insertRows = rows;
+}
+export function setSelectRows(rows: MockRow[]) {
+  _selectRows = rows;
+}
 
 const stubTx = {
   select: vi.fn().mockReturnThis(),
@@ -220,14 +224,14 @@ describe("POST /api/found-reports", () => {
     const payload = { photo_urls: ["https://example.com/p.jpg"], lat: 13.7, lng: 100.5 };
     const res = await POST(makeRequest("POST", payload));
     expect(res.status).toBe(200);
-    expect(stubTx.values).toHaveBeenCalledWith(
-      expect.objectContaining({ speciesGuess: null })
-    );
+    expect(stubTx.values).toHaveBeenCalledWith(expect.objectContaining({ speciesGuess: null }));
   });
 
   it("returns 500 and covers non-Error throw in POST catch (line 81 false branch)", async () => {
     // Throw plain string from returning() to exercise err instanceof Error false branch
-    stubTx.returning.mockImplementationOnce(async () => { throw "plain POST error"; });
+    stubTx.returning.mockImplementationOnce(async () => {
+      throw "plain POST error";
+    });
     const res = await POST(makeRequest("POST", validPayload));
     expect(res.status).toBe(500);
     const data = await res.json();

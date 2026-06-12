@@ -140,7 +140,9 @@ describe("POST /api/sightings", () => {
       { status: 429, headers: { "Retry-After": "60" } }
     );
     mockCheckRateLimit.mockResolvedValueOnce(rateLimitResponse);
-    const res = await POST(makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 }));
+    const res = await POST(
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 })
+    );
     expect(res.status).toBe(429);
   });
 
@@ -187,7 +189,12 @@ describe("POST /api/sightings", () => {
     _insertRows = [BASE_SIGHTING];
 
     const res = await POST(
-      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018, note: "Saw near park" })
+      makeRequest("POST", {
+        alert_id: ALERT_UUID,
+        lat: 13.7563,
+        lng: 100.5018,
+        note: "Saw near park",
+      })
     );
     expect(res.status).toBe(200);
     const data = await res.json();

@@ -171,7 +171,8 @@ describe("apiFetch", () => {
     // Sequence: original request → 401, /api/auth/line → 200, retry → 200
     vi.stubGlobal(
       "fetch",
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
@@ -203,7 +204,8 @@ describe("apiFetch", () => {
 
     vi.stubGlobal(
       "fetch",
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({
           ok: false,
           status: 401,
@@ -256,7 +258,8 @@ describe("apiFetch", () => {
 
     vi.stubGlobal(
       "fetch",
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({
           // Original request → 401
           ok: false,

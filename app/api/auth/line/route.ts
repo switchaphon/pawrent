@@ -43,10 +43,7 @@ async function verifyLineIdToken(
 // Avatar re-upload — fetch LINE CDN picture and store in user-photos bucket.
 // Falls back to LINE CDN URL on any failure.
 // ---------------------------------------------------------------------------
-async function reuploadAvatar(
-  userId: string,
-  pictureUrl: string
-): Promise<string> {
+async function reuploadAvatar(userId: string, pictureUrl: string): Promise<string> {
   try {
     const imgRes = await fetch(pictureUrl);
     const buffer = Buffer.from(await imgRes.arrayBuffer());
@@ -105,8 +102,7 @@ export async function POST(request: NextRequest) {
         // Refresh display name + avatar if they changed; backfill email when
         // LINE supplies one and the column is still null.
         const needsUpdate =
-          row.lineDisplayName !== lineProfile.name ||
-          (lineProfile.email && !row.email);
+          row.lineDisplayName !== lineProfile.name || (lineProfile.email && !row.email);
 
         if (!needsUpdate) return row;
 

@@ -277,10 +277,7 @@ describe("GET /api/cron/health-reminders", () => {
   it("treats null remindDaysBefore as 3 and includes reminder due in 2 days", async () => {
     // 2026-04-16 is 2 days from now; null remindDaysBefore defaults to 3 → 2 <= 3 → included
     setupAdmin([
-      [
-        [],
-        [{ ...BASE_REMINDER, id: "r5", dueDate: "2026-04-16", remindDaysBefore: null }],
-      ],
+      [[], [{ ...BASE_REMINDER, id: "r5", dueDate: "2026-04-16", remindDaysBefore: null }]],
       [[{ id: "o1", lineUserId: "Uabc123" }], [{ id: "p1", name: "Buddy" }]],
       undefined,
     ]);
@@ -294,10 +291,7 @@ describe("GET /api/cron/health-reminders", () => {
   it("excludes reminder with null remindDaysBefore when due in 4 days (default 3 < 4)", async () => {
     // 2026-04-18 is 4 days out; null defaults to 3 → 4 > 3 → excluded
     setupAdmin([
-      [
-        [],
-        [{ ...BASE_REMINDER, id: "r6", dueDate: "2026-04-18", remindDaysBefore: null }],
-      ],
+      [[], [{ ...BASE_REMINDER, id: "r6", dueDate: "2026-04-18", remindDaysBefore: null }]],
     ]);
 
     const res = await GET(makeCronRequest());
@@ -383,7 +377,7 @@ describe("GET /api/cron/health-reminders", () => {
       let callIdx = 0;
       const results = [
         [{ id: "o1", lineUserId: "Uabc123" }], // ownerRows
-        [{ id: "p1", name: "Buddy" }],          // petRows
+        [{ id: "p1", name: "Buddy" }], // petRows
       ];
       const stubTx = {
         select: vi.fn().mockReturnValue({

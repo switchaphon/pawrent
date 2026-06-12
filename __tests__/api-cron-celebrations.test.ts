@@ -137,10 +137,7 @@ describe("GET /api/cron/celebrations", () => {
   it("sends birthday celebration and returns sent: 1", async () => {
     setupAdmin([
       // call 1: [birthdayPets, gotchaPets]
-      [
-        [{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }],
-        [],
-      ],
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }], []],
       // call 2: [ownerRows, photoRows]
       [
         [{ id: "o1", lineUserId: "Uabc123" }],
@@ -162,7 +159,7 @@ describe("GET /api/cron/celebrations", () => {
 
   it("sends gotcha-day celebration", async () => {
     setupAdmin([
-      [[],[{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2024-04-14" }]],
+      [[], [{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2024-04-14" }]],
       [[{ id: "o2", lineUserId: "Uxyz789" }], []],
     ]);
 

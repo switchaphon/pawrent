@@ -1,5 +1,13 @@
 import { eq, asc, desc, gte } from "drizzle-orm";
-import { adminQuery, pets, vaccinations, parasiteLogs, petWeightLogs, petMilestones, healthReminders } from "@/lib/db/index";
+import {
+  adminQuery,
+  pets,
+  vaccinations,
+  parasiteLogs,
+  petWeightLogs,
+  petMilestones,
+  healthReminders,
+} from "@/lib/db/index";
 import type { Tx } from "@/lib/db/index";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,11 +20,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const petRow = await adminQuery(async (tx: Tx) => {
-    const rows = await tx
-      .select({ name: pets.name })
-      .from(pets)
-      .where(eq(pets.id, id))
-      .limit(1);
+    const rows = await tx.select({ name: pets.name }).from(pets).where(eq(pets.id, id)).limit(1);
     return rows[0] ?? null;
   });
 
@@ -38,142 +42,133 @@ export default async function PassportPage({ params }: Props) {
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);
 
-  const {
-    pet,
-    userPets,
-    vaccinationRows,
-    parasiteRows,
-    weightRows,
-    milestoneRows,
-    reminderRows,
-  } = await adminQuery(async (tx: Tx) => {
-    // Main pet fetch — no owner_id filter (public page)
-    const petRows = await tx
-      .select({
-        id: pets.id,
-        ownerId: pets.ownerId,
-        name: pets.name,
-        species: pets.species,
-        breed: pets.breed,
-        sex: pets.sex,
-        color: pets.color,
-        weightKg: pets.weightKg,
-        dateOfBirth: pets.dateOfBirth,
-        microchipNumber: pets.microchipNumber,
-        photoUrl: pets.photoUrl,
-        gotchaDay: pets.gotchaDay,
-        isSpayedNeutered: pets.isSpayedNeutered,
-        pawrentId: pets.pawrentId,
-      })
-      .from(pets)
-      .where(eq(pets.id, id))
-      .limit(1);
-
-    const petRow = petRows[0] ?? null;
-    if (!petRow) {
-      return {
-        pet: null,
-        userPets: [],
-        vaccinationRows: [],
-        parasiteRows: [],
-        weightRows: [],
-        milestoneRows: [],
-        reminderRows: [],
-      };
-    }
-
-    // User's full pet list for chip switcher — same owner
-    const [userPetRows, vaccRows, parasRows, wRows, mRows, rRows] = await Promise.all([
-      tx
-        .select({ id: pets.id, name: pets.name, species: pets.species, photoUrl: pets.photoUrl })
+  const { pet, userPets, vaccinationRows, parasiteRows, weightRows, milestoneRows, reminderRows } =
+    await adminQuery(async (tx: Tx) => {
+      // Main pet fetch — no owner_id filter (public page)
+      const petRows = await tx
+        .select({
+          id: pets.id,
+          ownerId: pets.ownerId,
+          name: pets.name,
+          species: pets.species,
+          breed: pets.breed,
+          sex: pets.sex,
+          color: pets.color,
+          weightKg: pets.weightKg,
+          dateOfBirth: pets.dateOfBirth,
+          microchipNumber: pets.microchipNumber,
+          photoUrl: pets.photoUrl,
+          gotchaDay: pets.gotchaDay,
+          isSpayedNeutered: pets.isSpayedNeutered,
+          pawrentId: pets.pawrentId,
+        })
         .from(pets)
-        .where(eq(pets.ownerId, petRow.ownerId))
-        .orderBy(asc(pets.createdAt)),
-      tx
-        .select({
-          id: vaccinations.id,
-          petId: vaccinations.petId,
-          name: vaccinations.name,
-          status: vaccinations.status,
-          lastDate: vaccinations.lastDate,
-          nextDueDate: vaccinations.nextDueDate,
-          createdAt: vaccinations.createdAt,
-        })
-        .from(vaccinations)
-        .where(eq(vaccinations.petId, id))
-        .orderBy(asc(vaccinations.nextDueDate)),
-      tx
-        .select({
-          id: parasiteLogs.id,
-          petId: parasiteLogs.petId,
-          medicineName: parasiteLogs.medicineName,
-          administeredDate: parasiteLogs.administeredDate,
-          nextDueDate: parasiteLogs.nextDueDate,
-          createdAt: parasiteLogs.createdAt,
-        })
-        .from(parasiteLogs)
-        .where(eq(parasiteLogs.petId, id))
-        .orderBy(asc(parasiteLogs.nextDueDate)),
-      tx
-        .select({
-          id: petWeightLogs.id,
-          petId: petWeightLogs.petId,
-          weightKg: petWeightLogs.weightKg,
-          measuredAt: petWeightLogs.measuredAt,
-          note: petWeightLogs.note,
-          createdAt: petWeightLogs.createdAt,
-        })
-        .from(petWeightLogs)
-        .where(eq(petWeightLogs.petId, id))
-        .orderBy(desc(petWeightLogs.measuredAt))
-        .limit(12),
-      tx
-        .select({
-          id: petMilestones.id,
-          petId: petMilestones.petId,
-          type: petMilestones.type,
-          title: petMilestones.title,
-          eventDate: petMilestones.eventDate,
-          photoUrl: petMilestones.photoUrl,
-          note: petMilestones.note,
-          createdAt: petMilestones.createdAt,
-        })
-        .from(petMilestones)
-        .where(eq(petMilestones.petId, id))
-        .orderBy(asc(petMilestones.eventDate)),
-      tx
-        .select({
-          id: healthReminders.id,
-          petId: healthReminders.petId,
-          ownerId: healthReminders.ownerId,
-          reminderType: healthReminders.reminderType,
-          title: healthReminders.title,
-          dueDate: healthReminders.dueDate,
-          remindDaysBefore: healthReminders.remindDaysBefore,
-          isSent: healthReminders.isSent,
-          sentAt: healthReminders.sentAt,
-          isDismissed: healthReminders.isDismissed,
-          createdAt: healthReminders.createdAt,
-        })
-        .from(healthReminders)
-        .where(eq(healthReminders.petId, id))
-        .orderBy(asc(healthReminders.dueDate))
-        .limit(10),
-    ]);
+        .where(eq(pets.id, id))
+        .limit(1);
 
-    return {
-      pet: petRow,
-      userPets: userPetRows,
-      vaccinationRows: vaccRows,
-      parasiteRows: parasRows,
-      weightRows: wRows,
-      milestoneRows: mRows,
-      // Filter upcoming non-dismissed reminders in app (gte comparison on date string — ISO dates sort lexicographically)
-      reminderRows: rRows.filter(
-        (r) => !r.isDismissed && (r.dueDate ?? "") >= today
-      ),
-    };
-  });
+      const petRow = petRows[0] ?? null;
+      if (!petRow) {
+        return {
+          pet: null,
+          userPets: [],
+          vaccinationRows: [],
+          parasiteRows: [],
+          weightRows: [],
+          milestoneRows: [],
+          reminderRows: [],
+        };
+      }
+
+      // User's full pet list for chip switcher — same owner
+      const [userPetRows, vaccRows, parasRows, wRows, mRows, rRows] = await Promise.all([
+        tx
+          .select({ id: pets.id, name: pets.name, species: pets.species, photoUrl: pets.photoUrl })
+          .from(pets)
+          .where(eq(pets.ownerId, petRow.ownerId))
+          .orderBy(asc(pets.createdAt)),
+        tx
+          .select({
+            id: vaccinations.id,
+            petId: vaccinations.petId,
+            name: vaccinations.name,
+            status: vaccinations.status,
+            lastDate: vaccinations.lastDate,
+            nextDueDate: vaccinations.nextDueDate,
+            createdAt: vaccinations.createdAt,
+          })
+          .from(vaccinations)
+          .where(eq(vaccinations.petId, id))
+          .orderBy(asc(vaccinations.nextDueDate)),
+        tx
+          .select({
+            id: parasiteLogs.id,
+            petId: parasiteLogs.petId,
+            medicineName: parasiteLogs.medicineName,
+            administeredDate: parasiteLogs.administeredDate,
+            nextDueDate: parasiteLogs.nextDueDate,
+            createdAt: parasiteLogs.createdAt,
+          })
+          .from(parasiteLogs)
+          .where(eq(parasiteLogs.petId, id))
+          .orderBy(asc(parasiteLogs.nextDueDate)),
+        tx
+          .select({
+            id: petWeightLogs.id,
+            petId: petWeightLogs.petId,
+            weightKg: petWeightLogs.weightKg,
+            measuredAt: petWeightLogs.measuredAt,
+            note: petWeightLogs.note,
+            createdAt: petWeightLogs.createdAt,
+          })
+          .from(petWeightLogs)
+          .where(eq(petWeightLogs.petId, id))
+          .orderBy(desc(petWeightLogs.measuredAt))
+          .limit(12),
+        tx
+          .select({
+            id: petMilestones.id,
+            petId: petMilestones.petId,
+            type: petMilestones.type,
+            title: petMilestones.title,
+            eventDate: petMilestones.eventDate,
+            photoUrl: petMilestones.photoUrl,
+            note: petMilestones.note,
+            createdAt: petMilestones.createdAt,
+          })
+          .from(petMilestones)
+          .where(eq(petMilestones.petId, id))
+          .orderBy(asc(petMilestones.eventDate)),
+        tx
+          .select({
+            id: healthReminders.id,
+            petId: healthReminders.petId,
+            ownerId: healthReminders.ownerId,
+            reminderType: healthReminders.reminderType,
+            title: healthReminders.title,
+            dueDate: healthReminders.dueDate,
+            remindDaysBefore: healthReminders.remindDaysBefore,
+            isSent: healthReminders.isSent,
+            sentAt: healthReminders.sentAt,
+            isDismissed: healthReminders.isDismissed,
+            createdAt: healthReminders.createdAt,
+          })
+          .from(healthReminders)
+          .where(eq(healthReminders.petId, id))
+          .orderBy(asc(healthReminders.dueDate))
+          .limit(10),
+      ]);
+
+      return {
+        pet: petRow,
+        userPets: userPetRows,
+        vaccinationRows: vaccRows,
+        parasiteRows: parasRows,
+        weightRows: wRows,
+        milestoneRows: mRows,
+        // Filter upcoming non-dismissed reminders in app (gte comparison on date string — ISO dates sort lexicographically)
+        reminderRows: rRows.filter((r) => !r.isDismissed && (r.dueDate ?? "") >= today),
+      };
+    });
 
   if (!pet) {
     // Public page, missing pet → 404. Static import (not dynamic) so TS
@@ -238,7 +233,14 @@ export default async function PassportPage({ params }: Props) {
   const milestonesMapped = milestoneRows.map((m) => ({
     id: m.id,
     pet_id: m.petId,
-    type: m.type as "birthday" | "gotcha_day" | "first_vet" | "first_walk" | "spayed_neutered" | "microchipped" | "custom",
+    type: m.type as
+      | "birthday"
+      | "gotcha_day"
+      | "first_vet"
+      | "first_walk"
+      | "spayed_neutered"
+      | "microchipped"
+      | "custom",
     title: m.title,
     event_date: m.eventDate,
     photo_url: m.photoUrl,
@@ -250,7 +252,12 @@ export default async function PassportPage({ params }: Props) {
     id: r.id,
     pet_id: r.petId,
     owner_id: r.ownerId,
-    reminder_type: r.reminderType as "vaccination" | "parasite_prevention" | "vet_checkup" | "medication" | "custom",
+    reminder_type: r.reminderType as
+      | "vaccination"
+      | "parasite_prevention"
+      | "vet_checkup"
+      | "medication"
+      | "custom",
     title: r.title,
     due_date: r.dueDate,
     remind_days_before: r.remindDaysBefore ?? 3,

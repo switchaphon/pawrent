@@ -23,11 +23,7 @@ import type { Tx } from "./index";
 // Must be called inside query() so app.user_id is already set.
 // Returns the new total like count for the post.
 // ---------------------------------------------------------------------------
-export async function toggleLike(
-  tx: Tx,
-  postId: string,
-  userId: string
-): Promise<number> {
+export async function toggleLike(tx: Tx, postId: string, userId: string): Promise<number> {
   const rows = await tx.execute<{ toggle_like: number }>(
     sql`SELECT toggle_like(${postId}::uuid, ${userId}::uuid)`
   );
@@ -115,9 +111,7 @@ export async function usersWithinRadius(
   const rows = await tx.execute<{ line_user_id: string }>(
     sql`SELECT line_user_id FROM users_within_radius(${params.lat}, ${params.lng}, ${radiusKm})`
   );
-  return (rows as unknown as { line_user_id: string }[]).map(
-    (r) => r.line_user_id
-  );
+  return (rows as unknown as { line_user_id: string }[]).map((r) => r.line_user_id);
 }
 
 // ---------------------------------------------------------------------------
@@ -139,8 +133,6 @@ export async function submitAnonymousFeedback(
   const rows = await tx.execute<{ submit_anonymous_feedback: unknown }>(
     sql`SELECT submit_anonymous_feedback(${params.message}, ${params.userId ?? null}::uuid, ${params.imageUrl ?? null})`
   );
-  const row = (
-    rows as unknown as { submit_anonymous_feedback: unknown }[]
-  )[0];
+  const row = (rows as unknown as { submit_anonymous_feedback: unknown }[])[0];
   return row.submit_anonymous_feedback as Record<string, unknown>;
 }

@@ -120,9 +120,7 @@ describe.skipIf(!hasTestDb)("lib/db two-pool integration", () => {
   it("query(user1) UPDATE user2 pet returns 0 rows", async () => {
     const KHAONIAO = "10000000-0000-4000-8000-000000000003"; // USER2's pet
     const result = await query(USER1, (tx) =>
-      tx.execute(
-        sql`UPDATE pets SET special_notes = 'rls-test' WHERE id = ${KHAONIAO}::uuid`
-      )
+      tx.execute(sql`UPDATE pets SET special_notes = 'rls-test' WHERE id = ${KHAONIAO}::uuid`)
     );
     // postgres-js returns rows array; for UPDATE count we check rowCount
     const count = (result as unknown as { count: number }).count ?? 0;
@@ -225,15 +223,11 @@ describe.skipIf(!hasTestDb)("lib/db two-pool integration", () => {
 
     try {
       // First call: add like (USER2 must not already have liked POST1)
-      const countAfterLike = await query(USER2, (tx) =>
-        toggleLike(tx, POST1, USER2)
-      );
+      const countAfterLike = await query(USER2, (tx) => toggleLike(tx, POST1, USER2));
       expect(countAfterLike).toBe(baseline + 1);
 
       // Second call: remove like
-      const countAfterUnlike = await query(USER2, (tx) =>
-        toggleLike(tx, POST1, USER2)
-      );
+      const countAfterUnlike = await query(USER2, (tx) => toggleLike(tx, POST1, USER2));
       expect(countAfterUnlike).toBe(baseline);
     } finally {
       // Clean up: remove any like USER2 may have left and restore posts.likes_count
@@ -264,9 +258,7 @@ describe.skipIf(!hasTestDb)("lib/db two-pool integration", () => {
       expect(typeof feedbackId).toBe("string");
     } finally {
       if (feedbackId) {
-        await adminDrizzle.execute(
-          sql`DELETE FROM feedback WHERE id = ${feedbackId}::uuid`
-        );
+        await adminDrizzle.execute(sql`DELETE FROM feedback WHERE id = ${feedbackId}::uuid`);
       }
     }
   });

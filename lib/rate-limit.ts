@@ -13,7 +13,11 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
 });
 
 const WINDOW_UNITS: Record<DurationUnit, number> = {
-  ms: 1, s: 1_000, m: 60_000, h: 3_600_000, d: 86_400_000,
+  ms: 1,
+  s: 1_000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
 };
 
 const SLIDING_WINDOW_SCRIPT = `redis.call("ZREMRANGEBYSCORE", KEYS[1], 0, ARGV[1] - ARGV[2])

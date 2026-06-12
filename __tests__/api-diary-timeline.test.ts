@@ -90,9 +90,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { GET } from "@/app/api/diary/timeline/route";
 import { encodeCursor } from "@/lib/pagination";
 
-const USER_ID       = "user-abc-0000-0000-0000-000000000001";
-const VALID_PET_ID  = "123e4567-e89b-12d3-a456-426614174000";
-const PET_2_ID      = "22223333-4444-5555-6666-777788889999";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
+const VALID_PET_ID = "123e4567-e89b-12d3-a456-426614174000";
+const PET_2_ID = "22223333-4444-5555-6666-777788889999";
 
 // Mock pets returned as first limit() call in every GET request.
 const MOCK_PETS: MockRow[] = [{ id: VALID_PET_ID, name: "บุญมี" }];
@@ -281,7 +281,9 @@ describe("GET /api/diary/timeline", () => {
   });
 
   it("diary_entry item has title, caption, mood, photo_urls in snake_case", async () => {
-    queueLimitResults(MOCK_PETS, [makeDiaryRow({ title: "ทริปทะเล", caption: "เที่ยวทะเล", mood: "excited" })]);
+    queueLimitResults(MOCK_PETS, [
+      makeDiaryRow({ title: "ทริปทะเล", caption: "เที่ยวทะเล", mood: "excited" }),
+    ]);
     const res = await GET(makeRequest({ types: "diary_entry" }));
     const body = await res.json();
     const item = body.items[0];
@@ -327,7 +329,9 @@ describe("GET /api/diary/timeline", () => {
   });
 
   it("health_event item has title and description as detail", async () => {
-    queueLimitResults(MOCK_PETS, [makeHealthRow({ title: "ตรวจสุขภาพ", description: "ผ่านทุกรายการ" })]);
+    queueLimitResults(MOCK_PETS, [
+      makeHealthRow({ title: "ตรวจสุขภาพ", description: "ผ่านทุกรายการ" }),
+    ]);
     const res = await GET(makeRequest({ types: "health_event" }));
     const item = (await res.json()).items[0];
     expect(item.type).toBe("health_event");
@@ -448,7 +452,10 @@ describe("GET /api/diary/timeline", () => {
 
   it("respects custom limit param", async () => {
     const entries = Array.from({ length: 5 }, (_, i) =>
-      makeDiaryRow({ id: `diary-${i}`, createdAt: new Date(`2026-05-${String(20 - i).padStart(2, "0")}T10:00:00.000Z`) })
+      makeDiaryRow({
+        id: `diary-${i}`,
+        createdAt: new Date(`2026-05-${String(20 - i).padStart(2, "0")}T10:00:00.000Z`),
+      })
     );
     queueLimitResults(MOCK_PETS, entries);
     const body = await (await GET(makeRequest({ types: "diary_entry", limit: "3" }))).json();
@@ -478,10 +485,10 @@ describe("GET /api/diary/timeline", () => {
   // ── Multi-pet ──────────────────────────────────────────────────────────────
 
   it("includes items from all pets when no pet_id filter is set", async () => {
-    queueLimitResults(
-      MOCK_TWO_PETS,
-      [makeDiaryRow({ id: "d-1", petId: VALID_PET_ID }), makeDiaryRow({ id: "d-2", petId: PET_2_ID })]
-    );
+    queueLimitResults(MOCK_TWO_PETS, [
+      makeDiaryRow({ id: "d-1", petId: VALID_PET_ID }),
+      makeDiaryRow({ id: "d-2", petId: PET_2_ID }),
+    ]);
     const body = await (await GET(makeRequest({ types: "diary_entry" }))).json();
     const petIds = body.items.map((i: { pet_id: string }) => i.pet_id) as string[];
     expect(petIds).toContain(VALID_PET_ID);
@@ -491,7 +498,9 @@ describe("GET /api/diary/timeline", () => {
   // ── Null field branches ────────────────────────────────────────────────────
 
   it("handles diary entry with all nullable fields null", async () => {
-    queueLimitResults(MOCK_PETS, [makeDiaryRow({ title: null, caption: null, mood: null, photoUrls: null })]);
+    queueLimitResults(MOCK_PETS, [
+      makeDiaryRow({ title: null, caption: null, mood: null, photoUrls: null }),
+    ]);
     const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
     expect(item.title).toBeNull();
     expect(item.caption).toBeNull();
@@ -541,14 +550,14 @@ describe("GET /api/diary/timeline", () => {
   // ── catch block ────────────────────────────────────────────────────────────
 
   it("returns 500 on unhandled DB error (catch block)", async () => {
-    stubTx.then = function(resolve: (rows: MockRow[]) => void) {
+    stubTx.then = function (resolve: (rows: MockRow[]) => void) {
       throw new Error("DB crash in pets query");
     };
     const res = await GET(makeRequest());
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("Internal server error");
     // Restore
-    stubTx.then = function(resolve: (rows: MockRow[]) => void) {
+    stubTx.then = function (resolve: (rows: MockRow[]) => void) {
       resolve(_limitQueue.length > 0 ? _limitQueue.shift()! : []);
     };
   });
@@ -585,10 +594,7 @@ describe("GET /api/diary/timeline", () => {
 
   it("pet_name falls back to empty string when pet name is null", async () => {
     // petNameMap: name ?? ""  — the "" fallback arm fires when name is null
-    queueLimitResults(
-      [{ id: VALID_PET_ID, name: null }],
-      [makeDiaryRow()]
-    );
+    queueLimitResults([{ id: VALID_PET_ID, name: null }], [makeDiaryRow()]);
     const res = await GET(makeRequest({ types: "diary_entry" }));
     const item = (await res.json()).items[0];
     expect(item.pet_name).toBe("");

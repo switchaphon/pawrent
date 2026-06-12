@@ -44,7 +44,9 @@ vi.mock("@/lib/auth", () => ({
 // Mock @/lib/storage/index
 // ---------------------------------------------------------------------------
 const { mockUpload } = vi.hoisted(() => ({
-  mockUpload: vi.fn<() => Promise<string>>().mockResolvedValue("https://storage.example.com/pet-photos/gallery/pet-id/photo-id.jpg"),
+  mockUpload: vi
+    .fn<() => Promise<string>>()
+    .mockResolvedValue("https://storage.example.com/pet-photos/gallery/pet-id/photo-id.jpg"),
 }));
 
 vi.mock("@/lib/storage/index", () => ({
@@ -116,8 +118,8 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { GET, POST, DELETE } from "@/app/api/pet-photos/route";
 import { POST as UPLOAD_POST } from "@/app/api/upload/pet-photo/route";
 
-const USER_ID  = "aaaaaaaa-0000-4000-a000-000000000001";
-const PET_ID   = "123e4567-e89b-12d3-a456-426614174000";
+const USER_ID = "aaaaaaaa-0000-4000-a000-000000000001";
+const PET_ID = "123e4567-e89b-12d3-a456-426614174000";
 const PHOTO_ID = "987fcdeb-51a2-43f7-b210-111222333444";
 
 const BASE_PHOTO: MockRow = {
@@ -189,7 +191,7 @@ describe("GET /api/pet-photos", () => {
     setLimitSequence([{ id: PET_ID }], [BASE_PHOTO]);
     const res = await GET(makeReq("GET", undefined, `?pet_id=${PET_ID}`));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>[];
+    const body = (await res.json()) as Record<string, unknown>[];
     expect(body[0]).toMatchObject({
       id: PHOTO_ID,
       pet_id: PET_ID,
@@ -255,7 +257,7 @@ describe("POST /api/pet-photos", () => {
   });
 
   it("returns 404 when pet is not owned by user", async () => {
-    setLimitDefault([]);  // ownership check fails
+    setLimitDefault([]); // ownership check fails
     const res = await POST(makeReq("POST", validAddBody));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Pet not found");
@@ -266,7 +268,7 @@ describe("POST /api/pet-photos", () => {
     _returningRows = [BASE_PHOTO];
     const res = await POST(makeReq("POST", validAddBody));
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.id).toBe(PHOTO_ID);
     expect(body.pet_id).toBe(PET_ID);
     expect(body.photo_url).toBe("https://example.com/photo.jpg");
@@ -303,9 +305,11 @@ describe("POST /api/pet-photos", () => {
     setLimitDefault([{ id: PET_ID }]);
     _returningRows = [BASE_PHOTO];
     // Omit display_order — schema default is 0
-    const res = await POST(makeReq("POST", { pet_id: PET_ID, photo_url: "https://example.com/photo.jpg" }));
+    const res = await POST(
+      makeReq("POST", { pet_id: PET_ID, photo_url: "https://example.com/photo.jpg" })
+    );
     expect(res.status).toBe(200);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.display_order).toBe(0);
   });
 
@@ -344,7 +348,7 @@ describe("DELETE /api/pet-photos", () => {
   });
 
   it("returns 404 when photo not found", async () => {
-    setLimitDefault([]);  // photo lookup returns empty
+    setLimitDefault([]); // photo lookup returns empty
     const res = await DELETE(makeReq("DELETE", { photoId: PHOTO_ID }));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Photo not found");
@@ -481,7 +485,7 @@ describe("POST /api/upload/pet-photo", () => {
   });
 
   it("returns 404 when pet is not owned by the user", async () => {
-    setLimitDefault([]);  // ownership check fails
+    setLimitDefault([]); // ownership check fails
     const file = new File(["data"], "photo.jpg", { type: "image/jpeg" });
     const req = makeUploadReq(file, PET_ID);
     const res = await UPLOAD_POST(req);
@@ -495,7 +499,7 @@ describe("POST /api/upload/pet-photo", () => {
     const req = makeUploadReq(file, PET_ID);
     const res = await UPLOAD_POST(req);
     expect(res.status).toBe(200);
-    const body = await res.json() as { url: string };
+    const body = (await res.json()) as { url: string };
     expect(body.url).toBe(STORAGE_URL);
     expect(mockUpload).toHaveBeenCalledWith(
       "pet-photos",

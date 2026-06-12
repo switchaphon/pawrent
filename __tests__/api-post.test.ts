@@ -89,8 +89,19 @@ function makeChain(): Record<string, unknown> {
   const chain: Record<string, unknown> = {};
 
   // Methods that return self (chainable)
-  const passThrough = ["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const;
-  passThrough.forEach((m) => { chain[m] = vi.fn(() => chain); });
+  const passThrough = [
+    "select",
+    "from",
+    "where",
+    "insert",
+    "values",
+    "update",
+    "set",
+    "onConflictDoUpdate",
+  ] as const;
+  passThrough.forEach((m) => {
+    chain[m] = vi.fn(() => chain);
+  });
 
   // Terminal methods that resolve with next queue item
   chain.limit = vi.fn(async () => dequeue());
@@ -111,19 +122,19 @@ const stubTx = makeChain();
 
 // Re-wire passthrough methods to return the SAME stubTx (not a fresh chain)
 // so callers get the same terminal methods
-;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
-  .forEach((m) => {
-    (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
-  });
+(
+  ["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const
+).forEach((m) => {
+  (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+});
 
 vi.mock("@/lib/db/index", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/index")>();
   return {
     ...actual,
-    query: vi.fn(async (
-      _userId: string,
-      fn: (tx: typeof stubTx) => Promise<unknown>
-    ) => fn(stubTx)),
+    query: vi.fn(async (_userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) =>
+      fn(stubTx)
+    ),
   };
 });
 
@@ -239,15 +250,28 @@ describe("POST /api/post", () => {
     mockNearbyReports.mockResolvedValue([]);
     _responseQueue = [];
     // Re-wire passthrough stubs after clearAllMocks
-    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
-      .forEach((m) => {
-        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
-      });
+    (
+      [
+        "select",
+        "from",
+        "where",
+        "insert",
+        "values",
+        "update",
+        "set",
+        "onConflictDoUpdate",
+      ] as const
+    ).forEach((m) => {
+      (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+    });
     // Re-wire terminal stubs
     (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
-    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+    (stubTx as Record<string, unknown>).then = (
+      resolve: (v: unknown) => void,
+      _reject?: (e: unknown) => void
+    ) => {
       Promise.resolve(dequeue()).then(resolve, _reject);
     };
   });
@@ -314,9 +338,9 @@ describe("POST /api/post", () => {
   });
 
   it("creates a lost alert and returns snake_case shape", async () => {
-    enqueue([MOCK_PET_ROW]);        // pet select → limit(1)
-    enqueue([]);                    // pet_photos select → then (thenable)
-    enqueue([MOCK_REPORT_ROW]);     // insert → returning()
+    enqueue([MOCK_PET_ROW]); // pet select → limit(1)
+    enqueue([]); // pet_photos select → then (thenable)
+    enqueue([MOCK_REPORT_ROW]); // insert → returning()
 
     const res = await POST(makeRequest("POST", validAlertBody));
     expect(res.status).toBe(200);
@@ -361,14 +385,27 @@ describe("GET /api/post", () => {
     mockCheckRateLimit.mockResolvedValue(null);
     mockNearbyReports.mockResolvedValue([]);
     _responseQueue = [];
-    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
-      .forEach((m) => {
-        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
-      });
+    (
+      [
+        "select",
+        "from",
+        "where",
+        "insert",
+        "values",
+        "update",
+        "set",
+        "onConflictDoUpdate",
+      ] as const
+    ).forEach((m) => {
+      (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+    });
     (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
-    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+    (stubTx as Record<string, unknown>).then = (
+      resolve: (v: unknown) => void,
+      _reject?: (e: unknown) => void
+    ) => {
       Promise.resolve(dequeue()).then(resolve, _reject);
     };
   });
@@ -571,14 +608,27 @@ describe("PUT /api/post", () => {
     mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
     mockCheckRateLimit.mockResolvedValue(null);
     _responseQueue = [];
-    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
-      .forEach((m) => {
-        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
-      });
+    (
+      [
+        "select",
+        "from",
+        "where",
+        "insert",
+        "values",
+        "update",
+        "set",
+        "onConflictDoUpdate",
+      ] as const
+    ).forEach((m) => {
+      (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+    });
     (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
     (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
-    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+    (stubTx as Record<string, unknown>).then = (
+      resolve: (v: unknown) => void,
+      _reject?: (e: unknown) => void
+    ) => {
       Promise.resolve(dequeue()).then(resolve, _reject);
     };
   });

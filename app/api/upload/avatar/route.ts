@@ -59,10 +59,7 @@ export async function POST(request: NextRequest) {
 
     // Update profile.avatar_url — ownership enforced by eq(profiles.id, auth.userId)
     await query(auth.userId, async (tx: Tx) => {
-      await tx
-        .update(profiles)
-        .set({ avatarUrl: publicUrl })
-        .where(eq(profiles.id, auth.userId));
+      await tx.update(profiles).set({ avatarUrl: publicUrl }).where(eq(profiles.id, auth.userId));
     });
 
     return NextResponse.json({ url: publicUrl });

@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
       usersWithinRadius(tx, { lat: payload.lat, lng: payload.lng, radiusKm: 5 })
     );
   } catch (err) {
-    console.error("[alerts/push] usersWithinRadius error:", err instanceof Error ? err.message : "unknown");
+    console.error(
+      "[alerts/push] usersWithinRadius error:",
+      err instanceof Error ? err.message : "unknown"
+    );
     return NextResponse.json({ error: "Failed to query nearby users" }, { status: 500 });
   }
 
@@ -110,7 +113,10 @@ export async function POST(request: NextRequest) {
       })
       .map((p) => p.lineUserId as string);
   } catch (err) {
-    console.error("[alerts/push] profile filter error:", err instanceof Error ? err.message : "unknown");
+    console.error(
+      "[alerts/push] profile filter error:",
+      err instanceof Error ? err.message : "unknown"
+    );
     eligibleUserIds = [];
   }
 

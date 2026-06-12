@@ -49,13 +49,13 @@ const stubTx = {
   select: vi.fn().mockReturnThis(),
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   update: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
   delete: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => _returningQueue.length > 0 ? _returningQueue.shift()! : []),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -81,9 +81,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 
 import { POST, PUT, DELETE } from "@/app/api/diary/route";
 
-const USER_ID       = "user-abc-0000-0000-0000-000000000001";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const VALID_PET_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const ENTRY_UUID    = "aabbccdd-1234-5678-abcd-aabbccddeeff";
+const ENTRY_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 
 const BASE_ENTRY: MockRow = {
   id: ENTRY_UUID,
@@ -355,28 +355,38 @@ describe("PUT /api/diary", () => {
     // for string fields, the only way to hit `?? null` is if mood/photo_urls is null
     // after passing through zod partial (which keeps undefined but zod schema has no null).
     // Cover all four conditional branches with a full update payload.
-    const res = await PUT(makePutReq({
-      id: ENTRY_UUID,
-      title: "New title",
-      caption: "New caption",
-      mood: "excited",
-      photo_urls: ["https://example.com/photo.jpg"],
-    }));
+    const res = await PUT(
+      makePutReq({
+        id: ENTRY_UUID,
+        title: "New title",
+        caption: "New caption",
+        mood: "excited",
+        photo_urls: ["https://example.com/photo.jpg"],
+      })
+    );
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBeNull(); // from the mocked return
   });
 
   it("updates with all four optional fields populated (covers all updateValues branches)", async () => {
     _limitQueue.push([{ userId: USER_ID }]);
-    const updated = { ...BASE_ENTRY, title: "T", caption: "C", mood: "calm", photoUrls: ["https://x.com/a.jpg"] };
-    _returningQueue.push([updated]);
-    const res = await PUT(makePutReq({
-      id: ENTRY_UUID,
+    const updated = {
+      ...BASE_ENTRY,
       title: "T",
       caption: "C",
       mood: "calm",
-      photo_urls: ["https://x.com/a.jpg"],
-    }));
+      photoUrls: ["https://x.com/a.jpg"],
+    };
+    _returningQueue.push([updated]);
+    const res = await PUT(
+      makePutReq({
+        id: ENTRY_UUID,
+        title: "T",
+        caption: "C",
+        mood: "calm",
+        photo_urls: ["https://x.com/a.jpg"],
+      })
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.photo_urls).toEqual(["https://x.com/a.jpg"]);

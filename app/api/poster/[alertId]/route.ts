@@ -98,11 +98,7 @@ export async function GET(
   let alertData: AlertData;
   try {
     const row = await query(auth.userId, async (tx) => {
-      const rows = await tx
-        .select()
-        .from(petReports)
-        .where(eq(petReports.id, alertId))
-        .limit(1);
+      const rows = await tx.select().from(petReports).where(eq(petReports.id, alertId)).limit(1);
       return rows[0] ?? null;
     });
 

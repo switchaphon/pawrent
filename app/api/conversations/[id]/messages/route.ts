@@ -19,10 +19,7 @@ function toMessageRow(row: Message) {
   };
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -91,10 +88,7 @@ export async function POST(
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -142,10 +136,7 @@ export async function GET(
           conditions.push(
             or(
               lt(messages.createdAt, new Date(decoded.created_at)),
-              and(
-                eq(messages.createdAt, new Date(decoded.created_at)),
-                lt(messages.id, decoded.id)
-              )
+              and(eq(messages.createdAt, new Date(decoded.created_at)), lt(messages.id, decoded.id))
             )!
           );
         }

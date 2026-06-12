@@ -60,10 +60,10 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 import { GET } from "@/app/api/pets/[petId]/route";
 
 const USER_ID = "user-abc-0000-0000-0000-000000000001";
-const PET_ID  = "aaaaaaaa-0000-4000-a000-000000000001";
-const VAC_ID  = "vac00000-0000-4000-a000-000000000001";
-const LOG_ID  = "log00000-0000-4000-a000-000000000001";
-const EVT_ID  = "evt00000-0000-4000-a000-000000000001";
+const PET_ID = "aaaaaaaa-0000-4000-a000-000000000001";
+const VAC_ID = "vac00000-0000-4000-a000-000000000001";
+const LOG_ID = "log00000-0000-4000-a000-000000000001";
+const EVT_ID = "evt00000-0000-4000-a000-000000000001";
 
 function makeReq(petId: string): NextRequest {
   return new NextRequest(`http://localhost/api/pets/${petId}`, {
@@ -197,9 +197,11 @@ function setupQuery(opts: {
   eventRows?: MockRow[];
 }) {
   const { petRows = [BASE_PET], vacRows = [], parasiteRows = [], eventRows = [] } = opts;
-  mockQuery.mockImplementationOnce(async (_userId: string, fn: (tx: unknown) => Promise<unknown>) => {
-    return fn(buildTx({ petRows, vacRows, parasiteRows, eventRows }));
-  });
+  mockQuery.mockImplementationOnce(
+    async (_userId: string, fn: (tx: unknown) => Promise<unknown>) => {
+      return fn(buildTx({ petRows, vacRows, parasiteRows, eventRows }));
+    }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -266,7 +268,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("pet object is fully snake_case — no camelCase keys leak", async () => {
     setupQuery({ petRows: [BASE_PET] });
-    const { pet } = (await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json()) as { pet: Record<string, unknown> };
+    const { pet } = (await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json()) as { pet: Record<string, unknown> };
     expect(pet).toMatchObject({
       id: PET_ID,
       owner_id: USER_ID,
@@ -290,13 +294,30 @@ describe("GET /api/pets/[petId]", () => {
 
   it("pet object has all expected snake_case fields", async () => {
     setupQuery({ petRows: [BASE_PET] });
-    const { pet } = (await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json()) as { pet: Record<string, unknown> };
+    const { pet } = (await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json()) as { pet: Record<string, unknown> };
     expect(Object.keys(pet)).toEqual(
       expect.arrayContaining([
-        "id", "owner_id", "name", "species", "breed", "sex", "color",
-        "weight_kg", "date_of_birth", "microchip_number", "photo_url",
-        "neutered", "is_spayed_neutered", "special_notes", "status",
-        "memorial_date", "gotcha_day", "pawrent_id", "created_at",
+        "id",
+        "owner_id",
+        "name",
+        "species",
+        "breed",
+        "sex",
+        "color",
+        "weight_kg",
+        "date_of_birth",
+        "microchip_number",
+        "photo_url",
+        "neutered",
+        "is_spayed_neutered",
+        "special_notes",
+        "status",
+        "memorial_date",
+        "gotcha_day",
+        "pawrent_id",
+        "created_at",
       ])
     );
   });
@@ -305,7 +326,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("vaccinations are snake_case — no camelCase keys leak", async () => {
     setupQuery({ petRows: [BASE_PET], vacRows: [BASE_VAC] });
-    const { vaccinations } = (await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json()) as { vaccinations: Record<string, unknown>[] };
+    const { vaccinations } = (await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json()) as { vaccinations: Record<string, unknown>[] };
     expect(vaccinations[0]).toMatchObject({
       id: VAC_ID,
       pet_id: PET_ID,
@@ -323,7 +346,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("latestParasiteLog is snake_case when present", async () => {
     setupQuery({ petRows: [BASE_PET], parasiteRows: [BASE_PARASITE] });
-    const { latestParasiteLog } = (await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json()) as { latestParasiteLog: Record<string, unknown> };
+    const { latestParasiteLog } = (await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json()) as { latestParasiteLog: Record<string, unknown> };
     expect(latestParasiteLog).toMatchObject({
       id: LOG_ID,
       pet_id: PET_ID,
@@ -338,7 +363,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("latestParasiteLog is undefined when no parasite logs exist", async () => {
     setupQuery({ petRows: [BASE_PET], parasiteRows: [] });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.latestParasiteLog).toBeUndefined();
   });
 
@@ -346,7 +373,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("healthEvents are snake_case — no camelCase keys leak", async () => {
     setupQuery({ petRows: [BASE_PET], eventRows: [BASE_EVENT] });
-    const { healthEvents } = (await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json()) as { healthEvents: Record<string, unknown>[] };
+    const { healthEvents } = (await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json()) as { healthEvents: Record<string, unknown>[] };
     expect(healthEvents[0]).toMatchObject({
       id: EVT_ID,
       pet_id: PET_ID,
@@ -364,7 +393,9 @@ describe("GET /api/pets/[petId]", () => {
 
   it("returns empty arrays for vaccinations and healthEvents when none exist", async () => {
     setupQuery({ petRows: [BASE_PET], vacRows: [], parasiteRows: [], eventRows: [] });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.vaccinations).toEqual([]);
     expect(body.healthEvents).toEqual([]);
     expect(body.latestParasiteLog).toBeUndefined();
@@ -373,14 +404,18 @@ describe("GET /api/pets/[petId]", () => {
   it("returns multiple vaccinations", async () => {
     const vac2: MockRow = { ...BASE_VAC, id: "vac-2", name: "Distemper" };
     setupQuery({ petRows: [BASE_PET], vacRows: [BASE_VAC, vac2] });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.vaccinations).toHaveLength(2);
   });
 
   it("returns multiple healthEvents", async () => {
     const evt2: MockRow = { ...BASE_EVENT, id: "evt-2", title: "Vet visit" };
     setupQuery({ petRows: [BASE_PET], eventRows: [BASE_EVENT, evt2] });
-    const body = await (await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })).json();
+    const body = await (
+      await GET(makeReq(PET_ID), { params: Promise.resolve({ petId: PET_ID }) })
+    ).json();
     expect(body.healthEvents).toHaveLength(2);
   });
 

@@ -152,7 +152,8 @@ export async function PUT(request: NextRequest) {
       if (parsed.data.measured_at !== undefined)
         updateValues.measuredAt = parsed.data.measured_at ?? new Date().toISOString().slice(0, 10);
       if (parsed.data.note !== undefined) updateValues.note = parsed.data.note ?? null;
-      if (parsed.data.photo_url !== undefined) updateValues.photoUrl = parsed.data.photo_url ?? null;
+      if (parsed.data.photo_url !== undefined)
+        updateValues.photoUrl = parsed.data.photo_url ?? null;
 
       const rows = await tx
         .update(petWeightLogs)

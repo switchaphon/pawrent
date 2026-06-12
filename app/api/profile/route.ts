@@ -56,11 +56,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const row = await query(auth.userId, async (tx: Tx) => {
-      const rows = await tx
-        .select()
-        .from(profiles)
-        .where(eq(profiles.id, auth.userId))
-        .limit(1);
+      const rows = await tx.select().from(profiles).where(eq(profiles.id, auth.userId)).limit(1);
       return rows[0] ?? null;
     });
 

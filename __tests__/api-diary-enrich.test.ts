@@ -56,10 +56,10 @@ const stubTx = {
   select: vi.fn().mockReturnThis(),
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => _returningQueue.length > 0 ? _returningQueue.shift()! : []),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -82,9 +82,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 
 import { POST } from "@/app/api/diary/enrich/route";
 
-const USER_ID    = "user-abc-0000-0000-0000-000000000001";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const EVENT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
-const PET_UUID   = "11112222-3333-4444-8555-666677778888";
+const PET_UUID = "11112222-3333-4444-8555-666677778888";
 const ENTRY_UUID = "99998888-7777-6666-5555-444433332222";
 
 const BASE_CREATED: MockRow = {
@@ -118,7 +118,7 @@ function makeReq(body: unknown): NextRequest {
 // Queue the standard happy-path sequence: event found → pet owned → entry inserted
 function queueHappyPath(createdEntry: MockRow = BASE_CREATED) {
   _limitQueue.push([{ petId: PET_UUID }]); // event lookup
-  _limitQueue.push([{ id: PET_UUID }]);     // pet ownership
+  _limitQueue.push([{ id: PET_UUID }]); // pet ownership
   _returningQueue.push([createdEntry]);
 }
 
@@ -205,7 +205,7 @@ describe("POST /api/diary/enrich", () => {
 
   it("returns 404 when the event's pet is not owned by the user", async () => {
     _limitQueue.push([{ petId: PET_UUID }]); // event found
-    _limitQueue.push([]);                     // pet ownership fails
+    _limitQueue.push([]); // pet ownership fails
     const res = await POST(makeReq(validBody));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Event not found");
@@ -353,7 +353,9 @@ describe("POST /api/diary/enrich", () => {
     // Exercises `caption ?? null` → caption (left arm) and `photo_urls ?? null` → array (left arm)
     // inside the insert values block. Both are set in validBody already but confirm mapping.
     queueHappyPath();
-    const res = await POST(makeReq({ ...validBody, caption: "test caption", photo_urls: ["https://a.com/b.jpg"] }));
+    const res = await POST(
+      makeReq({ ...validBody, caption: "test caption", photo_urls: ["https://a.com/b.jpg"] })
+    );
     expect(res.status).toBe(201);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.linked_event_type).toBe("vaccination");

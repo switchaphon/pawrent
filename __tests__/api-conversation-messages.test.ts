@@ -163,7 +163,9 @@ describe("POST /api/conversations/[id]/messages", () => {
   });
 
   it("returns 403 when user is not a participant", async () => {
-    _selectSequence = [[{ id: CONVO_UUID, ownerId: OTHER_UUID, finderId: OTHER_UUID, status: "open" }]];
+    _selectSequence = [
+      [{ id: CONVO_UUID, ownerId: OTHER_UUID, finderId: OTHER_UUID, status: "open" }],
+    ];
     const res = await POST(makeRequest("POST", { content: "hi" }), { params });
     expect(res.status).toBe(403);
     const data = await res.json();
@@ -171,7 +173,9 @@ describe("POST /api/conversations/[id]/messages", () => {
   });
 
   it("returns 400 when conversation is closed", async () => {
-    _selectSequence = [[{ id: CONVO_UUID, ownerId: USER_UUID, finderId: OTHER_UUID, status: "closed" }]];
+    _selectSequence = [
+      [{ id: CONVO_UUID, ownerId: USER_UUID, finderId: OTHER_UUID, status: "closed" }],
+    ];
     const res = await POST(makeRequest("POST", { content: "hi" }), { params });
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -228,7 +232,9 @@ describe("POST /api/conversations/[id]/messages", () => {
   it("returns 500 and covers non-Error throw path in POST catch (line 89 false branch)", async () => {
     // Throw a plain string (non-Error) from limit() to cover err instanceof Error false branch in POST catch
     _selectSequence = [];
-    stubTx.limit.mockImplementationOnce(async () => { throw "plain string from POST conv lookup"; });
+    stubTx.limit.mockImplementationOnce(async () => {
+      throw "plain string from POST conv lookup";
+    });
     const res = await POST(makeRequest("POST", { content: "hi" }), { params });
     expect(res.status).toBe(500);
     const data = await res.json();

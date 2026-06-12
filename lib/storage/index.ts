@@ -194,9 +194,7 @@ export async function download(bucket: Bucket, key: string): Promise<Buffer> {
   validateKey(key);
   const bucketName = resolveBucketName(bucket);
 
-  const resp = await getClient().send(
-    new GetObjectCommand({ Bucket: bucketName, Key: key })
-  );
+  const resp = await getClient().send(new GetObjectCommand({ Bucket: bucketName, Key: key }));
 
   if (!resp.Body) throw new Error("[storage] GetObject returned empty body");
 
@@ -206,7 +204,7 @@ export async function download(bucket: Bucket, key: string): Promise<Buffer> {
   // is typed as a union of Node/browser stream types that share transformToByteArray
   // at runtime but the TS union does not expose a common method directly.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const bytes = await (resp.Body as any).transformToByteArray() as Uint8Array;
+  const bytes = (await (resp.Body as any).transformToByteArray()) as Uint8Array;
   return Buffer.from(bytes);
 }
 
@@ -217,9 +215,7 @@ export async function remove(bucket: Bucket, key: string): Promise<void> {
   validateKey(key);
   const bucketName = resolveBucketName(bucket);
 
-  await getClient().send(
-    new DeleteObjectCommand({ Bucket: bucketName, Key: key })
-  );
+  await getClient().send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
 }
 
 /**

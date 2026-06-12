@@ -94,11 +94,7 @@ export async function GET(request: NextRequest) {
   if (id) {
     try {
       const row = await query(auth.userId, async (tx) => {
-        const rows = await tx
-          .select()
-          .from(foundReports)
-          .where(eq(foundReports.id, id))
-          .limit(1);
+        const rows = await tx.select().from(foundReports).where(eq(foundReports.id, id)).limit(1);
         return rows[0] ?? null;
       });
 
@@ -107,7 +103,10 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ data: toPublicRow(row) });
     } catch (err) {
-      console.error("[found-reports GET/id] error:", err instanceof Error ? err.message : "unknown");
+      console.error(
+        "[found-reports GET/id] error:",
+        err instanceof Error ? err.message : "unknown"
+      );
       return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
   }
@@ -164,7 +163,10 @@ export async function GET(request: NextRequest) {
       hasMore,
     });
   } catch (err) {
-    console.error("[found-reports GET list] error:", err instanceof Error ? err.message : "unknown");
+    console.error(
+      "[found-reports GET list] error:",
+      err instanceof Error ? err.message : "unknown"
+    );
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

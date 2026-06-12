@@ -5,9 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const rows = await adminQuery(async (tx) =>
-      tx.select().from(hospitals).limit(100)
-    );
+    const rows = await adminQuery(async (tx) => tx.select().from(hospitals).limit(100));
 
     // Map to snake_case to preserve response shape
     const data = rows.map((row) => ({

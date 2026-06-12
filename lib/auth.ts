@@ -31,9 +31,7 @@ function getSecret(): Uint8Array {
   // sneak under the 32-byte floor.
   const bytes = raw ? Buffer.from(raw) : undefined;
   if (!bytes || bytes.length < 32) {
-    throw new Error(
-      "[auth] JWT_SECRET must be set and at least 32 bytes long"
-    );
+    throw new Error("[auth] JWT_SECRET must be set and at least 32 bytes long");
   }
   _secret = bytes;
   return _secret;
@@ -67,9 +65,7 @@ export async function signAuthToken(userId: string): Promise<string> {
 //
 // No DB hit — dependency-free so all 28 routes can adopt cheaply.
 // ---------------------------------------------------------------------------
-export async function verifyAuth(
-  request: Request
-): Promise<{ userId: string } | null> {
+export async function verifyAuth(request: Request): Promise<{ userId: string } | null> {
   try {
     const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return null;

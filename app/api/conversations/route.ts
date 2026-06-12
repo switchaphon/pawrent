@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
     const row = await query(auth.userId, async (tx) => {
       // Check for existing open conversation between these parties
       const existingConditions = [
-        or(
-          eq(conversations.ownerId, auth.userId),
-          eq(conversations.finderId, auth.userId)
-        )!,
+        or(eq(conversations.ownerId, auth.userId), eq(conversations.finderId, auth.userId))!,
         eq(conversations.status, "open"),
       ];
 
@@ -104,10 +101,7 @@ export async function GET(request: NextRequest) {
   try {
     const rows = await query(auth.userId, async (tx) => {
       const conditions = [
-        or(
-          eq(conversations.ownerId, auth.userId),
-          eq(conversations.finderId, auth.userId)
-        )!,
+        or(eq(conversations.ownerId, auth.userId), eq(conversations.finderId, auth.userId))!,
       ];
 
       if (cursorParam) {

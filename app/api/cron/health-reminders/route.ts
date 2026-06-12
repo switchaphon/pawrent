@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
   try {
     [overdueRows, upcomingRows] = await adminQuery(async (tx: Tx) => {
       return Promise.all([
-        tx.select({
+        tx
+          .select({
             id: healthReminders.id,
             petId: healthReminders.petId,
             ownerId: healthReminders.ownerId,
@@ -57,7 +58,8 @@ export async function GET(request: NextRequest) {
             )
           )
           .orderBy(asc(healthReminders.dueDate)),
-        tx.select({
+        tx
+          .select({
             id: healthReminders.id,
             petId: healthReminders.petId,
             ownerId: healthReminders.ownerId,
@@ -105,12 +107,11 @@ export async function GET(request: NextRequest) {
 
   const [ownerRows, petRows] = await adminQuery(async (tx: Tx) => {
     return Promise.all([
-      tx.select({ id: profiles.id, lineUserId: profiles.lineUserId })
+      tx
+        .select({ id: profiles.id, lineUserId: profiles.lineUserId })
         .from(profiles)
         .where(inArray(profiles.id, ownerIds)),
-      tx.select({ id: pets.id, name: pets.name })
-        .from(pets)
-        .where(inArray(pets.id, petIds)),
+      tx.select({ id: pets.id, name: pets.name }).from(pets).where(inArray(pets.id, petIds)),
     ]);
   });
 
@@ -142,7 +143,8 @@ export async function GET(request: NextRequest) {
     try {
       await line.pushMessage({ to: lineUserId, messages: [message] });
       await adminQuery(async (tx: Tx) => {
-        await tx.update(healthReminders)
+        await tx
+          .update(healthReminders)
           .set({ isSent: true, sentAt: new Date() })
           .where(eq(healthReminders.id, reminder.id));
       });

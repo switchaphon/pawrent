@@ -265,15 +265,17 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("handles minimal alert data", async () => {
-    _selectRows = [{
-      ...MOCK_ALERT_ROW,
-      petBreed: null,
-      petColor: null,
-      description: null,
-      locationDescription: null,
-      contactPhone: null,
-      rewardAmount: 0,
-    }];
+    _selectRows = [
+      {
+        ...MOCK_ALERT_ROW,
+        petBreed: null,
+        petColor: null,
+        description: null,
+        locationDescription: null,
+        contactPhone: null,
+        rewardAmount: 0,
+      },
+    ];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -311,7 +313,10 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("handles fetchImageAsBytes returning null (fetch fails)", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: false })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve({ ok: false }))
+    );
     _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
@@ -319,7 +324,10 @@ describe("GET /api/poster/[alertId]", () => {
   });
 
   it("handles fetchImageAsBytes throwing (network error)", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network error"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("network error")))
+    );
     _selectRows = [MOCK_ALERT_ROW];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });

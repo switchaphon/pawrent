@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, desc } from "drizzle-orm";
 import { verifyAuth } from "@/lib/auth";
-import {
-  query,
-  pets,
-  vaccinations,
-  parasiteLogs,
-  healthEvents,
-} from "@/lib/db/index";
+import { query, pets, vaccinations, parasiteLogs, healthEvents } from "@/lib/db/index";
 import type { Tx } from "@/lib/db/index";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 

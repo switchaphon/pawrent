@@ -1,7 +1,15 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { eq, desc } from "drizzle-orm";
-import { adminQuery, pets, profiles, vaccinations, parasiteLogs, petWeightLogs, diaryEntries } from "@/lib/db/index";
+import {
+  adminQuery,
+  pets,
+  profiles,
+  vaccinations,
+  parasiteLogs,
+  petWeightLogs,
+  diaryEntries,
+} from "@/lib/db/index";
 import type { Tx } from "@/lib/db/index";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import QRCode from "qrcode";
@@ -129,47 +137,65 @@ export async function GET(
 
   const [profile, vaccines, latestParasite, latestWeight, wCount, vCount, pCount, dCount] =
     await adminQuery(async (tx: Tx) => {
-      const [
-        profileRows,
-        vaccRows,
-        parasiteRows,
-        weightRows,
-        wRows,
-        vRows,
-        pRows,
-        dRows,
-      ] = await Promise.all([
-        tx.select({ fullName: profiles.fullName, phone: profiles.phone })
-          .from(profiles)
-          .where(eq(profiles.id, pet.owner_id))
-          .limit(1),
-        tx.select({ name: vaccinations.name, lastDate: vaccinations.lastDate, status: vaccinations.status })
-          .from(vaccinations)
-          .where(eq(vaccinations.petId, petId))
-          .orderBy(desc(vaccinations.lastDate))
-          .limit(5),
-        tx.select({ medicineName: parasiteLogs.medicineName, administeredDate: parasiteLogs.administeredDate })
-          .from(parasiteLogs)
-          .where(eq(parasiteLogs.petId, petId))
-          .orderBy(desc(parasiteLogs.administeredDate))
-          .limit(1),
-        tx.select({ weightKg: petWeightLogs.weightKg, measuredAt: petWeightLogs.measuredAt })
-          .from(petWeightLogs)
-          .where(eq(petWeightLogs.petId, petId))
-          .orderBy(desc(petWeightLogs.measuredAt))
-          .limit(1),
-        // Completion counts — SELECT id to count rows
-        tx.select({ id: petWeightLogs.id }).from(petWeightLogs).where(eq(petWeightLogs.petId, petId)),
-        tx.select({ id: vaccinations.id }).from(vaccinations).where(eq(vaccinations.petId, petId)),
-        tx.select({ id: parasiteLogs.id }).from(parasiteLogs).where(eq(parasiteLogs.petId, petId)),
-        tx.select({ id: diaryEntries.id }).from(diaryEntries).where(eq(diaryEntries.petId, petId)),
-      ]);
+      const [profileRows, vaccRows, parasiteRows, weightRows, wRows, vRows, pRows, dRows] =
+        await Promise.all([
+          tx
+            .select({ fullName: profiles.fullName, phone: profiles.phone })
+            .from(profiles)
+            .where(eq(profiles.id, pet.owner_id))
+            .limit(1),
+          tx
+            .select({
+              name: vaccinations.name,
+              lastDate: vaccinations.lastDate,
+              status: vaccinations.status,
+            })
+            .from(vaccinations)
+            .where(eq(vaccinations.petId, petId))
+            .orderBy(desc(vaccinations.lastDate))
+            .limit(5),
+          tx
+            .select({
+              medicineName: parasiteLogs.medicineName,
+              administeredDate: parasiteLogs.administeredDate,
+            })
+            .from(parasiteLogs)
+            .where(eq(parasiteLogs.petId, petId))
+            .orderBy(desc(parasiteLogs.administeredDate))
+            .limit(1),
+          tx
+            .select({ weightKg: petWeightLogs.weightKg, measuredAt: petWeightLogs.measuredAt })
+            .from(petWeightLogs)
+            .where(eq(petWeightLogs.petId, petId))
+            .orderBy(desc(petWeightLogs.measuredAt))
+            .limit(1),
+          // Completion counts — SELECT id to count rows
+          tx
+            .select({ id: petWeightLogs.id })
+            .from(petWeightLogs)
+            .where(eq(petWeightLogs.petId, petId)),
+          tx
+            .select({ id: vaccinations.id })
+            .from(vaccinations)
+            .where(eq(vaccinations.petId, petId)),
+          tx
+            .select({ id: parasiteLogs.id })
+            .from(parasiteLogs)
+            .where(eq(parasiteLogs.petId, petId)),
+          tx
+            .select({ id: diaryEntries.id })
+            .from(diaryEntries)
+            .where(eq(diaryEntries.petId, petId)),
+        ]);
       return [
         profileRows[0] ?? null,
         // Map to snake_case shape used in JSX (v.last_date etc)
         vaccRows.map((v) => ({ name: v.name, last_date: v.lastDate, status: v.status })),
         parasiteRows[0]
-          ? { medicine_name: parasiteRows[0].medicineName, administered_date: parasiteRows[0].administeredDate }
+          ? {
+              medicine_name: parasiteRows[0].medicineName,
+              administered_date: parasiteRows[0].administeredDate,
+            }
           : null,
         weightRows[0]
           ? { weight_kg: weightRows[0].weightKg, measured_at: weightRows[0].measuredAt }

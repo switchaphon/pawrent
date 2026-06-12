@@ -214,15 +214,17 @@ describe("GET /api/share-card/[alertId]", () => {
   });
 
   it("generates card with minimal data", async () => {
-    _selectRows = [{
-      ...MOCK_ALERT_ROW,
-      petBreed: null,
-      petColor: null,
-      locationDescription: null,
-      contactPhone: null,
-      rewardAmount: 0,
-      petName: null,
-    }];
+    _selectRows = [
+      {
+        ...MOCK_ALERT_ROW,
+        petBreed: null,
+        petColor: null,
+        locationDescription: null,
+        contactPhone: null,
+        rewardAmount: 0,
+        petName: null,
+      },
+    ];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -261,11 +263,13 @@ describe("GET /api/share-card/[alertId]", () => {
   });
 
   it("handles XML special characters in alert data", async () => {
-    _selectRows = [{
-      ...MOCK_ALERT_ROW,
-      petName: "Tom & Jerry <3>",
-      locationDescription: 'Near "City Park"',
-    }];
+    _selectRows = [
+      {
+        ...MOCK_ALERT_ROW,
+        petName: "Tom & Jerry <3>",
+        locationDescription: 'Near "City Park"',
+      },
+    ];
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(200);
@@ -279,7 +283,7 @@ describe("GET /api/share-card/[alertId]", () => {
     // With photo fetch disabled: toBuffer call 1 = QR resize, call 2 = final jpeg
     mockSharpInstance.toBuffer
       .mockResolvedValueOnce(Buffer.from("fake-qr-resized")) // QR resize
-      .mockRejectedValueOnce(new Error("Sharp error"));       // final jpeg composite
+      .mockRejectedValueOnce(new Error("Sharp error")); // final jpeg composite
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(500);
@@ -300,7 +304,9 @@ describe("GET /api/share-card/[alertId]", () => {
 
   it("returns 500 when DB query throws (Error instance — covers err.message branch)", async () => {
     // Cover the `err.message` branch of `err instanceof Error ? err.message : "unknown"` (line 128)
-    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB connection failed"));
+    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("DB connection failed")
+    );
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(500);

@@ -116,7 +116,8 @@ export async function PUT(request: NextRequest) {
       if (parsed.data.description !== undefined)
         updateValues.description = parsed.data.description ?? null;
       if (parsed.data.event_date !== undefined) updateValues.eventDate = parsed.data.event_date;
-      if (parsed.data.photo_url !== undefined) updateValues.photoUrl = parsed.data.photo_url ?? null;
+      if (parsed.data.photo_url !== undefined)
+        updateValues.photoUrl = parsed.data.photo_url ?? null;
 
       const rows = await tx
         .update(healthEvents)

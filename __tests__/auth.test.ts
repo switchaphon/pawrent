@@ -26,10 +26,18 @@ const { mockSign, mockJwtVerify } = vi.hoisted(() => {
 
 vi.mock("jose", () => {
   class MockSignJWT {
-    setProtectedHeader() { return this; }
-    setSubject() { return this; }
-    setIssuedAt() { return this; }
-    setExpirationTime() { return this; }
+    setProtectedHeader() {
+      return this;
+    }
+    setSubject() {
+      return this;
+    }
+    setIssuedAt() {
+      return this;
+    }
+    setExpirationTime() {
+      return this;
+    }
     sign = mockSign;
   }
   return {
@@ -68,7 +76,6 @@ function makeRequest(authHeader?: string): NextRequest {
 // ---------------------------------------------------------------------------
 
 describe("signAuthToken + verifyAuth", () => {
-
   // ── Secret validation ──────────────────────────────────────────────────────
 
   it("throws when JWT_SECRET is not set", async () => {
@@ -180,5 +187,4 @@ describe("signAuthToken + verifyAuth", () => {
     // Both calls should succeed (mockSign was called twice)
     expect(mockSign).toHaveBeenCalledTimes(2);
   });
-
 });

@@ -339,8 +339,7 @@ export async function GET(request: NextRequest) {
     const pageItems = items.slice(0, limit);
     const hasMore = items.length > limit;
     const lastItem = pageItems[pageItems.length - 1];
-    const nextCursor =
-      hasMore && lastItem ? encodeCursor(lastItem.timestamp, lastItem.id) : null;
+    const nextCursor = hasMore && lastItem ? encodeCursor(lastItem.timestamp, lastItem.id) : null;
 
     return NextResponse.json({ items: pageItems, next_cursor: nextCursor });
   } catch {

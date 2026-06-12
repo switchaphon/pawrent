@@ -50,13 +50,13 @@ const stubTx = {
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
   orderBy: vi.fn().mockReturnThis(),
-  limit: vi.fn(async () => _limitQueue.length > 0 ? _limitQueue.shift()! : []),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   update: vi.fn().mockReturnThis(),
   set: vi.fn().mockReturnThis(),
   delete: vi.fn().mockReturnThis(),
-  returning: vi.fn(async () => _returningQueue.length > 0 ? _returningQueue.shift()! : []),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
 };
 
 function resetTx() {
@@ -83,9 +83,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 
 import { GET, POST, PUT, DELETE } from "@/app/api/parasite-logs/route";
 
-const USER_ID  = "user-abc-0000-0000-0000-000000000001";
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const LOG_ID   = "log-0001-0000-4000-a000-000000000001";
+const LOG_ID = "log-0001-0000-4000-a000-000000000001";
 
 const BASE_LOG: MockRow = {
   id: LOG_ID,
@@ -222,7 +222,7 @@ describe("GET /api/parasite-logs", () => {
     stubTx.orderBy.mockResolvedValueOnce(logs);
     const res = await GET(makeGetReq(VALID_UUID));
     expect(res.status).toBe(200);
-    expect((await res.json())).toHaveLength(2);
+    expect(await res.json()).toHaveLength(2);
   });
 
   it("returns 500 on unhandled DB error", async () => {
@@ -258,11 +258,13 @@ describe("POST /api/parasite-logs", () => {
   });
 
   it("returns 400 when next_due_date is before administered_date", async () => {
-    const res = await POST(makePostReq({
-      ...validPostBody,
-      administered_date: "2025-07-01",
-      next_due_date: "2025-06-01",
-    }));
+    const res = await POST(
+      makePostReq({
+        ...validPostBody,
+        administered_date: "2025-07-01",
+        next_due_date: "2025-06-01",
+      })
+    );
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("Next due date must be after administered date");
   });
@@ -368,7 +370,7 @@ describe("PUT /api/parasite-logs", () => {
 
   it("returns 404 when pet is not owned by the user", async () => {
     _limitQueue.push([{ petId: VALID_UUID }]); // log found
-    _limitQueue.push([]);                       // pet ownership fails
+    _limitQueue.push([]); // pet ownership fails
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("Parasite log not found");

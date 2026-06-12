@@ -116,9 +116,7 @@ export async function uploadPetPhoto(file: File, petId: string) {
 // ---------------------------------------------------------------------------
 
 export async function getActivePetReports() {
-  const data: { data: (PetReport & { pets: Pet })[] } = await apiFetch(
-    "/api/post?active=true"
-  );
+  const data: { data: (PetReport & { pets: Pet })[] } = await apiFetch("/api/post?active=true");
   return { data: data.data, error: null };
 }
 
@@ -258,9 +256,7 @@ export async function submitFeedback(feedback: Omit<Feedback, "id" | "created_at
 // ---------------------------------------------------------------------------
 
 export async function getPetPhotos(petId: string) {
-  const data: PetPhoto[] = await apiFetch(
-    `/api/pet-photos?pet_id=${encodeURIComponent(petId)}`
-  );
+  const data: PetPhoto[] = await apiFetch(`/api/pet-photos?pet_id=${encodeURIComponent(petId)}`);
   return { data, error: null };
 }
 

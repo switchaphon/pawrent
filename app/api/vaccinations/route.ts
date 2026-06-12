@@ -104,7 +104,8 @@ export async function PUT(request: NextRequest) {
       const updateValues: Partial<typeof vaccinations.$inferInsert> = {};
       if (parsed.data.name !== undefined) updateValues.name = parsed.data.name;
       if (parsed.data.status !== undefined) updateValues.status = parsed.data.status;
-      if (parsed.data.last_date !== undefined) updateValues.lastDate = parsed.data.last_date ?? null;
+      if (parsed.data.last_date !== undefined)
+        updateValues.lastDate = parsed.data.last_date ?? null;
       if (parsed.data.next_due_date !== undefined)
         updateValues.nextDueDate = parsed.data.next_due_date ?? null;
 

@@ -54,12 +54,7 @@ export async function GET(request: NextRequest) {
       const rows = await tx
         .select({ postId: postLikes.postId })
         .from(postLikes)
-        .where(
-          and(
-            eq(postLikes.userId, auth.userId),
-            inArray(postLikes.postId, postIds)
-          )
-        );
+        .where(and(eq(postLikes.userId, auth.userId), inArray(postLikes.postId, postIds)));
 
       return rows.map((r) => r.postId);
     });

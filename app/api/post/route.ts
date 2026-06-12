@@ -1,18 +1,9 @@
 import { eq, and, lt, or, ilike, desc, lte } from "drizzle-orm";
-import {
-  lostPetAlertSchema,
-  resolveReportSchema,
-  resolveAlertSchema,
-} from "@/lib/validations";
+import { lostPetAlertSchema, resolveReportSchema, resolveAlertSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { verifyAuth } from "@/lib/auth";
 import { encodeCursor, decodeCursor } from "@/lib/pagination";
-import {
-  query,
-  pets,
-  petPhotos,
-  petReports,
-} from "@/lib/db/index";
+import { query, pets, petPhotos, petReports } from "@/lib/db/index";
 import type { Tx, PetReport } from "@/lib/db/index";
 import { nearbyReports } from "@/lib/db/rpc";
 import { NextRequest, NextResponse } from "next/server";
@@ -114,9 +105,10 @@ export async function POST(request: NextRequest) {
         .where(eq(petPhotos.petId, result.data.pet_id));
 
       const profilePhotoUrls = photoRows.map((p) => p.photoUrl);
-      const allPhotoUrls = [
-        ...new Set([...profilePhotoUrls, ...result.data.photo_urls]),
-      ].slice(0, 5);
+      const allPhotoUrls = [...new Set([...profilePhotoUrls, ...result.data.photo_urls])].slice(
+        0,
+        5
+      );
 
       // Insert pet_report
       const inserted = await tx
@@ -181,11 +173,7 @@ export async function GET(request: NextRequest) {
   if (id) {
     try {
       const row = await query(auth.userId, async (tx: Tx) => {
-        const rows = await tx
-          .select()
-          .from(petReports)
-          .where(eq(petReports.id, id))
-          .limit(1);
+        const rows = await tx.select().from(petReports).where(eq(petReports.id, id)).limit(1);
         return rows[0] ?? null;
       });
 
@@ -254,9 +242,7 @@ export async function GET(request: NextRequest) {
         results = results.filter((r) => r.alert_type === alertType);
       }
       if (species) {
-        results = results.filter(
-          (r) => r.pet_species?.toLowerCase() === species.toLowerCase()
-        );
+        results = results.filter((r) => r.pet_species?.toLowerCase() === species.toLowerCase());
       }
       if (petIdFilter) {
         results = results.filter((r) => r.pet_id === petIdFilter);
@@ -370,10 +356,7 @@ export async function PUT(request: NextRequest) {
             resolutionStatus: statusToResolution[newResult.data.status],
           })
           .where(
-            and(
-              eq(petReports.id, newResult.data.alert_id),
-              eq(petReports.ownerId, auth.userId)
-            )
+            and(eq(petReports.id, newResult.data.alert_id), eq(petReports.ownerId, auth.userId))
           )
           .returning();
 
@@ -404,10 +387,7 @@ export async function PUT(request: NextRequest) {
           resolutionStatus: legacyResult.data.resolution,
         })
         .where(
-          and(
-            eq(petReports.id, legacyResult.data.alertId),
-            eq(petReports.ownerId, auth.userId)
-          )
+          and(eq(petReports.id, legacyResult.data.alertId), eq(petReports.ownerId, auth.userId))
         )
         .returning();
 

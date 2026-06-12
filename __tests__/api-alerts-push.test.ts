@@ -257,7 +257,12 @@ describe("POST /api/alerts/push", () => {
   it("filters users in quiet hours", async () => {
     mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
     _profileRows = [
-      { lineUserId: "U1", pushSpeciesFilter: ["dog"], pushQuietStart: "22:00", pushQuietEnd: "07:00" },
+      {
+        lineUserId: "U1",
+        pushSpeciesFilter: ["dog"],
+        pushQuietStart: "22:00",
+        pushQuietEnd: "07:00",
+      },
     ];
     mockIsQuietHours.mockReturnValueOnce(true);
 

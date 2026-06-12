@@ -59,13 +59,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 // ---------------------------------------------------------------------------
 // Import after mocks are in place.
 // ---------------------------------------------------------------------------
-import {
-  upload,
-  getPublicUrl,
-  download,
-  remove,
-  createPresignedUploadUrl,
-} from "@/lib/storage";
+import { upload, getPublicUrl, download, remove, createPresignedUploadUrl } from "@/lib/storage";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -396,9 +390,9 @@ describe("lib/storage (unit — mocked S3 client)", () => {
 
     it("propagates presigner errors", async () => {
       mockGetSignedUrl.mockRejectedValue(new Error("CredentialsProviderError"));
-      await expect(
-        createPresignedUploadUrl("pet-photos", "photo.jpg")
-      ).rejects.toThrow("CredentialsProviderError");
+      await expect(createPresignedUploadUrl("pet-photos", "photo.jpg")).rejects.toThrow(
+        "CredentialsProviderError"
+      );
     });
   });
 
@@ -408,9 +402,7 @@ describe("lib/storage (unit — mocked S3 client)", () => {
   describe("env validation", () => {
     it("throws a clear error when S3_PUBLIC_URL is missing from getPublicUrl", () => {
       delete process.env.S3_PUBLIC_URL;
-      expect(() => getPublicUrl("pet-photos", "test.jpg")).toThrow(
-        "S3_PUBLIC_URL"
-      );
+      expect(() => getPublicUrl("pet-photos", "test.jpg")).toThrow("S3_PUBLIC_URL");
     });
 
     it("throws a clear error when a bucket env var is missing", () => {
@@ -455,14 +447,8 @@ describe("lib/storage (integration — compose MinIO)", () => {
       // the whole file. For the integration round-trip we build the operations
       // directly using the real SDK loaded via vi.importActual — this sidesteps
       // the mock without disturbing the unit tests that run in the same file.
-      const {
-        S3Client,
-        PutObjectCommand,
-        GetObjectCommand,
-        DeleteObjectCommand,
-      } = await vi.importActual<typeof import("@aws-sdk/client-s3")>(
-        "@aws-sdk/client-s3"
-      );
+      const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } =
+        await vi.importActual<typeof import("@aws-sdk/client-s3")>("@aws-sdk/client-s3");
 
       const endpoint = process.env.S3_ENDPOINT_TEST!;
       const client = new S3Client({
@@ -493,7 +479,7 @@ describe("lib/storage (integration — compose MinIO)", () => {
       const getResp = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
       expect(getResp.Body).toBeDefined();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const bytes = await (getResp.Body as any).transformToByteArray() as Uint8Array;
+      const bytes = (await (getResp.Body as any).transformToByteArray()) as Uint8Array;
       expect(Buffer.from(bytes).toString()).toBe("pawrent storage integration test");
 
       // Public URL fetch — buckets have anonymous download policy

@@ -46,8 +46,12 @@ type MockRow = Record<string, unknown>;
 let _selectRows: MockRow[] = [];
 let _upsertRow: MockRow | null = null;
 
-export function setSelectRows(rows: MockRow[]) { _selectRows = rows; }
-export function setUpsertRow(row: MockRow | null) { _upsertRow = row; }
+export function setSelectRows(rows: MockRow[]) {
+  _selectRows = rows;
+}
+export function setUpsertRow(row: MockRow | null) {
+  _upsertRow = row;
+}
 
 const stubTx = {
   select: vi.fn().mockReturnThis(),
@@ -77,10 +81,9 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/index")>();
   return {
     ...actual,
-    query: vi.fn(async (
-      _userId: string,
-      fn: (tx: typeof stubTx) => Promise<unknown>
-    ) => fn(stubTx)),
+    query: vi.fn(async (_userId: string, fn: (tx: typeof stubTx) => Promise<unknown>) =>
+      fn(stubTx)
+    ),
   };
 });
 
@@ -238,9 +241,7 @@ describe("PUT /api/profile", () => {
     _upsertRow = { ...BASE_PROFILE };
     const res = await PUT(makePutRequest({ full_name: "Test" }));
     expect(res.status).toBe(200);
-    expect(stubTx.values).toHaveBeenCalledWith(
-      expect.objectContaining({ id: USER_ID })
-    );
+    expect(stubTx.values).toHaveBeenCalledWith(expect.objectContaining({ id: USER_ID }));
   });
 
   it("returns 429 when rate limit is exceeded", async () => {

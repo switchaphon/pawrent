@@ -169,7 +169,12 @@ describe("Pet Operations", () => {
   });
 
   it("getPetWithDetails calls GET /api/pets/[petId]", async () => {
-    const payload = { pet: { id: "pet-1" }, vaccinations: [], latestParasiteLog: undefined, healthEvents: [] };
+    const payload = {
+      pet: { id: "pet-1" },
+      vaccinations: [],
+      latestParasiteLog: undefined,
+      healthEvents: [],
+    };
     mockApiFetch.mockResolvedValueOnce(payload);
 
     const result = await getPetWithDetails("pet-1");
