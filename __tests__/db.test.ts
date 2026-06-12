@@ -1,61 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Tests for lib/db.ts — the client-side database layer.
+ * Tests for lib/db.ts — the client-side API facade.
  *
- * Strategy: mock the entire @/lib/supabase module. Each test configures
- * mockFrom to return a fresh chain for the specific query path it needs.
+ * Strategy: mock apiFetch from @/lib/api. Each function in lib/db.ts is now
+ * a thin wrapper that delegates to the matching API route via apiFetch.
+ * Tests verify the correct URL, method, and body are passed, and that the
+ * return value is shaped correctly.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Mock Supabase client — factory-based per test
-// ---------------------------------------------------------------------------
+const mockApiFetch = vi.fn();
 
-const mockRpc = vi.fn();
-const mockUpload = vi.fn();
-const mockGetPublicUrl = vi.fn(() => ({
-  data: { publicUrl: "https://storage.example.com/file.jpg" },
+vi.mock("@/lib/api", () => ({
+  apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }));
-const mockStorageFrom = vi.fn(() => ({
-  upload: mockUpload,
-  getPublicUrl: mockGetPublicUrl,
-}));
-const mockFrom = vi.fn();
-
-vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-    rpc: (...args: unknown[]) => mockRpc(...args),
-    storage: {
-      from: (...args: unknown[]) => (mockStorageFrom as (...a: unknown[]) => unknown)(...args),
-    },
-  },
-}));
-
-// Helper to build a chainable mock that terminates at a given method
-function chain(terminalValue: unknown, terminalMethod = "single") {
-  const obj: Record<string, unknown> = {};
-  const methods = [
-    "select",
-    "insert",
-    "update",
-    "delete",
-    "upsert",
-    "eq",
-    "gte",
-    "in",
-    "order",
-    "limit",
-  ];
-  for (const m of methods) {
-    obj[m] = vi.fn(() => obj);
-  }
-  obj[terminalMethod] = vi.fn(() => Promise.resolve(terminalValue));
-  // For non-async terminals that are chained further
-  obj.maybeSingle = vi.fn(() => Promise.resolve(terminalValue));
-  return obj;
-}
 
 import {
   getProfile,
@@ -97,49 +56,46 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("Profile Operations", () => {
-  it("getProfile returns profile data", async () => {
+  it("getProfile calls GET /api/profile", async () => {
     const profile = { id: "user-1", full_name: "John" };
-    mockFrom.mockReturnValue(chain({ data: profile, error: null }));
+    mockApiFetch.mockResolvedValueOnce(profile);
 
     const result = await getProfile("user-1");
     expect(result.data).toEqual(profile);
-    expect(mockFrom).toHaveBeenCalledWith("profiles");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/profile");
   });
 
-  it("getProfile propagates error", async () => {
-    mockFrom.mockReturnValue(chain({ data: null, error: { message: "Not found" } }));
-    const result = await getProfile("bad-id");
-    expect(result.data).toBeNull();
-    expect(result.error).toBeTruthy();
-  });
-
-  it("upsertProfile calls upsert and returns data", async () => {
+  it("upsertProfile calls PUT /api/profile with body", async () => {
     const profile = { id: "user-1", full_name: "Jane" };
-    mockFrom.mockReturnValue(chain({ data: profile, error: null }));
+    mockApiFetch.mockResolvedValueOnce(profile);
 
-    const result = await upsertProfile(profile);
+    const result = await upsertProfile({ id: "user-1", full_name: "Jane" } as any);
     expect(result.data).toEqual(profile);
-    expect(mockFrom).toHaveBeenCalledWith("profiles");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/profile",
+      expect.objectContaining({ method: "PUT" })
+    );
   });
 
-  it("uploadProfileAvatar uploads and returns public URL", async () => {
-    mockUpload.mockResolvedValueOnce({ data: {}, error: null });
+  it("uploadProfileAvatar calls POST /api/upload/avatar with FormData", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
 
     const file = new File(["img"], "avatar.png", { type: "image/png" });
     const result = await uploadProfileAvatar(file, "user-1");
 
     expect(result.data).toBe("https://storage.example.com/file.jpg");
     expect(result.error).toBeNull();
-    expect(mockStorageFrom).toHaveBeenCalledWith("user-photos");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/avatar",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+    );
   });
 
-  it("uploadProfileAvatar returns error on upload failure", async () => {
-    mockUpload.mockResolvedValueOnce({ data: null, error: { message: "Upload failed" } });
+  it("uploadProfileAvatar propagates apiFetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Upload failed"));
 
     const file = new File(["img"], "avatar.png", { type: "image/png" });
-    const result = await uploadProfileAvatar(file, "user-1");
-    expect(result.data).toBeNull();
-    expect(result.error).toBeTruthy();
+    await expect(uploadProfileAvatar(file, "user-1")).rejects.toThrow("Upload failed");
   });
 });
 
@@ -148,107 +104,82 @@ describe("Profile Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Pet Operations", () => {
-  it("getPets queries by owner_id", async () => {
+  it("getPets calls GET /api/pets", async () => {
     const pets = [{ id: "pet-1", name: "Luna" }];
-    const c = chain(null);
-    c.order = vi.fn(() => Promise.resolve({ data: pets, error: null }));
-    mockFrom.mockReturnValue(c);
+    mockApiFetch.mockResolvedValueOnce(pets);
 
     const result = await getPets("user-1");
     expect(result.data).toEqual(pets);
-    expect(mockFrom).toHaveBeenCalledWith("pets");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/pets");
   });
 
-  it("createPet inserts and returns pet", async () => {
+  it("createPet calls POST /api/pets with body", async () => {
     const pet = { id: "pet-1", name: "Luna" };
-    mockFrom.mockReturnValue(chain({ data: pet, error: null }));
+    mockApiFetch.mockResolvedValueOnce(pet);
 
     const result = await createPet({ name: "Luna", owner_id: "u1" } as any);
     expect(result.data).toEqual(pet);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/pets",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
-  it("updatePet updates and returns pet", async () => {
+  it("updatePet calls PUT /api/pets with petId in body", async () => {
     const pet = { id: "pet-1", name: "Updated" };
-    mockFrom.mockReturnValue(chain({ data: pet, error: null }));
+    mockApiFetch.mockResolvedValueOnce(pet);
 
     const result = await updatePet("pet-1", { name: "Updated" });
     expect(result.data).toEqual(pet);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/pets",
+      expect.objectContaining({ method: "PUT" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.petId).toBe("pet-1");
   });
 
-  it("deletePet deletes by petId", async () => {
-    const c = chain(null);
-    c.eq = vi.fn(() => Promise.resolve({ error: null }));
-    mockFrom.mockReturnValue(c);
+  it("deletePet calls DELETE /api/pets with petId in body", async () => {
+    mockApiFetch.mockResolvedValueOnce({ success: true });
 
     const result = await deletePet("pet-1");
     expect(result.error).toBeNull();
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/pets",
+      expect.objectContaining({ method: "DELETE" })
+    );
   });
 
-  it("deletePet logs error on failure", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const c = chain(null);
-    c.eq = vi.fn(() => Promise.resolve({ error: { message: "FK constraint" } }));
-    mockFrom.mockReturnValue(c);
+  it("uploadPetPhoto calls POST /api/upload/pet-photo with FormData", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
 
-    const result = await deletePet("pet-1");
-    expect(result.error).toBeTruthy();
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-
-  it("uploadPetPhoto uploads and returns URL", async () => {
-    mockUpload.mockResolvedValueOnce({ error: null });
     const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     const result = await uploadPetPhoto(file, "pet-1");
     expect(result.url).toBe("https://storage.example.com/file.jpg");
-    expect(mockStorageFrom).toHaveBeenCalledWith("pet-photos");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/pet-photo",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+    );
   });
 
-  it("uploadPetPhoto returns error on failure", async () => {
-    mockUpload.mockResolvedValueOnce({ error: { message: "Upload failed" } });
+  it("uploadPetPhoto propagates apiFetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Upload failed"));
     const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
-    const result = await uploadPetPhoto(file, "pet-1");
-    expect(result.url).toBeNull();
+    await expect(uploadPetPhoto(file, "pet-1")).rejects.toThrow("Upload failed");
   });
 
-  it("getPetWithDetails returns error if pet not found", async () => {
-    mockFrom.mockReturnValue(chain({ data: null, error: { message: "Not found" } }));
-    const result = await getPetWithDetails("bad-id");
-    expect(result.data).toBeNull();
-    expect(result.error).toBeTruthy();
-  });
-
-  it("getPetWithDetails fetches pet with related data in parallel", async () => {
-    const pet = { id: "pet-1", name: "Luna" };
-    // First call: pet query
-    const petChain = chain({ data: pet, error: null });
-    // Subsequent calls: vaccinations, parasite_logs, health_events
-    const vaccChain = chain(null);
-    vaccChain.eq = vi.fn(() => Promise.resolve({ data: [{ id: "v1" }], error: null }));
-    const parasiteChain = chain(null);
-    const parasiteOrder = vi.fn(() => ({
-      limit: vi.fn(() => Promise.resolve({ data: [{ id: "p1" }], error: null })),
-    }));
-    parasiteChain.eq = vi.fn(() => ({ order: parasiteOrder }));
-    const healthChain = chain(null);
-    const healthOrder = vi.fn(() => Promise.resolve({ data: [{ id: "h1" }], error: null }));
-    healthChain.eq = vi.fn(() => ({ order: healthOrder }));
-
-    let callIdx = 0;
-    mockFrom.mockImplementation(() => {
-      callIdx++;
-      if (callIdx === 1) return petChain;
-      if (callIdx === 2) return vaccChain;
-      if (callIdx === 3) return parasiteChain;
-      return healthChain;
-    });
+  it("getPetWithDetails calls GET /api/pets/[petId]", async () => {
+    const payload = { pet: { id: "pet-1" }, vaccinations: [], latestParasiteLog: undefined, healthEvents: [] };
+    mockApiFetch.mockResolvedValueOnce(payload);
 
     const result = await getPetWithDetails("pet-1");
-    expect(result.error).toBeNull();
-    expect(result.data?.pet).toEqual(pet);
-    expect(result.data?.vaccinations).toEqual([{ id: "v1" }]);
-    expect(result.data?.latestParasiteLog).toEqual({ id: "p1" });
-    expect(result.data?.healthEvents).toEqual([{ id: "h1" }]);
+    expect(result.data?.pet).toEqual({ id: "pet-1" });
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/pets/pet-1");
+  });
+
+  it("getPetWithDetails returns error shape on apiFetch rejection", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Not found"));
+    await expect(getPetWithDetails("bad-id")).rejects.toThrow("Not found");
   });
 });
 
@@ -257,22 +188,27 @@ describe("Pet Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Pet Report Operations", () => {
-  it("getActivePetReports queries active reports", async () => {
+  it("getActivePetReports calls GET /api/post?active=true", async () => {
     const alerts = [{ id: "a1", is_active: true }];
-    const c = chain(null);
-    c.order = vi.fn(() => Promise.resolve({ data: alerts, error: null }));
-    c.eq = vi.fn(() => ({ order: c.order }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
+    mockApiFetch.mockResolvedValueOnce({ data: alerts });
 
     const result = await getActivePetReports();
     expect(result.data).toEqual(alerts);
-    expect(mockFrom).toHaveBeenCalledWith("pet_reports");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/post?active=true");
   });
 
-  it("createPetReport inserts with is_active: true", async () => {
+  it("getRecentlyFoundReports calls GET /api/post with resolved_after param", async () => {
+    const alerts = [{ id: "a1", resolution_status: "found" }];
+    mockApiFetch.mockResolvedValueOnce({ data: alerts });
+
+    const result = await getRecentlyFoundReports();
+    expect(result.data).toEqual(alerts);
+    expect((mockApiFetch.mock.calls[0] as any[])[0]).toMatch(/resolved_after=/);
+  });
+
+  it("createPetReport calls POST /api/post with body", async () => {
     const alert = { id: "a1", is_active: true };
-    mockFrom.mockReturnValue(chain({ data: alert, error: null }));
+    mockApiFetch.mockResolvedValueOnce(alert);
 
     const result = await createPetReport({
       pet_id: "pet-1",
@@ -282,81 +218,58 @@ describe("Pet Report Operations", () => {
       description: "Lost",
     } as any);
     expect(result.data).toEqual(alert);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/post",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
-  it("uploadReportVideo uploads and returns URL", async () => {
-    mockUpload.mockResolvedValueOnce({ error: null });
+  it("uploadReportVideo calls POST /api/upload/report-video with FormData", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
     const file = new File(["vid"], "video.mp4", { type: "video/mp4" });
     const result = await uploadReportVideo(file, "alert-1");
     expect(result.url).toBe("https://storage.example.com/file.jpg");
-    expect(mockStorageFrom).toHaveBeenCalledWith("report-media");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/report-video",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+    );
   });
 
-  it("uploadReportVideo returns error on failure", async () => {
-    mockUpload.mockResolvedValueOnce({ error: { message: "Too large" } });
+  it("uploadReportVideo propagates apiFetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Too large"));
     const file = new File(["vid"], "video.mp4", { type: "video/mp4" });
-    const result = await uploadReportVideo(file, "alert-1");
-    expect(result.url).toBeNull();
+    await expect(uploadReportVideo(file, "alert-1")).rejects.toThrow("Too large");
   });
 
-  it("getActivePetReportForPet queries by pet_id and is_active", async () => {
+  it("getActivePetReportForPet calls GET /api/post with petId and active params", async () => {
     const alert = { id: "a1", pet_id: "pet-1" };
-    const c = chain(null);
-    c.maybeSingle = vi.fn(() => Promise.resolve({ data: alert, error: null }));
-    c.limit = vi.fn(() => ({ maybeSingle: c.maybeSingle }));
-    c.order = vi.fn(() => ({ limit: c.limit }));
-    c.eq = vi.fn(() => ({ eq: c.eq, order: c.order }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
+    mockApiFetch.mockResolvedValueOnce({ data: [alert] });
 
     const result = await getActivePetReportForPet("pet-1");
     expect(result.data).toEqual(alert);
+    const url = (mockApiFetch.mock.calls[0] as any[])[0] as string;
+    expect(url).toMatch(/petId=pet-1/);
+    expect(url).toMatch(/active=true/);
   });
 
-  it("resolvePetReport updates and returns resolved report", async () => {
+  it("resolvePetReport calls PUT /api/post with alertId and resolution", async () => {
     const resolved = { id: "a1", is_active: false, resolution_status: "found" };
-    const c = chain(null);
-    c.maybeSingle = vi.fn(() => Promise.resolve({ data: resolved, error: null }));
-    c.select = vi.fn(() => ({ maybeSingle: c.maybeSingle }));
-    c.eq = vi.fn(() => ({ select: c.select }));
-    c.update = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
+    mockApiFetch.mockResolvedValueOnce(resolved);
 
     const result = await resolvePetReport("a1", "found");
     expect(result.data).toEqual(resolved);
-  });
-
-  it("resolvePetReport logs error on failure", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const c = chain(null);
-    c.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: { message: "Failed" } }));
-    c.select = vi.fn(() => ({ maybeSingle: c.maybeSingle }));
-    c.eq = vi.fn(() => ({ select: c.select }));
-    c.update = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
-
-    const result = await resolvePetReport("a1", "given_up");
-    expect(result.error).toBeTruthy();
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
-  });
-
-  it("getRecentlyFoundReports queries resolved found reports", async () => {
-    const alerts = [{ id: "a1", resolution_status: "found" }];
-    const c = chain(null);
-    c.order = vi.fn(() => Promise.resolve({ data: alerts, error: null }));
-    c.gte = vi.fn(() => ({ order: c.order }));
-    c.eq = vi.fn(() => ({ eq: c.eq, gte: c.gte }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
-
-    const result = await getRecentlyFoundReports();
-    expect(result.data).toEqual(alerts);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/post",
+      expect.objectContaining({ method: "PUT" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.alertId).toBe("a1");
+    expect(body.resolution).toBe("found");
   });
 });
 
 // ---------------------------------------------------------------------------
-// Haversine Distance
+// Haversine Distance (pure function, no fetch)
 // ---------------------------------------------------------------------------
 
 describe("calculateDistance", () => {
@@ -382,36 +295,29 @@ describe("calculateDistance", () => {
 // ---------------------------------------------------------------------------
 
 describe("Like Operations", () => {
-  it("toggleLike calls RPC with correct params", async () => {
-    mockRpc.mockResolvedValueOnce({ data: 5, error: null });
+  it("toggleLike calls POST /api/posts/like with postId", async () => {
+    mockApiFetch.mockResolvedValueOnce({ likes_count: 5 });
     const result = await toggleLike("post-1", "user-1");
     expect(result.newCount).toBe(5);
-    expect(mockRpc).toHaveBeenCalledWith("toggle_like", {
-      p_post_id: "post-1",
-      p_user_id: "user-1",
-    });
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/posts/like",
+      expect.objectContaining({ method: "POST" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.postId).toBe("post-1");
   });
 
-  it("getUserLikes returns array of post_ids", async () => {
-    const c = chain(null);
-    c.in = vi.fn(() =>
-      Promise.resolve({ data: [{ post_id: "p1" }, { post_id: "p2" }], error: null })
-    );
-    c.eq = vi.fn(() => ({ in: c.in }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
-
+  it("getUserLikes calls GET /api/posts/user-likes with post_ids", async () => {
+    mockApiFetch.mockResolvedValueOnce({ liked_post_ids: ["p1", "p2"] });
     const result = await getUserLikes("user-1", ["p1", "p2"]);
     expect(result.data).toEqual(["p1", "p2"]);
+    const url = (mockApiFetch.mock.calls[0] as any[])[0] as string;
+    expect(url).toContain("/api/posts/user-likes");
+    expect(url).toContain("post_ids=");
   });
 
-  it("getUserLikes returns empty array when no data", async () => {
-    const c = chain(null);
-    c.in = vi.fn(() => Promise.resolve({ data: null, error: null }));
-    c.eq = vi.fn(() => ({ in: c.in }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
-
+  it("getUserLikes returns empty array when no liked posts", async () => {
+    mockApiFetch.mockResolvedValueOnce({ liked_post_ids: [] });
     const result = await getUserLikes("user-1", ["p1"]);
     expect(result.data).toEqual([]);
   });
@@ -422,27 +328,38 @@ describe("Like Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Vaccination Operations", () => {
-  it("createVaccination inserts and returns record", async () => {
+  it("createVaccination calls POST /api/vaccinations", async () => {
     const vacc = { id: "v1", name: "Rabies" };
-    mockFrom.mockReturnValue(chain({ data: vacc, error: null }));
+    mockApiFetch.mockResolvedValueOnce(vacc);
     const result = await createVaccination({ pet_id: "pet-1", name: "Rabies" } as any);
     expect(result.data).toEqual(vacc);
-    expect(mockFrom).toHaveBeenCalledWith("vaccinations");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/vaccinations",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
-  it("updateVaccination updates and returns record", async () => {
+  it("updateVaccination calls PUT /api/vaccinations with id in body", async () => {
     const vacc = { id: "v1", status: "protected" };
-    mockFrom.mockReturnValue(chain({ data: vacc, error: null }));
+    mockApiFetch.mockResolvedValueOnce(vacc);
     const result = await updateVaccination("v1", { status: "protected" } as any);
     expect(result.data).toEqual(vacc);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/vaccinations",
+      expect.objectContaining({ method: "PUT" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.id).toBe("v1");
   });
 
-  it("deleteVaccination deletes by id", async () => {
-    const c = chain(null);
-    c.eq = vi.fn(() => Promise.resolve({ error: null }));
-    mockFrom.mockReturnValue(c);
+  it("deleteVaccination calls DELETE /api/vaccinations?id=...", async () => {
+    mockApiFetch.mockResolvedValueOnce({ success: true });
     const result = await deleteVaccination("v1");
     expect(result.error).toBeNull();
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/vaccinations?id=v1"),
+      expect.objectContaining({ method: "DELETE" })
+    );
   });
 });
 
@@ -451,12 +368,15 @@ describe("Vaccination Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Parasite Log Operations", () => {
-  it("createParasiteLog inserts and returns record", async () => {
+  it("createParasiteLog calls POST /api/parasite-logs", async () => {
     const log = { id: "l1", medicine_name: "NexGard" };
-    mockFrom.mockReturnValue(chain({ data: log, error: null }));
+    mockApiFetch.mockResolvedValueOnce(log);
     const result = await createParasiteLog({ pet_id: "pet-1", medicine_name: "NexGard" } as any);
     expect(result.data).toEqual(log);
-    expect(mockFrom).toHaveBeenCalledWith("parasite_logs");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/parasite-logs",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 });
 
@@ -465,52 +385,58 @@ describe("Parasite Log Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Feedback Operations", () => {
-  it("uploadFeedbackImage uploads and returns URL", async () => {
-    mockUpload.mockResolvedValueOnce({ data: {}, error: null });
+  it("uploadFeedbackImage calls POST /api/upload/feedback-image with FormData", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
     const file = new File(["img"], "feedback.jpg", { type: "image/jpeg" });
     const result = await uploadFeedbackImage(file, "user-1");
     expect(result.data).toBe("https://storage.example.com/file.jpg");
-    expect(mockStorageFrom).toHaveBeenCalledWith("feedback-images");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/feedback-image",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+    );
   });
 
-  it("uploadFeedbackImage uses anonymous namespace for null userId", async () => {
-    mockUpload.mockResolvedValueOnce({ data: {}, error: null });
+  it("uploadFeedbackImage works for null userId (anonymous)", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
     const file = new File(["img"], "fb.jpg", { type: "image/jpeg" });
-    await uploadFeedbackImage(file, null);
-    const uploadedPath = mockUpload.mock.calls[0][0] as string;
-    expect(uploadedPath).toContain("anonymous");
+    const result = await uploadFeedbackImage(file, null);
+    expect(result.data).toBeTruthy();
+    // userId is not sent in formData — server resolves from JWT or IP
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/feedback-image",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
-  it("uploadFeedbackImage returns error on failure", async () => {
-    mockUpload.mockResolvedValueOnce({ data: null, error: { message: "Failed" } });
+  it("uploadFeedbackImage propagates apiFetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Failed"));
     const file = new File(["img"], "fb.jpg", { type: "image/jpeg" });
-    const result = await uploadFeedbackImage(file, "user-1");
-    expect(result.data).toBeNull();
+    await expect(uploadFeedbackImage(file, "user-1")).rejects.toThrow("Failed");
   });
 
-  it("submitFeedback calls RPC with correct params", async () => {
-    mockRpc.mockResolvedValueOnce({ data: { id: "f1" }, error: null });
+  it("submitFeedback calls POST /api/feedback with message, user_id, image_url", async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: "f1" });
     const result = await submitFeedback({
       message: "Great!",
       user_id: "u1",
       image_url: null,
     } as any);
     expect(result.data).toEqual({ id: "f1" });
-    expect(mockRpc).toHaveBeenCalledWith("submit_anonymous_feedback", {
-      p_message: "Great!",
-      p_user_id: "u1",
-      p_image_url: null,
-    });
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/feedback",
+      expect.objectContaining({ method: "POST" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.message).toBe("Great!");
+    expect(body.user_id).toBe("u1");
+    expect(body.image_url).toBeNull();
   });
 
   it("submitFeedback passes null user_id for anonymous", async () => {
-    mockRpc.mockResolvedValueOnce({ data: { id: "f2" }, error: null });
+    mockApiFetch.mockResolvedValueOnce({ id: "f2" });
     await submitFeedback({ message: "Bug", user_id: null, image_url: null } as any);
-    expect(mockRpc).toHaveBeenCalledWith("submit_anonymous_feedback", {
-      p_message: "Bug",
-      p_user_id: null,
-      p_image_url: null,
-    });
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.user_id).toBeNull();
   });
 });
 
@@ -519,45 +445,53 @@ describe("Feedback Operations", () => {
 // ---------------------------------------------------------------------------
 
 describe("Pet Photo Gallery Operations", () => {
-  it("getPetPhotos queries by pet_id ordered by display_order", async () => {
+  it("getPetPhotos calls GET /api/pet-photos?pet_id=...", async () => {
     const photos = [{ id: "ph1", display_order: 0 }];
-    const c = chain(null);
-    c.order = vi.fn(() => Promise.resolve({ data: photos, error: null }));
-    c.eq = vi.fn(() => ({ order: c.order }));
-    c.select = vi.fn(() => ({ eq: c.eq }));
-    mockFrom.mockReturnValue(c);
+    mockApiFetch.mockResolvedValueOnce(photos);
 
     const result = await getPetPhotos("pet-1");
     expect(result.data).toEqual(photos);
-    expect(mockFrom).toHaveBeenCalledWith("pet_photos");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/pet-photos?pet_id=pet-1")
+    );
   });
 
-  it("uploadPetGalleryImage uploads and returns URL", async () => {
-    mockUpload.mockResolvedValueOnce({ data: {}, error: null });
+  it("uploadPetGalleryImage calls POST /api/upload/pet-photo with FormData", async () => {
+    mockApiFetch.mockResolvedValueOnce({ url: "https://storage.example.com/file.jpg" });
     const file = new File(["img"], "gallery.jpg", { type: "image/jpeg" });
     const result = await uploadPetGalleryImage(file, "pet-1", "photo-1");
     expect(result.data).toBe("https://storage.example.com/file.jpg");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/upload/pet-photo",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) })
+    );
   });
 
-  it("uploadPetGalleryImage returns error on failure", async () => {
-    mockUpload.mockResolvedValueOnce({ data: null, error: { message: "Failed" } });
+  it("uploadPetGalleryImage propagates apiFetch error", async () => {
+    mockApiFetch.mockRejectedValueOnce(new Error("Failed"));
     const file = new File(["img"], "gallery.jpg", { type: "image/jpeg" });
-    const result = await uploadPetGalleryImage(file, "pet-1", "photo-1");
-    expect(result.data).toBeNull();
+    await expect(uploadPetGalleryImage(file, "pet-1", "photo-1")).rejects.toThrow("Failed");
   });
 
-  it("addPetPhoto inserts with correct data", async () => {
+  it("addPetPhoto calls POST /api/pet-photos with pet_id, photo_url, display_order", async () => {
     const photo = { id: "ph1", pet_id: "pet-1", photo_url: "https://example.com/img.jpg" };
-    mockFrom.mockReturnValue(chain({ data: photo, error: null }));
+    mockApiFetch.mockResolvedValueOnce(photo);
     const result = await addPetPhoto("pet-1", "https://example.com/img.jpg", 2);
     expect(result.data).toEqual(photo);
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.pet_id).toBe("pet-1");
+    expect(body.display_order).toBe(2);
   });
 
-  it("deletePetPhoto deletes by photoId", async () => {
-    const c = chain(null);
-    c.eq = vi.fn(() => Promise.resolve({ error: null }));
-    mockFrom.mockReturnValue(c);
+  it("deletePetPhoto calls DELETE /api/pet-photos with photoId in body", async () => {
+    mockApiFetch.mockResolvedValueOnce({ success: true });
     const result = await deletePetPhoto("ph1");
     expect(result.error).toBeNull();
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/api/pet-photos",
+      expect.objectContaining({ method: "DELETE" })
+    );
+    const body = JSON.parse((mockApiFetch.mock.calls[0] as any[])[1].body);
+    expect(body.photoId).toBe("ph1");
   });
 });
