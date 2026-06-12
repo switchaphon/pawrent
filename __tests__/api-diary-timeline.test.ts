@@ -537,4 +537,114 @@ describe("GET /api/diary/timeline", () => {
     expect(item.detail).toBeNull();
     expect(item.photo_urls).toBeNull();
   });
+
+  // ── catch block ────────────────────────────────────────────────────────────
+
+  it("returns 500 on unhandled DB error (catch block)", async () => {
+    stubTx.then = function(resolve: (rows: MockRow[]) => void) {
+      throw new Error("DB crash in pets query");
+    };
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+    // Restore
+    stubTx.then = function(resolve: (rows: MockRow[]) => void) {
+      resolve(_limitQueue.length > 0 ? _limitQueue.shift()! : []);
+    };
+  });
+
+  // ── cursor branch arms ─────────────────────────────────────────────────────
+
+  it("cursor with no created_at — cursorDate is null (falsy decodeCursor branch)", async () => {
+    // Encode a cursor that has id but no created_at field → cursorPayload?.created_at is falsy
+    // → cursorDate = null → where() uses the non-cursor branch
+    const cursorNoDate = Buffer.from(JSON.stringify({ id: "diary-1" })).toString("base64url");
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ cursor: cursorNoDate, types: "diary_entry" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).items).toHaveLength(1);
+  });
+
+  it("cursor with valid created_at — exercises cursorDate truthy branch in all 6 tables", async () => {
+    // A full all-types request with a valid cursor exercises the `lt(table.createdAt, cursorDate)`
+    // branch in each of the 6 table queries (diary, vacc, parasite, weight, health, milestone).
+    const cursor = encodeCursor("2026-05-20T10:00:00.000Z", "diary-0");
+    queueLimitResults(
+      MOCK_PETS,
+      [makeDiaryRow()],
+      [makeVacRow()],
+      [makeParasiteRow()],
+      [makeWeightRow()],
+      [makeHealthRow()],
+      [makeMilestoneRow()]
+    );
+    const res = await GET(makeRequest({ cursor }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).items).toHaveLength(6);
+  });
+
+  it("pet_name falls back to empty string when pet name is null", async () => {
+    // petNameMap: name ?? ""  — the "" fallback arm fires when name is null
+    queueLimitResults(
+      [{ id: VALID_PET_ID, name: null }],
+      [makeDiaryRow()]
+    );
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const item = (await res.json()).items[0];
+    expect(item.pet_name).toBe("");
+  });
+
+  it("health_event with non-null attachmentUrls array — photo_urls coercion", async () => {
+    queueLimitResults(MOCK_PETS, [makeHealthRow({ attachmentUrls: ["https://x.com/a.jpg"] })]);
+    const item = (await (await GET(makeRequest({ types: "health_event" }))).json()).items[0];
+    expect(item.photo_urls).toEqual(["https://x.com/a.jpg"]);
+  });
+
+  it("diary entry with non-null photoUrls array — photo_urls coercion", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow({ photoUrls: ["https://x.com/a.jpg"] })]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
+    expect(item.photo_urls).toEqual(["https://x.com/a.jpg"]);
+  });
+
+  it("vaccination item with no lastDate — detail is null (null lastDate branch)", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ lastDate: undefined })]);
+    const item = (await (await GET(makeRequest({ types: "vaccination" }))).json()).items[0];
+    expect(item.detail).toBeNull();
+  });
+
+  it("createdAt null in diary row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in vaccination row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "vaccination" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in parasite_log row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeParasiteRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "parasite_log" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in weight_log row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeWeightRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "weight_log" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in health_event row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeHealthRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "health_event" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in milestone row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "milestone" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
 });

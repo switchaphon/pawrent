@@ -13,9 +13,13 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -92,6 +96,7 @@ describe("POST /api/upload/report-video", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     mockUpload.mockResolvedValue(
       "https://storage.example.com/report-media/test-video.mp4"
     );
@@ -193,5 +198,57 @@ describe("POST /api/upload/report-video", () => {
     const [, key] = mockUpload.mock.calls[0] as unknown as [string, string];
     expect(key).toMatch(new RegExp(`^${ALERT_UUID}-`));
     expect(key).toMatch(/\.mp4$/);
+  });
+
+  it("returns 429 when rate limit is hit", async () => {
+    const rateLimitResponse = Response.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+    mockCheckRateLimit.mockResolvedValueOnce(rateLimitResponse);
+    const file = makeVideoFile();
+    const req = makeFormRequest({ file, alert_id: ALERT_UUID });
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when formData() throws (Invalid form data)", async () => {
+    // Covers line 34: the formData catch branch
+    const req = new NextRequest("http://localhost:3000/api/upload/report-video", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token" },
+    });
+    // Override formData to throw
+    Object.defineProperty(req, "formData", {
+      value: async () => { throw new Error("Failed to parse form data"); },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("Invalid form data");
+  });
+
+  it("falls back to .mp4 when filename has no extension", async () => {
+    // "".split(".").pop() returns "" — the route uses || so the empty string
+    // falls back to "mp4" instead of producing a bare trailing dot.
+    const buf = new Uint8Array(1024 * 1024);
+    const file = new File([buf], "", { type: "video/mp4" });
+    const req = makeFormRequest({ file, alert_id: ALERT_UUID });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const [, key] = mockUpload.mock.calls[0] as unknown as [string, string];
+    expect(key).toMatch(new RegExp(`^${ALERT_UUID}-`));
+    expect(key).toMatch(/\.mp4$/);
+  });
+
+  it("returns 500 when upload throws non-Error (covers unknown branch)", async () => {
+    // Covers `err instanceof Error ? err.message : "unknown"` false branch on line 64
+    mockUpload.mockRejectedValueOnce("plain string error");
+    const file = makeVideoFile();
+    const req = makeFormRequest({ file, alert_id: ALERT_UUID });
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Internal server error");
   });
 });

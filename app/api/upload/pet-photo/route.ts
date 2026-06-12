@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Build storage key — gallery/<petId>/<uuid>.<ext>
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    // || not ??: split().pop() never returns undefined; "" must also fall back.
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const photoId = crypto.randomUUID();
     const key = `gallery/${petId}/${photoId}.${ext}`;
 

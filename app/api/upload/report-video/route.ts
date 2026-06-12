@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const fileExt = file.name.split(".").pop() ?? "mp4";
+    // || not ??: split().pop() never returns undefined; "" must also fall back.
+    const fileExt = file.name.split(".").pop() || "mp4";
     const key = `${alertId}-${Date.now()}.${fileExt}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());

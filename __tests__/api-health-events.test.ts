@@ -159,6 +159,16 @@ describe("POST /api/health-events", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 400 for invalid JSON body (catch(() => null) arm)", async () => {
+    const req = new NextRequest("http://localhost/api/health-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 when title is empty", async () => {
     const res = await POST(makePostReq({ ...validBody, title: "" }));
     expect(res.status).toBe(400);
@@ -321,6 +331,78 @@ describe("PUT /api/health-events", () => {
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(500);
   });
+
+  it("returns 429 when rate limited on PUT", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 for invalid JSON body in PUT (catch → null → id missing)", async () => {
+    const req = new NextRequest("http://localhost/api/health-events", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
+
+  it("updates with description field — hits description ?? null branch (line 117)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, description: "Follow-up needed" }]);
+    const res = await PUT(makePutReq({ id: EVT_ID, description: "Follow-up needed" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).description).toBe("Follow-up needed");
+  });
+
+  it("updates with photo_url field — hits photo_url ?? null branch (line 119)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, photoUrl: "https://example.com/photo.jpg" }]);
+    const res = await PUT(makePutReq({ id: EVT_ID, photo_url: "https://example.com/photo.jpg" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).photo_url).toBe("https://example.com/photo.jpg");
+  });
+
+  it("updates event_type and event_date — hits eventType and eventDate branches", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, eventType: "vet_visit", eventDate: "2026-01-10" }]);
+    const res = await PUT(makePutReq({ id: EVT_ID, event_type: "vet_visit", event_date: "2026-01-10" }));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.event_type).toBe("vet_visit");
+    expect(body.event_date).toBe("2026-01-10");
+  });
+
+  it("updates all five optional fields in a single call (all branches true)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{
+      ...BASE_EVENT,
+      eventType: "checkup",
+      title: "Full checkup",
+      description: "All clear",
+      eventDate: "2026-03-01",
+      photoUrl: "https://x.com/p.jpg",
+    }]);
+    const res = await PUT(makePutReq({
+      id: EVT_ID,
+      event_type: "checkup",
+      title: "Full checkup",
+      description: "All clear",
+      event_date: "2026-03-01",
+      photo_url: "https://x.com/p.jpg",
+    }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).title).toBe("Full checkup");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -374,5 +456,14 @@ describe("DELETE /api/health-events", () => {
     stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
     const res = await DELETE(makeDeleteReq(EVT_ID));
     expect(res.status).toBe(500);
+  });
+
+  it("returns 429 when rate limited on DELETE", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeDeleteReq(EVT_ID));
+    expect(res.status).toBe(429);
   });
 });

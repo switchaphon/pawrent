@@ -11,9 +11,11 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const mockCheckRateLimit = vi.fn<() => Promise<Response | null>>().mockResolvedValue(null);
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...(args as [])),
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -114,6 +116,7 @@ describe("POST /api/conversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: USER_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _selectSequence = [];
     _insertRows = [];
     resetTxChain();
@@ -134,6 +137,16 @@ describe("POST /api/conversations", () => {
 
   it("returns 400 when payload fails schema validation", async () => {
     const res = await POST(makeRequest("POST", { owner_id: "not-a-uuid" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when request body is malformed JSON (covers .catch(() => null) callback)", async () => {
+    const req = new NextRequest("http://localhost:3000/api/conversations", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token", "content-type": "application/json" },
+      body: "not-valid-json{{{",
+    });
+    const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
@@ -203,12 +216,42 @@ describe("POST /api/conversations", () => {
     const data = await res.json();
     expect(data.error).toBe("Internal server error");
   });
+
+  it("returns 429 when POST rate limit is hit", async () => {
+    mockCheckRateLimit.mockResolvedValueOnce(
+      Response.json({ error: "Too many requests" }, { status: 429 }) as unknown as Response
+    );
+    const res = await POST(makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 500 and logs non-Error thrown from query in POST", async () => {
+    // Exercises the err instanceof Error ? ... : "unknown" FALSE branch (line 90)
+    stubTx.limit.mockRejectedValueOnce("plain string DB error");
+    const res = await POST(makeRequest("POST", { owner_id: OWNER_UUID, alert_id: ALERT_UUID }));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("creates conversation when only found_report_id provided (alert_id null)", async () => {
+    _selectSequence = [[]];
+    _insertRows = [{ ...BASE_CONVO, alertId: null, foundReportId: FOUND_UUID, finderId: USER_UUID }];
+    const res = await POST(
+      makeRequest("POST", { owner_id: OWNER_UUID, found_report_id: FOUND_UUID })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.found_report_id).toBe(FOUND_UUID);
+    expect(data.alert_id).toBeNull();
+  });
 });
 
 describe("GET /api/conversations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: USER_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _selectSequence = [];
     _insertRows = [];
     resetTxChain();
@@ -263,5 +306,60 @@ describe("GET /api/conversations", () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe("Internal server error");
+  });
+
+  it("returns 500 and logs non-Error thrown from query in GET (line 151 branch)", async () => {
+    // Exercises err instanceof Error ? ... : "unknown" FALSE branch (line 151)
+    stubTx.limit.mockRejectedValueOnce("plain string GET error");
+    const res = await GET(makeRequest("GET"));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("ignores an invalid (non-base64url) cursor and returns first page", async () => {
+    // decodeCursor returns null for garbage → the if (decoded) branch is false
+    stubTx.limit.mockResolvedValueOnce([BASE_CONVO]);
+    const res = await GET(makeRequest("GET", undefined, "cursor=!!!invalid!!!&limit=20"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(1);
+    // No next cursor — hasMore false, so nextCursor is null
+    expect(data.cursor).toBeNull();
+    expect(data.hasMore).toBe(false);
+  });
+
+  it("returns nextCursor null when page is exactly at limit (hasMore false, lastRow defined)", async () => {
+    // Exactly 2 rows returned when limit=2 → hasMore=false, lastRow exists, cursor=null
+    const rows = Array.from({ length: 2 }, (_, i) => ({
+      ...BASE_CONVO,
+      id: `convo-${i}`,
+      createdAt: new Date(`2026-04-14T0${i}:00:00Z`),
+    }));
+    stubTx.limit.mockResolvedValueOnce(rows);
+    const res = await GET(makeRequest("GET", undefined, "limit=2"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(2);
+    expect(data.hasMore).toBe(false);
+    expect(data.cursor).toBeNull();
+  });
+
+  it("snake_case keys present on toConversationRow shape", async () => {
+    // Explicit shape check — ensures toConversationRow function body executes
+    stubTx.limit.mockResolvedValueOnce([BASE_CONVO]);
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const row = data.data[0];
+    expect(row).toHaveProperty("id");
+    expect(row).toHaveProperty("alert_id");
+    expect(row).toHaveProperty("found_report_id");
+    expect(row).toHaveProperty("owner_id");
+    expect(row).toHaveProperty("finder_id");
+    expect(row).toHaveProperty("status");
+    expect(row).toHaveProperty("consent_shared");
+    expect(row).toHaveProperty("created_at");
+    expect(row).not.toHaveProperty("alertId");
   });
 });

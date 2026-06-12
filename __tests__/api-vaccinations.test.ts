@@ -17,7 +17,8 @@ import { NextRequest } from "next/server";
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
 const { mockCheckRateLimit } = vi.hoisted(() => ({
-  mockCheckRateLimit: vi.fn<() => Promise<null>>().mockResolvedValue(null),
+  // Response | null so 429 cases can resolve a NextResponse.
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -222,6 +223,44 @@ describe("POST /api/vaccinations", () => {
     // Route maps a null query result (ownership fail OR empty returning) to 404.
     expect(res.status).toBe(404);
   });
+
+  it("returns 500 on unhandled DB error", async () => {
+    // Throw inside query — exercises the POST catch block (line 64)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await POST(makeReq("POST", validBody));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await POST(makeReq("POST", validBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    const req = new NextRequest("http://localhost/api/vaccinations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("creates vaccination with null last_date and next_due_date", async () => {
+    // Exercises the `?? null` arms for last_date and next_due_date in POST
+    setLimitRows([{ id: PET_ID }]);
+    _returningRows = [{ ...BASE_VACC, lastDate: null, nextDueDate: null }];
+    const res = await POST(makeReq("POST", { ...validBody, last_date: null, next_due_date: null }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.last_date).toBeNull();
+    expect(body.next_due_date).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -283,6 +322,60 @@ describe("PUT /api/vaccinations", () => {
     const res = await PUT(makeReq("PUT", { id: VACC_ID, name: "X" }));
     expect(res.status).toBe(500);
   });
+
+  it("returns 500 on unhandled DB error", async () => {
+    // Throw inside query — exercises the PUT catch block (line 125)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await PUT(makeReq("PUT", { id: VACC_ID, name: "X" }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 400 when id is not a string (e.g. number)", async () => {
+    // Exercises the `typeof id !== 'string'` branch (line 84)
+    const res = await PUT(makeReq("PUT", { id: 12345, name: "X" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
+
+  it("returns 400 when id is null", async () => {
+    const res = await PUT(makeReq("PUT", { id: null, name: "X" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    const req = new NextRequest("http://localhost/api/vaccinations", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    // null body → id undefined → 400
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makeReq("PUT", { id: VACC_ID, name: "X" }));
+    expect(res.status).toBe(429);
+  });
+
+  it("covers null last_date and next_due_date in update", async () => {
+    // Exercises the `?? null` coalescing arms for lastDate and nextDueDate in PUT
+    const updated = { ...BASE_VACC, lastDate: null, nextDueDate: null };
+    setLimitSequence([{ petId: PET_ID }], [{ id: PET_ID }]);
+    _returningRows = [updated];
+    const res = await PUT(makeReq("PUT", { id: VACC_ID, last_date: null, next_due_date: null }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.last_date).toBeNull();
+    expect(body.next_due_date).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -328,5 +421,22 @@ describe("DELETE /api/vaccinations", () => {
     const res = await DELETE(makeReq("DELETE", undefined, `?id=${VACC_ID}`));
     expect(res.status).toBe(200);
     expect((await res.json()).success).toBe(true);
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    // Throw inside query — exercises the DELETE catch block (line 164)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeReq("DELETE", undefined, `?id=${VACC_ID}`));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeReq("DELETE", undefined, `?id=${VACC_ID}`));
+    expect(res.status).toBe(429);
   });
 });

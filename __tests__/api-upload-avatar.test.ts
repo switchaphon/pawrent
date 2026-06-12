@@ -8,9 +8,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -75,6 +79,7 @@ describe("POST /api/upload/avatar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    mockCheckRateLimit.mockResolvedValue(null);
     mockUpload.mockResolvedValue(STORED_URL);
     resetTxChain();
   });
@@ -83,6 +88,21 @@ describe("POST /api/upload/avatar", () => {
     mockVerifyAuth.mockResolvedValueOnce(null);
     const res = await POST(makeFormRequest({ file: new File(["x"], "a.jpg", { type: "image/jpeg" }) }));
     expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when formData() throws (line 36 catch branch)", async () => {
+    // Cover the try/catch around request.formData() — stub it to reject
+    const req = new NextRequest("http://localhost/api/upload/avatar", {
+      method: "POST",
+      headers: { Authorization: "Bearer fake-token" },
+    });
+    Object.defineProperty(req, "formData", {
+      value: async () => { throw new Error("multipart parse error"); },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid form data/i);
   });
 
   it("returns 400 when file is missing", async () => {
@@ -141,5 +161,42 @@ describe("POST /api/upload/avatar", () => {
     const file = new File(["img"], "avatar.jpg", { type: "image/jpeg" });
     const res = await POST(makeFormRequest({ file }));
     expect(res.status).toBe(500);
+  });
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    // Cover the `if (rateLimited) return rateLimited` branch at line 29
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const file = new File(["img"], "avatar.jpg", { type: "image/jpeg" });
+    const res = await POST(makeFormRequest({ file }));
+    expect(res.status).toBe(429);
+  });
+
+  it("uses file extension from filename without dots edge case", async () => {
+    // Exercise the `file.name.split('.').pop() ?? 'jpg'` expression at line 50
+    // with a file that has no dot — pop() returns the full name string (never undefined)
+    // so the ?? 'jpg' fallback is unreachable; this test exercises the left arm.
+    const fileNoExt = new File(["img"], "noextension", { type: "image/jpeg" });
+    const res = await POST(makeFormRequest({ file: fileNoExt }));
+    expect(res.status).toBe(200);
+    // The key will use "noextension" as the ext — just verify upload was called
+    expect(mockUpload).toHaveBeenCalledWith(
+      "user-photos",
+      expect.stringMatching(/^avatars\//),
+      expect.any(Buffer),
+      expect.any(Object)
+    );
+  });
+
+  it("returns 500 when upload throws a non-Error object", async () => {
+    // Cover the `err instanceof Error ? err.message : 'unknown'` false branch at line 69
+    mockUpload.mockRejectedValueOnce("string-error");
+    const file = new File(["img"], "avatar.jpg", { type: "image/jpeg" });
+    const res = await POST(makeFormRequest({ file }));
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Internal server error");
   });
 });

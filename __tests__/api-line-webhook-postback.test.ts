@@ -57,6 +57,7 @@ vi.mock("@/lib/line/client", () => ({
 }));
 
 import { POST } from "@/app/api/line/webhook/route";
+import { adminQuery } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -296,5 +297,80 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
 
     const arg = mockPushMessage.mock.calls[0]?.[0] as { to: string };
     expect(arg.to).toBe(differentUserId);
+  });
+
+  // ── adminQuery callback execution (inner function coverage) ────────────────
+
+  it("exercises profile-lookup adminQuery callback via pass-through tx stub", async () => {
+    // The route's handlePetCardPostback first callback:
+    //   tx.select({id}).from(profiles).where(eq(profiles.lineUserId, lineUserId)).limit(1)
+    // where().limit() must resolve to [] (no profile → early return, no push).
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // Call 1: profile lookup — pass through to callback with stub tx
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
+
+    const res = await POST(makeRequest(JSON.stringify({ events: [] })));
+    expect(res.status).toBe(200);
+    // profile not found → handlePetCardPostback returns early → no push
+    expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
+  it("exercises pet-query adminQuery callback via pass-through tx stub (empty pets)", async () => {
+    // Call 1: profile lookup — returns a valid profile row so we proceed to pets query
+    // Call 2: pets query — pass through to callback with stub tx that returns []
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // Call 1: profile lookup returns profile via stub tx
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([{ id: PROFILE_ID }])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    // Call 2: pets query — pass through to callback; returns [] so no carousel
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue(Promise.resolve([])),
+              }),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
+
+    const res = await POST(makeRequest(JSON.stringify({ events: [] })));
+    expect(res.status).toBe(200);
+    // pets = [] → handlePetCardPostback returns early → no push
+    expect(mockPushMessage).not.toHaveBeenCalled();
   });
 });

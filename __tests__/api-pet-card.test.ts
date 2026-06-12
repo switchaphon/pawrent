@@ -69,6 +69,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 });
 
 import { GET } from "@/app/api/pet-card/[petId]/route";
+import { adminQuery } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -301,6 +302,125 @@ describe("GET /api/pet-card/[petId]?side=back", () => {
       makeBackTuple({ latestParasite: { medicine_name: null, administered_date: "2024-02-01" } }),
     ]);
     const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    expect(res.status).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// adminQuery callback coverage — pass-through tests
+// These exercise the inner async arrow functions that the standard mock skips.
+// ---------------------------------------------------------------------------
+describe("GET /api/pet-card — adminQuery callback pass-through", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCheckRateLimit.mockResolvedValue(null);
+    process.env.NEXT_PUBLIC_APP_URL = "https://pawrent.app";
+  });
+
+  it("exercises petRow-lookup callback — pet not found returns 404", async () => {
+    // The route's first adminQuery: select({...}).from(pets).where(...).limit(1) → []
+    // Stub tx: where().limit() → Promise([]) → rows[0] undefined → null → 404
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    expect(res.status).toBe(404);
+  });
+
+  it("exercises petRow-lookup callback — valid pet returns 200 (front side)", async () => {
+    // Call 1: petRow lookup pass-through; stub returns one row matching MOCK_PET_ROW shape
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([MOCK_PET_ROW])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    const res = await GET(makeRequest(PET_ID, "front"), { params: Promise.resolve({ petId: PET_ID }) });
+    expect(res.status).toBe(200);
+  });
+
+  it("exercises back-side second adminQuery callback via pass-through tx stub", async () => {
+    // Call 1: petRow lookup — use normal mock (MOCK_PET_ROW found)
+    // Call 2: back-side data — pass through; stub tx with flexible select chain
+    // Vaccination select returns one row with real field names (Drizzle camelCase)
+    // so the vaccRows.map() callback (line 170) is also exercised.
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // Call 1: petRow
+    mocked.mockImplementationOnce(async (_fn: (tx: unknown) => unknown) => {
+      return MOCK_PET_ROW;
+    });
+
+    // Call 2: back-side data — 8 parallel selects in Promise.all.
+    // select() is called 8 times. We track call order and return appropriate data:
+    //   0 = profiles → limit(1) → [{fullName, phone}]
+    //   1 = vaccinations → orderBy().limit(5) → [{name, lastDate, status}]  (camelCase Drizzle)
+    //   2 = parasiteLogs → orderBy().limit(1) → []
+    //   3 = petWeightLogs (latest) → orderBy().limit(1) → []
+    //   4-7 = count selects → where() thenable → []
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      let selectIdx = 0;
+      const perCallResults: unknown[][] = [
+        [{ fullName: "สมศรี", phone: "0891234567" }], // profiles (idx 0) — via limit
+        [{ name: "Rabies", lastDate: "2024-01-01", status: "protected" }], // vaccinations (idx 1) — via orderBy.limit
+        [],  // parasiteLogs (idx 2) — via orderBy.limit
+        [],  // petWeightLogs latest (idx 3) — via orderBy.limit
+        [],  // wRows count (idx 4) — via where thenable
+        [],  // vRows count (idx 5) — via where thenable
+        [],  // pRows count (idx 6) — via where thenable
+        [],  // dRows count (idx 7) — via where thenable
+      ];
+
+      const stubTx = {
+        select: vi.fn().mockImplementation(() => {
+          const myIdx = selectIdx++;
+          const result = perCallResults[myIdx] ?? [];
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                // orderBy().limit() — for vaccination/parasite/weight selects
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue(Promise.resolve(result)),
+                }),
+                // limit() directly — for profiles select
+                limit: vi.fn().mockReturnValue(Promise.resolve(result)),
+                // Thenable — for count selects (await tx.select().from().where())
+                then: (
+                  resolve: (v: unknown[]) => unknown,
+                  reject: (e: unknown) => unknown
+                ) => Promise.resolve(result).then(resolve, reject),
+              }),
+            }),
+          };
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    const res = await GET(makeRequest(PET_ID, "back"), { params: Promise.resolve({ petId: PET_ID }) });
+    // The callback returns the as const tuple; ImageResponse mock gives status 200
     expect(res.status).toBe(200);
   });
 });

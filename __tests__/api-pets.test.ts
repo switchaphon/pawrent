@@ -77,6 +77,9 @@ function resetTx() {
   stubTx.update.mockReturnThis();
   stubTx.set.mockReturnThis();
   stubTx.delete.mockReturnThis();
+  // Restore default implementations cleared by vi.clearAllMocks()
+  stubTx.limit.mockImplementation(async () => _selectRows);
+  stubTx.returning.mockImplementation(async () => _mutateRows);
 }
 
 vi.mock("@/lib/db/index", async (importOriginal) => {
@@ -294,6 +297,33 @@ describe("POST /api/pets", () => {
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("Internal server error");
   });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await POST(makeReq("POST", validPetBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("handles nullable optional fields as null — exercises all null-coalescing arms in POST", async () => {
+    // Send null for all nullable fields — covers ?? null / ?? false / ?? "active" coalescing arms
+    stubTx.returning.mockResolvedValueOnce([BASE_PET]);
+    const res = await POST(makeReq("POST", {
+      name: "Minimal",
+      species: null,
+      breed: null,
+      sex: null,
+      color: null,
+      weight_kg: null,
+      date_of_birth: null,
+      microchip_number: null,
+      neutered: null,
+      special_notes: null,
+    }));
+    expect(res.status).toBe(200);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -343,6 +373,64 @@ describe("PUT /api/pets", () => {
     expect(body.owner_id).toBe(USER_ID);
     expect(body).not.toHaveProperty("ownerId");
   });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "X" }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when body is invalid JSON", async () => {
+    const req = new NextRequest("http://localhost/api/pets", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    // null body → petId undefined → 400
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/petId/i);
+  });
+
+  it("covers null-valued optional fields in update (date_of_birth, memorial_date)", async () => {
+    // Send null for nullable optional fields — exercises the `?? null` coalescing arms
+    const updated = { ...BASE_PET, dateOfBirth: null, memorialDate: null };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+    const res = await PUT(makeReq("PUT", {
+      petId: PET_ID,
+      date_of_birth: null,
+      memorial_date: null,
+      microchip_number: null,
+      special_notes: null,
+      photo_url: null,
+      color: null,
+      breed: null,
+      sex: null,
+    }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.date_of_birth).toBeNull();
+    expect(body.memorial_date).toBeNull();
+  });
+
+  it("covers weight_kg null in update (sets weightKg to null)", async () => {
+    const updated = { ...BASE_PET, weightKg: null };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, weight_kg: null }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.weight_kg).toBeNull();
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.returning.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "X" }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -382,5 +470,33 @@ describe("DELETE /api/pets", () => {
     const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
     expect(res.status).toBe(200);
     expect((await res.json()).success).toBe(true);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when body is invalid JSON", async () => {
+    const req = new NextRequest("http://localhost/api/pets", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    // null body → petId undefined → 400
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/petId/i);
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.returning.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
   });
 });

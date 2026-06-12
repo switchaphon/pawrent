@@ -65,6 +65,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 });
 
 import { GET } from "@/app/api/cron/celebrations/route";
+import { adminQuery } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -267,5 +268,100 @@ describe("GET /api/cron/celebrations", () => {
     expect(json).toHaveProperty("gotchaDays");
     expect(json).toHaveProperty("errors");
     expect(Array.isArray(json.errors)).toBe(true);
+  });
+
+  // ── Birthday same-year (age = 0 → undefined) ──────────────────────────────
+
+  it("sends birthday with age=undefined when born in current year (age=0 branch)", async () => {
+    // System time is 2026-04-14; dateOfBirth year=2026 → age=0 → age: undefined
+    setupAdmin([
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2026-04-14" }], []],
+      [[{ id: "o1", lineUserId: "Uabc" }], []],
+    ]);
+
+    const { buildCelebrationMessage } = await import("@/lib/line-templates/celebration");
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(1);
+    // The age > 0 branch is false → buildCelebrationMessage called with age: undefined
+    expect(vi.mocked(buildCelebrationMessage)).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "birthday", age: undefined })
+    );
+  });
+
+  // ── Birthday non-Error push failure ───────────────────────────────────────
+
+  it("handles non-Error thrown during birthday push (String path)", async () => {
+    setupAdmin([
+      [[{ id: "p1", name: "Buddy", ownerId: "o1", dateOfBirth: "2023-04-14" }], []],
+      [[{ id: "o1", lineUserId: "Uabc" }], []],
+    ]);
+    mockPushMessage.mockRejectedValueOnce("string-error-birthday");
+
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.errors[0]).toContain("Birthday push failed");
+    expect(json.errors[0]).toContain("string-error-birthday");
+  });
+
+  // ── Gotcha-day no LINE ID (continue branch) ───────────────────────────────
+
+  it("skips gotcha-day pet when owner has no LINE user ID", async () => {
+    setupAdmin([
+      [[], [{ id: "p2", name: "Mochi", ownerId: "o2", gotchaDay: "2024-04-14" }]],
+      [[{ id: "o2", lineUserId: null }], []],
+    ]);
+
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
+  // ── adminQuery callback execution (inner function + lines coverage) ────────
+
+  it("exercises adminQuery callback by calling through to stub tx", async () => {
+    // Make adminQuery actually invoke the callback with a chainable stub tx.
+    // This covers the inner arrow function bodies (lines 31-39, 73-84).
+    const mockSelect = vi.fn();
+    const stubTx = { select: mockSelect };
+
+    // Build a chainable select stub: select().from().where() → []
+    // and select().from().where().orderBy().limit() → []
+    const makeChain = (result: unknown[] = []) => {
+      const chain: Record<string, unknown> = {};
+      chain.from = vi.fn(() => chain);
+      chain.where = vi.fn(() => chain);
+      chain.orderBy = vi.fn(() => chain);
+      chain.limit = vi.fn(() => Promise.resolve(result));
+      // where() without limit also needs to resolve
+      (chain.where as ReturnType<typeof vi.fn>).mockReturnValue({
+        ...chain,
+        then: (resolve: (v: unknown[]) => void) => resolve([]),
+      });
+      return chain;
+    };
+
+    mockSelect.mockReturnValue(makeChain([]));
+
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // First adminQuery call: execute callback → returns [[], []]
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      // Patch Promise.all to return two empty arrays
+      const origAll = Promise.all.bind(Promise);
+      vi.spyOn(Promise, "all").mockResolvedValueOnce([[], []]);
+      const result = await fn(stubTx);
+      vi.restoreAllMocks();
+      return result;
+    });
+
+    // With [[], []] from first call, no celebrations today → early return
+    const res = await GET(makeCronRequest());
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.message).toBe("No celebrations today");
   });
 });

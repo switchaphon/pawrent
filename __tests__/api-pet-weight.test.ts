@@ -404,6 +404,41 @@ describe("PUT /api/pet-weight", () => {
     const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(500);
   });
+
+  it("updates all optional fields when all are provided", async () => {
+    // Exercises all update field branches (weight_kg, measured_at, note, photo_url)
+    const updated = { ...BASE_LOG, weightKg: "7.00", measuredAt: "2026-06-01", note: "Good", photoUrl: "https://img.example.com/w.jpg" };
+    queueLimit([{ petId: PET_ID }]);
+    queueLimit([{ id: PET_ID }]);
+    queueReturning([updated]);
+    const res = await PUT(makePutReq({
+      id: LOG_ID,
+      weight_kg: 7.0,
+      measured_at: "2026-06-01",
+      note: "Good",
+      photo_url: "https://img.example.com/w.jpg",
+    }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.weight_kg).toBe("7.00");
+    expect(body.measured_at).toBe("2026-06-01");
+    expect(body.note).toBe("Good");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when id is not a string (e.g. number)", async () => {
+    const res = await PUT(makePutReq({ id: 12345, weight_kg: 6.1 }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
 });
 
 // ---------------------------------------------------------------------------

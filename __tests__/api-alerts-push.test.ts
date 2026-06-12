@@ -16,9 +16,11 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const mockCheckRateLimit = vi.fn<() => Promise<Response | null>>().mockResolvedValue(null);
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...(args as [])),
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -174,6 +176,7 @@ describe("POST /api/alerts/push", () => {
     mockMulticastMessage.mockResolvedValue(3);
     mockIsQuietHours.mockReturnValue(false);
     mockUsersWithinRadius.mockResolvedValue([]);
+    mockCheckRateLimit.mockResolvedValue(null);
   });
 
   it("returns 401 without valid webhook secret", async () => {
@@ -372,6 +375,100 @@ describe("POST /api/alerts/push", () => {
     expect(mockLostPetFlex).toHaveBeenCalledWith(
       expect.objectContaining({
         alertUrl: `https://liff.line.me/test-liff-id/post/${VALID_UUID}`,
+      })
+    );
+  });
+
+  it("returns 429 when rate limit is hit", async () => {
+    const rateLimitResponse = Response.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+    mockCheckRateLimit.mockResolvedValueOnce(rateLimitResponse as unknown as Response);
+
+    const req = makeRequest(validPayload);
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+  });
+
+  it("falls back to empty eligibleUserIds when profile query throws (Error instance)", async () => {
+    // The second adminQuery call (profiles SELECT) throws — caught at line 112, eligibleUserIds = []
+    const { adminQuery: _adminQuery } = await import("@/lib/db/index");
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mockedAdminQuery = vi.mocked(_adminQuery) as unknown as ReturnType<typeof vi.fn>;
+    mockedAdminQuery
+      .mockImplementationOnce(async (fn: (tx: unknown) => Promise<unknown>) => {
+        // first call: usersWithinRadius — let the rpc mock handle it by calling the fn
+        // but usersWithinRadius itself is mocked at @/lib/db/rpc level, so we just return
+        mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+        const tx = {
+          select: vi.fn(() => tx),
+          from: vi.fn(() => tx),
+          where: vi.fn(() => Promise.resolve([])),
+          insert: vi.fn(() => tx),
+          values: vi.fn(async () => undefined),
+        };
+        return fn(tx);
+      })
+      .mockImplementationOnce(async () => {
+        // second call: profiles SELECT — throw to exercise the catch block
+        throw new Error("profiles query failed");
+      })
+      .mockImplementationOnce(async (fn: (tx: unknown) => Promise<unknown>) => {
+        // third call would be pushLogs INSERT but won't be reached (all_filtered early return)
+        const tx = {
+          insert: vi.fn(() => tx),
+          values: vi.fn(async () => undefined),
+        };
+        return fn(tx);
+      });
+
+    const req = makeRequest(validPayload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.sent).toBe(0);
+    expect(json.reason).toBe("all_filtered");
+  });
+
+  it("does not filter when pushSpeciesFilter is null (null = accept all species)", async () => {
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: null, pushQuietStart: null, pushQuietEnd: null },
+    ];
+    mockMulticastMessage.mockResolvedValueOnce(1);
+
+    const req = makeRequest(validPayload); // pet_species: "dog"
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.sent).toBe(1);
+  });
+
+  it("returns 500 with non-Error thrown from usersWithinRadius", async () => {
+    mockUsersWithinRadius.mockRejectedValueOnce("plain string rpc error");
+    const req = makeRequest(validPayload);
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Failed to query nearby users");
+  });
+
+  it("uses empty string fallback when NEXT_PUBLIC_LIFF_ID is unset", async () => {
+    // Covers getLiffId() ?? "" right branch
+    delete process.env.NEXT_PUBLIC_LIFF_ID;
+    mockUsersWithinRadius.mockResolvedValueOnce(["U1"]);
+    _profileRows = [
+      { lineUserId: "U1", pushSpeciesFilter: null, pushQuietStart: null, pushQuietEnd: null },
+    ];
+    mockMulticastMessage.mockResolvedValueOnce(1);
+
+    const req = makeRequest(validPayload);
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockLostPetFlex).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alertUrl: expect.stringContaining("/post/"),
       })
     );
   });

@@ -9,9 +9,13 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -87,9 +91,28 @@ vi.mock("qrcode", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Mock global fetch — returns ok:true with a tiny JPEG buffer by default
+// ---------------------------------------------------------------------------
+const { mockFetch } = vi.hoisted(() => ({
+  mockFetch: vi.fn<typeof fetch>(),
+}));
+
+// Default: simulate successful photo fetch
+function makeOkFetchResponse(): Response {
+  const buf = Buffer.from("fake-photo-bytes");
+  return {
+    ok: true,
+    arrayBuffer: async () => buf.buffer as ArrayBuffer,
+  } as unknown as Response;
+}
+
+vi.stubGlobal("fetch", mockFetch);
+
+// ---------------------------------------------------------------------------
 // Import after mocks
 // ---------------------------------------------------------------------------
 import { GET } from "@/app/api/share-card/[alertId]/route";
+import { query as queryMock } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -128,6 +151,8 @@ describe("GET /api/share-card/[alertId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockFetch.mockResolvedValue(makeOkFetchResponse());
     _selectRows = [];
     resetTxChain();
   });
@@ -217,6 +242,24 @@ describe("GET /api/share-card/[alertId]", () => {
     expect(res.status).toBe(200);
   });
 
+  it("skips photo overlay when fetch returns ok:false (covers res.ok branch)", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false } as unknown as Response);
+    _selectRows = [MOCK_ALERT_ROW];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    // Still succeeds — photo overlay is silently skipped
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+  });
+
+  it("skips photo overlay when fetch throws (catch branch)", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+    _selectRows = [MOCK_ALERT_ROW];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(200);
+  });
+
   it("handles XML special characters in alert data", async () => {
     _selectRows = [{
       ...MOCK_ALERT_ROW,
@@ -229,12 +272,85 @@ describe("GET /api/share-card/[alertId]", () => {
   });
 
   it("returns 500 when generation throws", async () => {
+    // Disable photo fetch so only QR + final toBuffer calls happen:
+    // call 1: QR resize toBuffer, call 2: final composite jpeg toBuffer (→ throw)
+    mockFetch.mockResolvedValueOnce({ ok: false } as unknown as Response);
     _selectRows = [MOCK_ALERT_ROW];
-    mockSharpInstance.toBuffer.mockRejectedValueOnce(new Error("Sharp error"));
+    // With photo fetch disabled: toBuffer call 1 = QR resize, call 2 = final jpeg
+    mockSharpInstance.toBuffer
+      .mockResolvedValueOnce(Buffer.from("fake-qr-resized")) // QR resize
+      .mockRejectedValueOnce(new Error("Sharp error"));       // final jpeg composite
     const req = makeRequest(ALERT_UUID, "valid-token");
     const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error).toBe("Share card generation failed");
+  });
+
+  it("returns 429 when rate limit is hit", async () => {
+    const rateLimitResponse = Response.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+    mockCheckRateLimit.mockResolvedValueOnce(rateLimitResponse);
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 500 when DB query throws (Error instance — covers err.message branch)", async () => {
+    // Cover the `err.message` branch of `err instanceof Error ? err.message : "unknown"` (line 128)
+    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB connection failed"));
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Internal server error");
+  });
+
+  it("returns 500 when DB query throws a non-Error value (covers unknown branch)", async () => {
+    // Cover the `"unknown"` branch of `err instanceof Error ? err.message : "unknown"` (line 128)
+    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce("string error");
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Internal server error");
+  });
+
+  it("uses null defaults for status and alertType when row omits them", async () => {
+    // Covers `row.status ?? "active"` and `row.alertType ?? "lost"` null-coalescing branches
+    _selectRows = [{ ...MOCK_ALERT_ROW, status: null, alertType: null }];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+  });
+
+  it("uses null default for rewardAmount when row omits it", async () => {
+    // Covers `row.rewardAmount ?? 0` null-coalescing branch
+    _selectRows = [{ ...MOCK_ALERT_ROW, rewardAmount: null }];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(200);
+  });
+
+  it("uses null default for photoUrls when row omits it", async () => {
+    // Covers `row.photoUrls ?? []` null-coalescing branch + `photo_urls?.[0] || pet_photo_url`
+    _selectRows = [{ ...MOCK_ALERT_ROW, photoUrls: null, petPhotoUrl: null }];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(200);
+  });
+
+  it("response includes correct Cache-Control and Content-Disposition headers", async () => {
+    _selectRows = [MOCK_ALERT_ROW];
+    const req = makeRequest(ALERT_UUID, "valid-token");
+    const res = await GET(req, { params: Promise.resolve({ alertId: ALERT_UUID }) });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("private, max-age=300");
+    expect(res.headers.get("content-disposition")).toBe(
+      `attachment; filename="share-card-${ALERT_UUID}.jpg"`
+    );
   });
 });

@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
 
   // 4. Upload + update profile
   try {
-    const fileExt = file.name.split(".").pop() ?? "jpg";
+    // || not ??: split().pop() never returns undefined; "" must also fall back.
+    const fileExt = file.name.split(".").pop() || "jpg";
     const fileKey = `avatars/${auth.userId}.${fileExt}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 

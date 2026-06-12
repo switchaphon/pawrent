@@ -301,4 +301,61 @@ describe("POST /api/diary/enrich", () => {
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("Failed to create enrichment");
   });
+
+  it("returns 400 for invalid JSON body (catch(() => null) arm)", async () => {
+    const req = new NextRequest("http://localhost/api/diary/enrich", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  // ── resolveEventPetId ?? null arms ────────────────────────────────────────
+  // Each event type has a `rows[0]?.petId ?? null` arm — the ?? null fires when
+  // the query returns an empty array (rows[0] is undefined). This is the same
+  // path as "event does not exist" (handled above), but we exercise each type
+  // variant explicitly to drive branch coverage on each case arm.
+
+  it("returns 404 when grooming event petId is undefined (??  null branch)", async () => {
+    _limitQueue.push([]); // resolveEventPetId returns [] → rows[0]?.petId ?? null → null
+    const res = await POST(makeReq({ ...validBody, event_type: "grooming" }));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Event not found");
+  });
+
+  it("returns 404 when vet_visit event petId is undefined (??  null branch)", async () => {
+    _limitQueue.push([]);
+    const res = await POST(makeReq({ ...validBody, event_type: "vet_visit" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when parasite_log event petId is undefined (??  null branch)", async () => {
+    _limitQueue.push([]);
+    const res = await POST(makeReq({ ...validBody, event_type: "parasite_log" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when weight_log event petId is undefined (??  null branch)", async () => {
+    _limitQueue.push([]);
+    const res = await POST(makeReq({ ...validBody, event_type: "weight_log" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when milestone event petId is undefined (??  null branch)", async () => {
+    _limitQueue.push([]);
+    const res = await POST(makeReq({ ...validBody, event_type: "milestone" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 201 with caption and photo_urls both set — null coalesce left arms", async () => {
+    // Exercises `caption ?? null` → caption (left arm) and `photo_urls ?? null` → array (left arm)
+    // inside the insert values block. Both are set in validBody already but confirm mapping.
+    queueHappyPath();
+    const res = await POST(makeReq({ ...validBody, caption: "test caption", photo_urls: ["https://a.com/b.jpg"] }));
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.linked_event_type).toBe("vaccination");
+  });
 });

@@ -13,9 +13,11 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const mockCheckRateLimit = vi.fn<() => Promise<Response | null>>().mockResolvedValue(null);
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...(args as [])),
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -129,6 +131,7 @@ describe("POST /api/found-reports", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _insertRows = [];
     _selectRows = [];
     resetTxChain();
@@ -152,6 +155,16 @@ describe("POST /api/found-reports", () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data).toHaveProperty("error");
+  });
+
+  it("returns 400 when request body is malformed JSON (covers .catch(() => null) callback)", async () => {
+    const req = new NextRequest("http://localhost:3000/api/found-reports", {
+      method: "POST",
+      headers: { authorization: "Bearer test-token", "content-type": "application/json" },
+      body: "not-valid-json{{{",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 
   it("creates a found report and returns snake_case public shape", async () => {
@@ -192,12 +205,41 @@ describe("POST /api/found-reports", () => {
     const data = await res.json();
     expect(data.error).toBe("Internal server error");
   });
+
+  it("returns 429 when POST rate limit is hit", async () => {
+    mockCheckRateLimit.mockResolvedValueOnce(
+      Response.json({ error: "Too many requests" }, { status: 429 }) as unknown as Response
+    );
+    const res = await POST(makeRequest("POST", validPayload));
+    expect(res.status).toBe(429);
+  });
+
+  it("creates report without optional species_guess (covers speciesGuess ?? null right branch)", async () => {
+    // species_guess absent → speciesGuess: undefined ?? null → null (line 60 right branch)
+    _insertRows = [{ ...BASE_REPORT, speciesGuess: null }];
+    const payload = { photo_urls: ["https://example.com/p.jpg"], lat: 13.7, lng: 100.5 };
+    const res = await POST(makeRequest("POST", payload));
+    expect(res.status).toBe(200);
+    expect(stubTx.values).toHaveBeenCalledWith(
+      expect.objectContaining({ speciesGuess: null })
+    );
+  });
+
+  it("returns 500 and covers non-Error throw in POST catch (line 81 false branch)", async () => {
+    // Throw plain string from returning() to exercise err instanceof Error false branch
+    stubTx.returning.mockImplementationOnce(async () => { throw "plain POST error"; });
+    const res = await POST(makeRequest("POST", validPayload));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
 });
 
 describe("GET /api/found-reports", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _insertRows = [];
     _selectRows = [];
     resetTxChain();
@@ -272,11 +314,96 @@ describe("GET /api/found-reports", () => {
     expect(res.status).toBe(200);
   });
 
-  it("returns 500 on DB error", async () => {
+  it("returns 500 on DB error in list query (Error instance)", async () => {
     stubTx.limit.mockRejectedValueOnce(new Error("DB boom"));
     const res = await GET(makeRequest("GET", undefined, "limit=20"));
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe("Internal server error");
+  });
+
+  it("returns 500 and covers non-Error throw in GET list catch (line 167 false branch)", async () => {
+    // Throw plain string to exercise err instanceof Error false branch in GET list catch
+    stubTx.limit.mockRejectedValueOnce("plain string list error");
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("returns 500 when single-report DB query throws (GET by id error path, Error instance)", async () => {
+    // Exercises the catch block for the GET ?id= path
+    stubTx.limit.mockRejectedValueOnce(new Error("single report DB error"));
+    const res = await GET(makeRequest("GET", undefined, `id=${VALID_UUID}`));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("returns 500 and covers non-Error throw in GET by-id catch (line 110 false branch)", async () => {
+    // Throw plain string to exercise err instanceof Error false branch in GET/id catch
+    stubTx.limit.mockRejectedValueOnce("plain string GET/id error");
+    const res = await GET(makeRequest("GET", undefined, `id=${VALID_UUID}`));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("uses default limit 20 when no limit param is provided (line 119 default branch)", async () => {
+    // limitParam = null → limit = 20 (the ternary : 20 default branch)
+    stubTx.limit.mockResolvedValueOnce([BASE_REPORT]);
+    const res = await GET(makeRequest("GET")); // no limit param
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(1);
+  });
+
+  it("ignores an invalid cursor (decodeCursor returns null) and returns first page", async () => {
+    // decoded = null → the if (decoded) conditions.push branch is skipped
+    stubTx.limit.mockResolvedValueOnce([BASE_REPORT]);
+    const res = await GET(makeRequest("GET", undefined, "cursor=!!!BAD!!!&limit=20"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(1);
+    expect(data.cursor).toBeNull();
+    expect(data.hasMore).toBe(false);
+  });
+
+  it("returns cursor=null when result has exactly limit rows (hasMore false, lastRow defined)", async () => {
+    // Exactly limit rows → hasMore=false, lastRow exists → nextCursor=null branch
+    const reports = Array.from({ length: 2 }, (_, i) => ({
+      ...BASE_REPORT,
+      id: `id-${i}`,
+      createdAt: new Date(`2026-04-14T0${i}:00:00Z`),
+    }));
+    stubTx.limit.mockResolvedValueOnce(reports);
+    const res = await GET(makeRequest("GET", undefined, "limit=2"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(2);
+    expect(data.hasMore).toBe(false);
+    expect(data.cursor).toBeNull();
+  });
+
+  it("toPublicRow shape excludes secret_verification_detail and maps all public fields", async () => {
+    // Explicit invocation of toPublicRow via GET list — verifies function body coverage
+    stubTx.limit.mockResolvedValueOnce([BASE_REPORT]);
+    const res = await GET(makeRequest("GET", undefined, "limit=20"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    const row = data.data[0];
+    expect(row).toHaveProperty("id");
+    expect(row).toHaveProperty("reporter_id");
+    expect(row).toHaveProperty("photo_urls");
+    expect(row).toHaveProperty("lat");
+    expect(row).toHaveProperty("lng");
+    expect(row).toHaveProperty("species_guess");
+    expect(row).toHaveProperty("has_collar");
+    expect(row).toHaveProperty("condition");
+    expect(row).toHaveProperty("custody_status");
+    expect(row).toHaveProperty("is_active");
+    expect(row).not.toHaveProperty("secret_verification_detail");
+    expect(row).not.toHaveProperty("secretVerificationDetail");
+    expect(row).not.toHaveProperty("reporterId");
   });
 });

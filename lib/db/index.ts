@@ -117,8 +117,8 @@ export async function query<T>(
 //   6. app/api/pet-card/[petId]/route.tsx     — pet ID card image
 //   7. app/api/pet-card/[petId]/qr/route.ts   — pet ID card QR
 //   8. app/p/[pawrentId]/page.tsx             — public profile SSR page
-// app/pets/[id]/passport/page.tsx (public RSC, decision #21) may join this
-// list when it converts from supabase-server to a direct Drizzle query.
+//   9. app/pets/[id]/passport/page.tsx        — public passport RSC
+//      (decision #21 — converted from supabase-server, wave 5)
 // ---------------------------------------------------------------------------
 export async function adminQuery<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   return getAdminDb().transaction(async (tx) => fn(tx));

@@ -260,6 +260,19 @@ describe("POST /api/post", () => {
     expect(json.error).toBe("Unauthorized");
   });
 
+  it("returns 400 on invalid JSON body (POST)", async () => {
+    // Cover the catch branch at line 80 — request.json() throws
+    const req = new NextRequest("http://localhost/api/post", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer fake-token" },
+      body: "not-valid-json{{{",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid json/i);
+  });
+
   it("returns 400 when pet_id is not a valid UUID", async () => {
     const res = await POST(makeRequest("POST", { ...validAlertBody, pet_id: "not-a-uuid" }));
     expect(res.status).toBe(400);
@@ -527,6 +540,25 @@ describe("GET /api/post", () => {
     const res = await GET(makeGetRequest({}));
     expect(res.status).toBe(500);
   });
+
+  it("returns 500 when GET by id query throws", async () => {
+    // Cover the catch branch at lines 195-196 in the single-by-id path
+    (stubTx.limit as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB timeout"));
+    const res = await GET(makeGetRequest({ id: ALERT_UUID }));
+    expect(res.status).toBe(500);
+  });
+
+  it("handles cursor param in non-geo fallback (decoded truthy branch)", async () => {
+    // Encode a valid cursor so decodeCursor returns a non-null object,
+    // exercising the `if (decoded)` true arm at lines 293-295.
+    const { encodeCursor } = await import("@/lib/pagination");
+    const cursor = encodeCursor("2026-04-13T14:30:00.000Z", ALERT_UUID);
+    enqueue([MOCK_REPORT_ROW]); // limit()
+    const res = await GET(makeGetRequest({ cursor }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data).toHaveLength(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -557,6 +589,19 @@ describe("PUT /api/post", () => {
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error).toBe("Unauthorized");
+  });
+
+  it("returns 400 on invalid JSON body (PUT)", async () => {
+    // Cover the catch branch at line 350 — request.json() throws
+    const req = new NextRequest("http://localhost/api/post", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer fake-token" },
+      body: "not-valid-json{{{",
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid json/i);
   });
 
   it("returns 400 when both schemas fail validation", async () => {

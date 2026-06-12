@@ -19,7 +19,8 @@ import { NextRequest } from "next/server";
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
 const { mockCheckRateLimit } = vi.hoisted(() => ({
-  mockCheckRateLimit: vi.fn<() => Promise<null>>().mockResolvedValue(null),
+  // Response | null so 429 cases can resolve a NextResponse.
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -199,6 +200,23 @@ describe("GET /api/pet-photos", () => {
     expect(body[0]).not.toHaveProperty("photoUrl");
     expect(body[0]).not.toHaveProperty("displayOrder");
   });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await GET(makeReq("GET", undefined, `?pet_id=${PET_ID}`));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    // Throw inside query — exercises the GET catch block (line 79)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await GET(makeReq("GET", undefined, `?pet_id=${PET_ID}`));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -262,6 +280,43 @@ describe("POST /api/pet-photos", () => {
     const res = await POST(makeReq("POST", validAddBody));
     expect(res.status).toBe(404);
   });
+
+  it("returns 500 on unhandled DB error in POST", async () => {
+    // Throw inside query — exercises the POST catch block (line 127)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await POST(makeReq("POST", validAddBody));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    const req = new NextRequest("http://localhost/api/pet-photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("uses default display_order of 0 when not provided", async () => {
+    setLimitDefault([{ id: PET_ID }]);
+    _returningRows = [BASE_PHOTO];
+    // Omit display_order — schema default is 0
+    const res = await POST(makeReq("POST", { pet_id: PET_ID, photo_url: "https://example.com/photo.jpg" }));
+    expect(res.status).toBe(200);
+    const body = await res.json() as Record<string, unknown>;
+    expect(body.display_order).toBe(0);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await POST(makeReq("POST", validAddBody));
+    expect(res.status).toBe(429);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -315,6 +370,38 @@ describe("DELETE /api/pet-photos", () => {
     const res = await DELETE(makeReq("DELETE", { photoId: PHOTO_ID }));
     // Not owned → 404
     expect(res.status).toBe(404);
+  });
+
+  it("returns 500 on unhandled DB error in DELETE", async () => {
+    // Throw inside query — exercises the DELETE catch block (line 176)
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeReq("DELETE", { photoId: PHOTO_ID }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 400 for missing photoId in body", async () => {
+    const res = await DELETE(makeReq("DELETE", {}));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid JSON body in DELETE", async () => {
+    const req = new NextRequest("http://localhost/api/pet-photos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    const res = await DELETE(req);
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeReq("DELETE", { photoId: PHOTO_ID }));
+    expect(res.status).toBe(429);
   });
 });
 

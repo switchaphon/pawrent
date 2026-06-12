@@ -107,11 +107,39 @@ describe("GET /api/hospitals", () => {
     expect(stubTx.limit).toHaveBeenCalledWith(100);
   });
 
-  it("returns 500 on DB error", async () => {
+  it("returns 500 on DB error (Error instance)", async () => {
     stubTx.limit.mockRejectedValueOnce(new Error("DB boom"));
     const res = await GET();
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe("Internal server error");
+  });
+
+  it("returns 500 on DB error (non-Error thrown — covers unknown branch)", async () => {
+    // Throws a plain string, hitting the `"unknown"` side of the ternary on line 29
+    stubTx.limit.mockRejectedValueOnce("string error");
+    const res = await GET();
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("maps null fields correctly in snake_case output", async () => {
+    _selectRows = [
+      {
+        ...BASE_HOSPITAL,
+        phone: null,
+        openHours: null,
+        specialists: null,
+        type: null,
+      },
+    ];
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data[0].phone).toBeNull();
+    expect(data[0].open_hours).toBeNull();
+    expect(data[0].specialists).toBeNull();
+    expect(data[0].type).toBeNull();
   });
 });

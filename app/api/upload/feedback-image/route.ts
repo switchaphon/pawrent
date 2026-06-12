@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const fileExt = file.name.split(".").pop() ?? "jpg";
+    // || not ??: split().pop() never returns undefined; "" must also fall back.
+    const fileExt = file.name.split(".").pop() || "jpg";
     // If anonymous, namespace under "anonymous" (mirrors original uploadFeedbackImage)
     const safeId = auth?.userId ?? "anonymous";
     const fileKey = `${safeId}_${Date.now()}.${fileExt}`;

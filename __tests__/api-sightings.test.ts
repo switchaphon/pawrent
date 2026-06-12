@@ -13,9 +13,13 @@ import { NextRequest } from "next/server";
 // ---------------------------------------------------------------------------
 // Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
@@ -76,6 +80,7 @@ vi.mock("@/lib/db/index", async (importOriginal) => {
 });
 
 import { POST, GET } from "@/app/api/sightings/route";
+import { query as queryMock } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -112,6 +117,7 @@ describe("POST /api/sightings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _selectSequence = [];
     _insertRows = [];
     resetTxChain();
@@ -126,6 +132,29 @@ describe("POST /api/sightings", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(401);
+  });
+
+  it("returns 429 when rate limit is hit on POST", async () => {
+    const rateLimitResponse = Response.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+    mockCheckRateLimit.mockResolvedValueOnce(rateLimitResponse);
+    const res = await POST(makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when request body is invalid JSON", async () => {
+    const req = new NextRequest("http://localhost:3000/api/sightings", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer test-token",
+        "content-type": "application/json",
+      },
+      body: "not-json{{{",
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 
   it("returns 400 for missing required fields", async () => {
@@ -178,12 +207,22 @@ describe("POST /api/sightings", () => {
     );
     expect(res.status).toBe(500);
   });
+
+  it("returns 500 when query throws a non-Error (covers unknown branch in POST catch)", async () => {
+    // Covers the `"unknown"` branch of `err instanceof Error ? err.message : "unknown"` in POST catch
+    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce("plain string");
+    const res = await POST(
+      makeRequest("POST", { alert_id: ALERT_UUID, lat: 13.7563, lng: 100.5018 })
+    );
+    expect(res.status).toBe(500);
+  });
 });
 
 describe("GET /api/sightings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockVerifyAuth.mockResolvedValue({ userId: VALID_UUID });
+    mockCheckRateLimit.mockResolvedValue(null);
     _selectSequence = [];
     _insertRows = [];
     resetTxChain();
@@ -241,6 +280,65 @@ describe("GET /api/sightings", () => {
 
   it("returns 500 on DB error", async () => {
     stubTx.limit.mockRejectedValueOnce(new Error("DB boom"));
+    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}`));
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toBe("Internal server error");
+  });
+
+  it("caps limit at 50 when caller requests more", async () => {
+    // limit=200 → capped to 50 → stub returns 51 items → hasMore=true
+    const sightings = Array.from({ length: 51 }, (_, i) => ({
+      ...BASE_SIGHTING,
+      id: `s-${i}`,
+      createdAt: new Date(`2026-04-14T00:00:00Z`),
+    }));
+    stubTx.limit.mockResolvedValueOnce(sightings);
+    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&limit=200`));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data).toHaveLength(50);
+    expect(data.hasMore).toBe(true);
+  });
+
+  it("ignores invalid cursor (decodeCursor returns null) and fetches from start", async () => {
+    stubTx.limit.mockResolvedValueOnce([BASE_SIGHTING]);
+    const res = await GET(
+      makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&cursor=not-valid-base64!!!`)
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    // invalid cursor falls through as if no cursor — still returns data
+    expect(data.data).toHaveLength(1);
+  });
+
+  it("uses default limit of 20 when limit param is absent", async () => {
+    stubTx.limit.mockResolvedValueOnce([]);
+    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}`));
+    expect(res.status).toBe(200);
+    // stub returns empty — hasMore false
+    const data = await res.json();
+    expect(data.hasMore).toBe(false);
+  });
+
+  it("returns null nextCursor when page length equals limit exactly (no hasMore)", async () => {
+    const sightings = Array.from({ length: 3 }, (_, i) => ({
+      ...BASE_SIGHTING,
+      id: `s-${i}`,
+      createdAt: new Date(`2026-04-14T00:00:00Z`),
+    }));
+    // limit=5 → stub returns 3 (< limit+1=6) → hasMore=false
+    stubTx.limit.mockResolvedValueOnce(sightings);
+    const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}&limit=5`));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.cursor).toBeNull();
+    expect(data.hasMore).toBe(false);
+  });
+
+  it("returns 500 when query throws a non-Error (covers unknown branch in GET catch)", async () => {
+    // Covers the `"unknown"` branch of `err instanceof Error ? err.message : "unknown"` in GET catch
+    (queryMock as ReturnType<typeof vi.fn>).mockRejectedValueOnce(42);
     const res = await GET(makeRequest("GET", undefined, `alert_id=${ALERT_UUID}`));
     expect(res.status).toBe(500);
     const data = await res.json();

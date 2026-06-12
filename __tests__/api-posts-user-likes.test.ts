@@ -133,6 +133,15 @@ describe("GET /api/posts/user-likes", () => {
     expect(res.status).toBe(500);
   });
 
+  it("returns 500 when query throws a non-Error object", async () => {
+    // Cover the `err instanceof Error ? ... : "unknown"` false branch in the catch
+    stubTx.where.mockRejectedValueOnce("string-rejection");
+    const res = await GET(makeGetRequest({ post_ids: POST_ID_1 }));
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error).toBe("Internal server error");
+  });
+
   it("returns 429 when rate limit is exceeded", async () => {
     const { NextResponse } = await import("next/server");
     mockCheckRateLimit.mockResolvedValueOnce(
