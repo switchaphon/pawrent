@@ -1,24 +1,30 @@
-import { createApiClient } from "@/lib/supabase-api";
 import { postSchema, imageFileSchema } from "@/lib/validations";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
+import { verifyAuth } from "@/lib/auth";
+import { query, posts } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
+import { upload } from "@/lib/storage/index";
 import { NextRequest, NextResponse } from "next/server";
 
 const limiter = createRateLimiter(10, "1 m");
 
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // 1. Auth
+  const auth = await verifyAuth(request);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-
-  const rateLimited = await checkRateLimit(limiter, user.id);
+  // 2. Rate limit
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const formData = await request.formData();
+  // 3. Parse form data
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+  }
+
   const file = formData.get("image") as File | null;
   const caption = formData.get("caption") as string | null;
   const petId = formData.get("pet_id") as string | null;
@@ -37,28 +43,53 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: postResult.error.issues[0].message }, { status: 400 });
   }
 
-  // Upload image
+  // 4. Upload image via lib/storage
   const fileExt = file.name.split(".").pop();
-  const fileName = `posts/${user.id}-${Date.now()}.${fileExt}`;
-  const { error: uploadError } = await supabase.storage.from("pet-photos").upload(fileName, file);
+  const fileKey = `posts/${auth.userId}-${Date.now()}.${fileExt}`;
 
-  if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  let imageUrl: string;
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    imageUrl = await upload("pet-photos", fileKey, buffer, { contentType: file.type });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Storage error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
-  const { data: urlData } = supabase.storage.from("pet-photos").getPublicUrl(fileName);
+  // 5. Insert post via query()
+  try {
+    const row = await query(auth.userId, async (tx: Tx) => {
+      const inserted = await tx
+        .insert(posts)
+        .values({
+          ownerId: auth.userId,
+          petId: postResult.data.pet_id ?? null,
+          imageUrl,
+          caption: postResult.data.caption ?? null,
+          likesCount: 0,
+          createdAt: new Date(),
+        })
+        .returning();
 
-  // Create post
-  const { data, error } = await supabase
-    .from("posts")
-    .insert({
-      owner_id: user.id,
-      pet_id: postResult.data.pet_id,
-      image_url: urlData.publicUrl,
-      caption: postResult.data.caption,
-      likes_count: 0,
-    })
-    .select()
-    .single();
+      if (!inserted[0]) throw new Error("Insert returned no rows");
+      return inserted[0];
+    });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    // Map camelCase → snake_case to preserve response contract
+    return NextResponse.json({
+      id: row.id,
+      owner_id: row.ownerId,
+      pet_id: row.petId,
+      image_url: row.imageUrl,
+      caption: row.caption,
+      likes_count: row.likesCount,
+      created_at: row.createdAt,
+    });
+  } catch (err) {
+    console.error("[posts] Unhandled error:", err instanceof Error ? err.message : "unknown");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
+
+// GET is not in the original posts route — it lives on /api/post (pet_reports).
+// Do not add GET here.

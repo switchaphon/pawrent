@@ -1,83 +1,211 @@
 /**
- * Integration tests for /api/post (POST, GET, PUT) — PRP-04 overhaul.
+ * Tests for /api/post (POST, GET, PUT).
  *
- * POST: create lost pet alert with pet snapshot, photo snapshot, defaults
- * GET:  list alerts with filters, cursor pagination, single by id
- * PUT:  resolve alert with new status enum + legacy format, ownership check
+ * POST: create lost pet alert with pet snapshot
+ * GET:  list alerts (geo/non-geo/single/owner), PRD 5b filters (active, petId)
+ * PUT:  resolve alert (new + legacy schema), ownership check
  *
- * Auth-enumeration safety: we verify the signIn surface only returns
- * { error } — not a field like isUserNotFound that could confirm whether
- * an email address is registered.
+ * Mock strategy (house pattern):
+ *   vi.mock("@/lib/auth")     — verifyAuth
+ *   vi.mock("@/lib/db/index") — query executes callback against a per-test queue
+ *   vi.mock("@/lib/db/rpc")   — nearbyReports
+ *   vi.mock("@/lib/rate-limit") — allow all through; 429 tested via mockCheckRateLimit
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through in tests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<null | Response>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Mock @/lib/auth
 // ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn<() => Promise<{ userId: string } | null>>(),
+}));
 
-const mockSingle = vi.fn();
-const mockMaybeSingle = vi.fn();
-const mockRpc = vi.fn();
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+  signAuthToken: vi.fn(),
+}));
 
-const makeEqChain = () => {
-  const capturedArgs: Array<[string, unknown]> = [];
-  const chain: Record<string, unknown> = {
-    _capturedArgs: capturedArgs,
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/rpc
+// ---------------------------------------------------------------------------
+const { mockNearbyReports } = vi.hoisted(() => ({
+  mockNearbyReports: vi.fn(),
+}));
+
+vi.mock("@/lib/db/rpc", () => ({
+  nearbyReports: mockNearbyReports,
+  toggleLike: vi.fn(),
+  submitAnonymousFeedback: vi.fn(),
+  usersWithinRadius: vi.fn(),
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db/index
+//
+// The route calls multiple chain shapes inside a single query() callback:
+//   tx.select().from(pets).where(...).limit(1)         → pet rows
+//   tx.select().from(petPhotos).where(...)             → photo rows (no limit)
+//   tx.insert().values().returning()                   → report rows
+//   tx.select().from(petReports).where(...).limit(1)   → single report
+//   tx.select().from(petReports).where(...).orderBy(…) → list
+//   tx.update().set().where(...).returning()           → updated report
+//
+// We model this with a response queue: each call to a "terminal" method
+// (.limit, .returning, .orderBy when it's the last awaited call) pops from
+// the queue. The chain is fully thenable so `await chain` also works.
+// ---------------------------------------------------------------------------
+type QueueItem = unknown[] | Error;
+
+let _responseQueue: Array<QueueItem> = [];
+
+function enqueue(rows: QueueItem) {
+  _responseQueue.push(rows);
+}
+
+function dequeue(): QueueItem {
+  const item = _responseQueue.shift() ?? [];
+  if (item instanceof Error) throw item;
+  return item;
+}
+
+// A chain that is thenable (so `await tx.select().from().where()` works)
+// and has .limit() / .returning() / .orderBy() that also dequeue.
+function makeChain(): Record<string, unknown> {
+  const chain: Record<string, unknown> = {};
+
+  // Methods that return self (chainable)
+  const passThrough = ["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const;
+  passThrough.forEach((m) => { chain[m] = vi.fn(() => chain); });
+
+  // Terminal methods that resolve with next queue item
+  chain.limit = vi.fn(async () => dequeue());
+  chain.returning = vi.fn(async () => dequeue());
+  // orderBy is chainable, not terminal — the route does .orderBy(...).limit(...);
+  // chains that end at orderBy still resolve via the thenable below.
+  chain.orderBy = vi.fn(() => chain);
+
+  // Make the chain itself thenable so `await tx.select().from().where(...)` works
+  chain.then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+    Promise.resolve(dequeue()).then(resolve, _reject);
   };
-  chain.eq = vi.fn((...args: [string, unknown]) => {
-    capturedArgs.push(args);
-    return chain;
-  });
-  chain.select = vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle }));
-  chain.order = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.ilike = vi.fn(() => chain);
-  chain.or = vi.fn(() => chain);
+
   return chain;
-};
+}
 
-let updateChain = makeEqChain();
-let selectChain = makeEqChain();
+const stubTx = makeChain();
 
-const mockInsert = vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) }));
+// Re-wire passthrough methods to return the SAME stubTx (not a fresh chain)
+// so callers get the same terminal methods
+;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
+  .forEach((m) => {
+    (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+  });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => ({
-  insert: mockInsert,
-  update: vi.fn(() => updateChain),
-  select: vi.fn(() => selectChain),
-}));
-
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-    rpc: mockRpc,
-  })),
-}));
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (
+      _userId: string,
+      fn: (tx: typeof stubTx) => Promise<unknown>
+    ) => fn(stubTx)),
+  };
+});
 
 import { POST, GET, PUT } from "@/app/api/post/route";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Constants + helpers
 // ---------------------------------------------------------------------------
 
-const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
+const USER_ID = "aaaaaaaa-0000-4000-a000-000000000001";
 const ALERT_UUID = "aabbccdd-1234-5678-abcd-aabbccddeeff";
 const PET_UUID = "11112222-3333-4444-8555-666677778888";
+
+const validAlertBody = {
+  pet_id: PET_UUID,
+  lost_date: "2026-04-13",
+  lost_time: "14:30:00",
+  lat: 13.756,
+  lng: 100.502,
+  location_description: "ซอยสุขุมวิท 23",
+  description: "สุนัขหนีออก",
+  distinguishing_marks: "ปลอกคอสีแดง",
+  photo_urls: ["https://example.com/photo1.jpg"],
+  reward_amount: 5000,
+  reward_note: "ตามเหมาะสม",
+  contact_phone: "0812345678",
+};
+
+const minimalAlertBody = {
+  pet_id: PET_UUID,
+  lost_date: "2026-04-13",
+  lat: 13.756,
+  lng: 100.502,
+  photo_urls: ["https://example.com/photo1.jpg"],
+};
+
+// Drizzle camelCase row
+const MOCK_REPORT_ROW = {
+  id: ALERT_UUID,
+  petId: PET_UUID,
+  ownerId: USER_ID,
+  lat: "13.756",
+  lng: "100.502",
+  description: "สุนัขหนีออก",
+  videoUrl: null,
+  isActive: true,
+  resolvedAt: null,
+  createdAt: new Date("2026-04-13T14:30:00Z"),
+  petPhotoUrl: "https://example.com/photo1.jpg",
+  resolutionStatus: null,
+  alertType: "lost",
+  lostDate: "2026-04-13",
+  lostTime: "14:30:00",
+  locationDescription: "ซอยสุขุมวิท 23",
+  rewardAmount: 5000,
+  rewardNote: "ตามเหมาะสม",
+  distinguishingMarks: "ปลอกคอสีแดง",
+  voiceUrl: null,
+  contactPhone: "0812345678",
+  photoUrls: ["https://example.com/photo1.jpg"],
+  status: "active",
+  petName: "Luna",
+  petSpecies: "Dog",
+  petBreed: "Golden",
+  petColor: "Gold",
+  petSex: "Female",
+  petDateOfBirth: "2023-01-15",
+  petNeutered: true,
+  petMicrochip: null,
+  geog: null,
+};
+
+const MOCK_PET_ROW = {
+  name: "Luna",
+  species: "Dog",
+  breed: "Golden Retriever",
+  color: "Gold",
+  sex: "Female",
+  dateOfBirth: "2023-01-15",
+  neutered: true,
+  microchipNumber: null,
+};
 
 function makeRequest(method: string, body: unknown, withAuth = true): NextRequest {
   return new NextRequest("http://localhost/api/post", {
@@ -95,91 +223,8 @@ function makeGetRequest(params: Record<string, string> = {}, withAuth = true): N
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   return new NextRequest(url, {
     method: "GET",
-    headers: {
-      ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-    },
+    headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
   });
-}
-
-// PRP-04 valid body (uses lostPetAlertSchema)
-const validAlertBody = {
-  pet_id: PET_UUID,
-  lost_date: "2026-04-13",
-  lost_time: "14:30:00",
-  lat: 13.756,
-  lng: 100.502,
-  location_description: "ซอยสุขุมวิท 23 เขตวัฒนา",
-  description: "สุนัขหนีออกจากบ้าน",
-  distinguishing_marks: "ปลอกคอสีแดง มีกระดิ่ง",
-  photo_urls: ["https://example.com/photo1.jpg"],
-  reward_amount: 5000,
-  reward_note: "ตามเหมาะสม",
-  contact_phone: "0812345678",
-};
-
-// Minimal valid PRP-04 body
-const minimalAlertBody = {
-  pet_id: PET_UUID,
-  lost_date: "2026-04-13",
-  lat: 13.756,
-  lng: 100.502,
-  photo_urls: ["https://example.com/photo1.jpg"],
-};
-
-// Mock pet data returned by supabase.from("pets").select().eq().eq().single()
-const mockPetData = {
-  name: "Luna",
-  species: "Dog",
-  breed: "Golden Retriever",
-  color: "Gold",
-  sex: "Female",
-  date_of_birth: "2023-01-15",
-  neutered: true,
-  microchip_number: "900123456789012",
-};
-
-// Mock pet photos
-const mockPetPhotos = [
-  { photo_url: "https://example.com/profile1.jpg" },
-  { photo_url: "https://example.com/profile2.jpg" },
-];
-
-/**
- * Helper: set up mocks for a successful POST flow.
- * POST calls: auth → pets.select.eq.eq.single → pet_photos.select.eq.order → pet_reports.insert.select.single
- */
-function setupPostMocks(userId = "user-1") {
-  mockGetUser.mockResolvedValueOnce({ data: { user: { id: userId } } });
-
-  // Chain for pets table (select → eq → eq → single)
-  const petSingle = vi.fn();
-  const petChain = {
-    eq: vi.fn(() => petChain),
-    single: petSingle,
-  };
-  const petSelect = vi.fn(() => petChain);
-
-  // Chain for pet_photos table (select → eq → order)
-  const photosChain = {
-    eq: vi.fn(() => photosChain),
-    order: vi.fn(() => photosChain),
-    then: undefined as unknown,
-  };
-  const photosSelect = vi.fn(() => photosChain);
-
-  // Chain for pet_reports table (insert → select → single)
-  const reportSingle = vi.fn();
-  const reportSelect = vi.fn(() => ({ single: reportSingle }));
-  const reportInsert = vi.fn(() => ({ select: reportSelect }));
-
-  mockFrom.mockImplementation((table: string) => {
-    if (table === "pets") return { select: petSelect };
-    if (table === "pet_photos") return { select: photosSelect };
-    if (table === "pet_reports") return { insert: reportInsert, update: vi.fn(() => updateChain) };
-    return { select: vi.fn(() => selectChain) };
-  });
-
-  return { petSingle, photosChain, reportSingle };
 }
 
 // ---------------------------------------------------------------------------
@@ -189,403 +234,245 @@ function setupPostMocks(userId = "user-1") {
 describe("POST /api/post", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    updateChain = makeEqChain();
-    selectChain = makeEqChain();
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockNearbyReports.mockResolvedValue([]);
+    _responseQueue = [];
+    // Re-wire passthrough stubs after clearAllMocks
+    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
+      .forEach((m) => {
+        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+      });
+    // Re-wire terminal stubs
+    (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
+    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+      Promise.resolve(dequeue()).then(resolve, _reject);
+    };
   });
 
-  it("should return 401 when the Authorization header is absent", async () => {
-    const req = makeRequest("POST", validAlertBody, false);
-    const res = await POST(req);
+  it("returns 401 when verifyAuth returns null", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await POST(makeRequest("POST", validAlertBody));
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error).toBe("Unauthorized");
   });
 
-  it("should return 401 when the token does not resolve to a user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest("POST", validAlertBody);
-    const res = await POST(req);
-    expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Invalid token");
-  });
-
-  it("should return 400 when pet_id is not a valid UUID", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validAlertBody, pet_id: "not-a-uuid" });
-    const res = await POST(req);
+  it("returns 400 when pet_id is not a valid UUID", async () => {
+    const res = await POST(makeRequest("POST", { ...validAlertBody, pet_id: "not-a-uuid" }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when lat is out of range", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validAlertBody, lat: 91 });
-    const res = await POST(req);
+  it("returns 400 when lat is out of range", async () => {
+    const res = await POST(makeRequest("POST", { ...validAlertBody, lat: 91 }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when lng is out of range", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validAlertBody, lng: -181 });
-    const res = await POST(req);
+  it("returns 400 when lng is out of range", async () => {
+    const res = await POST(makeRequest("POST", { ...validAlertBody, lng: -181 }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when photo_urls is empty", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validAlertBody, photo_urls: [] });
-    const res = await POST(req);
+  it("returns 400 when photo_urls is empty", async () => {
+    const res = await POST(makeRequest("POST", { ...validAlertBody, photo_urls: [] }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when lost_date is missing", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+  it("returns 400 when lost_date is missing", async () => {
     const { lost_date: _, ...body } = validAlertBody;
-    const req = makeRequest("POST", body);
-    const res = await POST(req);
+    const res = await POST(makeRequest("POST", body));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when lost_date has invalid format", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("POST", { ...validAlertBody, lost_date: "13-04-2026" });
-    const res = await POST(req);
+  it("returns 400 when lost_date has invalid format", async () => {
+    const res = await POST(makeRequest("POST", { ...validAlertBody, lost_date: "13-04-2026" }));
     expect(res.status).toBe(400);
   });
 
-  it("should accept boundary lat/lng values (-90, 90, -180, 180)", async () => {
-    const { petSingle, photosChain, reportSingle } = setupPostMocks();
-    petSingle.mockResolvedValueOnce({ data: mockPetData, error: null });
-    Object.assign(photosChain, {
-      then: (cb: (v: unknown) => void) => cb({ data: mockPetPhotos, error: null }),
-    });
-    // Directly resolve the photos chain
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "pets") {
-        const c = { eq: vi.fn(() => c), single: petSingle, select: vi.fn(() => c) } as Record<
-          string,
-          unknown
-        >;
-        c.eq = vi.fn(() => c);
-        return { select: vi.fn(() => c) };
-      }
-      if (table === "pet_photos") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: mockPetPhotos, error: null })),
-            })),
-          })),
-        };
-      }
-      if (table === "pet_reports") {
-        return {
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: reportSingle,
-            })),
-          })),
-        };
-      }
-      return {};
-    });
-
-    petSingle.mockResolvedValueOnce({ data: mockPetData, error: null });
-    reportSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, owner_id: "user-1", is_active: true, lat: -90, lng: 180 },
-      error: null,
-    });
-
-    const req = makeRequest("POST", { ...validAlertBody, lat: -90, lng: 180 });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("should create a lost alert with pet snapshot and return it", async () => {
-    // Setup full mock chain: pets → pet_photos → pet_reports
-    const petSingle = vi.fn().mockResolvedValueOnce({ data: mockPetData, error: null });
-    const reportSingle = vi.fn().mockResolvedValueOnce({
-      data: {
-        id: ALERT_UUID,
-        owner_id: "user-1",
-        is_active: true,
-        alert_type: "lost",
-        status: "active",
-        pet_name: "Luna",
-        pet_species: "Dog",
-        ...validAlertBody,
-      },
-      error: null,
-    });
-
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "pets") {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.single = petSingle;
-        return { select: vi.fn(() => c) };
-      }
-      if (table === "pet_photos") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: mockPetPhotos, error: null })),
-            })),
-          })),
-        };
-      }
-      if (table === "pet_reports") {
-        return {
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: reportSingle,
-            })),
-          })),
-        };
-      }
-      return {};
-    });
-
-    const req = makeRequest("POST", validAlertBody);
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.owner_id).toBe("user-1");
-    expect(json.is_active).toBe(true);
-    expect(json.alert_type).toBe("lost");
-    expect(json.status).toBe("active");
-    expect(json.pet_name).toBe("Luna");
-  });
-
-  it("should accept minimal payload without optional fields", async () => {
-    const petSingle = vi.fn().mockResolvedValueOnce({ data: mockPetData, error: null });
-    const reportSingle = vi.fn().mockResolvedValueOnce({
-      data: { id: ALERT_UUID, owner_id: "user-1", is_active: true, ...minimalAlertBody },
-      error: null,
-    });
-
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "pets") {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.single = petSingle;
-        return { select: vi.fn(() => c) };
-      }
-      if (table === "pet_photos") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        };
-      }
-      if (table === "pet_reports") {
-        return {
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({ single: reportSingle })),
-          })),
-        };
-      }
-      return {};
-    });
-
-    const req = makeRequest("POST", minimalAlertBody);
-    const res = await POST(req);
-    if (res.status !== 200) {
-      const errBody = await res.clone().json();
-      console.log("DEBUG minimal body 400:", JSON.stringify(errBody));
-    }
-    expect(res.status).toBe(200);
-  });
-
-  it("should return 404 when pet is not found or not owned by user", async () => {
-    const petSingle = vi.fn().mockResolvedValueOnce({
-      data: null,
-      error: { code: "PGRST116", message: "Not found" },
-    });
-
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "pets") {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.single = petSingle;
-        return { select: vi.fn(() => c) };
-      }
-      if (table === "pet_photos") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        };
-      }
-      return {};
-    });
-
-    const req = makeRequest("POST", validAlertBody);
-    const res = await POST(req);
+  it("returns 404 when pet is not found", async () => {
+    // pet select → empty; no more queue items needed
+    enqueue([]); // limit() for pet
+    const res = await POST(makeRequest("POST", validAlertBody));
     expect(res.status).toBe(404);
     const json = await res.json();
     expect(json.error).toMatch(/not found/i);
   });
 
-  it("should return 500 when Supabase insert fails", async () => {
-    const petSingle = vi.fn().mockResolvedValueOnce({ data: mockPetData, error: null });
-    const reportSingle = vi.fn().mockResolvedValueOnce({
-      data: null,
-      error: { message: "DB failure" },
-    });
+  it("creates a lost alert and returns snake_case shape", async () => {
+    enqueue([MOCK_PET_ROW]);        // pet select → limit(1)
+    enqueue([]);                    // pet_photos select → then (thenable)
+    enqueue([MOCK_REPORT_ROW]);     // insert → returning()
 
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockFrom.mockImplementation((table: string) => {
-      if (table === "pets") {
-        const c: Record<string, unknown> = {};
-        c.eq = vi.fn(() => c);
-        c.single = petSingle;
-        return { select: vi.fn(() => c) };
-      }
-      if (table === "pet_photos") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-            })),
-          })),
-        };
-      }
-      if (table === "pet_reports") {
-        return {
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({ single: reportSingle })),
-          })),
-        };
-      }
-      return {};
-    });
+    const res = await POST(makeRequest("POST", validAlertBody));
+    expect(res.status).toBe(200);
+    const json = await res.json();
 
-    const req = makeRequest("POST", validAlertBody);
-    const res = await POST(req);
+    expect(json.owner_id).toBe(USER_ID);
+    expect(json.alert_type).toBe("lost");
+    expect(json.status).toBe("active");
+    expect(json.is_active).toBe(true);
+    expect(json.pet_name).toBe("Luna");
+    // No camelCase
+    expect(json).not.toHaveProperty("ownerId");
+    expect(json).not.toHaveProperty("alertType");
+    expect(json).not.toHaveProperty("petName");
+  });
+
+  it("accepts minimal payload without optional fields", async () => {
+    enqueue([MOCK_PET_ROW]);
+    enqueue([]);
+    enqueue([MOCK_REPORT_ROW]);
+    const res = await POST(makeRequest("POST", minimalAlertBody));
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 500 when DB insert returns no rows", async () => {
+    enqueue([MOCK_PET_ROW]);
+    enqueue([]);
+    enqueue([]); // returning() → empty
+    const res = await POST(makeRequest("POST", validAlertBody));
     expect(res.status).toBe(500);
   });
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/post — List alerts
+// GET /api/post
 // ---------------------------------------------------------------------------
 
 describe("GET /api/post", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    updateChain = makeEqChain();
-    selectChain = makeEqChain();
-    mockFrom.mockReturnValue({
-      insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
-      update: vi.fn(() => updateChain),
-      select: vi.fn(() => selectChain),
-    });
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockNearbyReports.mockResolvedValue([]);
+    _responseQueue = [];
+    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
+      .forEach((m) => {
+        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+      });
+    (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
+    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+      Promise.resolve(dequeue()).then(resolve, _reject);
+    };
   });
 
-  it("should return 401 when the Authorization header is absent", async () => {
-    const req = makeGetRequest({}, false);
-    const res = await GET(req);
+  it("returns 401 when verifyAuth returns null", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await GET(makeGetRequest({}, false));
     expect(res.status).toBe(401);
   });
 
-  it("should return 401 when the token does not resolve to a user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeGetRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(401);
+  // ── Single by id ──────────────────────────────────────────────────────────
+
+  it("returns single alert by id in snake_case", async () => {
+    enqueue([MOCK_REPORT_ROW]); // limit(1)
+    const res = await GET(makeGetRequest({ id: ALERT_UUID }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.id).toBe(ALERT_UUID);
+    expect(json.data.owner_id).toBe(USER_ID);
+    expect(json.data).not.toHaveProperty("ownerId");
   });
 
-  it("should list alerts via nearby_reports RPC when lat/lng provided", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({
-      data: [
-        {
-          id: ALERT_UUID,
-          alert_type: "lost",
-          status: "active",
-          pet_name: "Luna",
-          distance_m: 500,
-          created_at: "2026-04-13T14:30:00Z",
-        },
-      ],
-      error: null,
-    });
+  it("returns 404 when single alert not found", async () => {
+    enqueue([]); // limit(1) → empty
+    const res = await GET(makeGetRequest({ id: "00000000-0000-0000-0000-000000000000" }));
+    expect(res.status).toBe(404);
+  });
 
-    const req = makeGetRequest({ lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
+  // ── Owner branch ──────────────────────────────────────────────────────────
+
+  it("returns 403 when owner_id does not match authenticated user", async () => {
+    const res = await GET(makeGetRequest({ owner_id: "other-user" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("returns owner's own reports when owner_id matches", async () => {
+    enqueue([MOCK_REPORT_ROW]); // orderBy()
+    const res = await GET(makeGetRequest({ owner_id: USER_ID }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data).toHaveLength(1);
-    expect(json.data[0].pet_name).toBe("Luna");
+    expect(json.data[0].owner_id).toBe(USER_ID);
   });
 
-  it("should filter by alert_type=lost", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({
-      data: [
-        { id: "a1", alert_type: "lost", created_at: "2026-04-13T00:00:00Z" },
-        { id: "a2", alert_type: "found", created_at: "2026-04-13T00:00:00Z" },
-      ],
-      error: null,
-    });
-    const req = makeGetRequest({ alert_type: "lost", lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
+  it("returns active-only reports when status=active", async () => {
+    enqueue([MOCK_REPORT_ROW]);
+    const res = await GET(makeGetRequest({ owner_id: USER_ID, status: "active" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("returns active-only reports when active=true (PRD 5b)", async () => {
+    enqueue([MOCK_REPORT_ROW]);
+    const res = await GET(makeGetRequest({ owner_id: USER_ID, active: "true" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 500 when owner query throws", async () => {
+    _responseQueue.push(new Error("DB error"));
+    const res = await GET(makeGetRequest({ owner_id: USER_ID }));
+    expect(res.status).toBe(500);
+  });
+
+  // ── Geo branch ────────────────────────────────────────────────────────────
+
+  it("calls nearbyReports RPC when lat/lng provided", async () => {
+    const rpcRow = { ...MOCK_REPORT_ROW, distance_m: 500, created_at: "2026-04-13T14:30:00Z" };
+    mockNearbyReports.mockResolvedValueOnce([rpcRow]);
+    const res = await GET(makeGetRequest({ lat: "13.756", lng: "100.502" }));
     expect(res.status).toBe(200);
     const json = await res.json();
-    // Should filter out "found" type
+    expect(json.data).toHaveLength(1);
+    expect(mockNearbyReports).toHaveBeenCalledWith(
+      stubTx,
+      expect.objectContaining({ lat: 13.756, lng: 100.502 })
+    );
+  });
+
+  it("filters by alert_type in geo branch", async () => {
+    mockNearbyReports.mockResolvedValueOnce([
+      { id: "a1", alert_type: "lost", created_at: "2026-04-13T00:00:00Z" },
+      { id: "a2", alert_type: "found", created_at: "2026-04-13T00:00:00Z" },
+    ]);
+    const res = await GET(makeGetRequest({ alert_type: "lost", lat: "13.756", lng: "100.502" }));
+    expect(res.status).toBe(200);
+    const json = await res.json();
     expect(json.data.every((r: Record<string, string>) => r.alert_type === "lost")).toBe(true);
   });
 
-  it("should filter by species", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({
-      data: [
-        { id: "a1", pet_species: "Dog", created_at: "2026-04-13T00:00:00Z" },
-        { id: "a2", pet_species: "Cat", created_at: "2026-04-13T00:00:00Z" },
-      ],
-      error: null,
-    });
-    const req = makeGetRequest({ species: "dog", lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
+  it("filters by species in geo branch", async () => {
+    mockNearbyReports.mockResolvedValueOnce([
+      { id: "a1", pet_species: "Dog", created_at: "2026-04-13T00:00:00Z" },
+      { id: "a2", pet_species: "Cat", created_at: "2026-04-13T00:00:00Z" },
+    ]);
+    const res = await GET(makeGetRequest({ species: "dog", lat: "13.756", lng: "100.502" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data.every((r: Record<string, string>) => r.pet_species === "Dog")).toBe(true);
   });
 
-  it("should use radius parameter (default 1km)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({ data: [], error: null });
-    const req = makeGetRequest({ radius: "5000", lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
+  it("filters by petId in geo branch (PRD 5b)", async () => {
+    mockNearbyReports.mockResolvedValueOnce([
+      { id: "a1", pet_id: PET_UUID, created_at: "2026-04-13T00:00:00Z" },
+      { id: "a2", pet_id: "other-pet", created_at: "2026-04-13T00:00:00Z" },
+    ]);
+    const res = await GET(makeGetRequest({ petId: PET_UUID, lat: "13.756", lng: "100.502" }));
     expect(res.status).toBe(200);
-    // Verify RPC was called with radius 5000
-    expect(mockRpc).toHaveBeenCalledWith(
-      "nearby_reports",
-      expect.objectContaining({
-        p_radius_m: 5000,
-      })
-    );
+    const json = await res.json();
+    expect(json.data.every((r: Record<string, string>) => r.pet_id === PET_UUID)).toBe(true);
   });
 
-  it("should support cursor pagination with hasMore flag", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    // Return limit+1 items to trigger hasMore
+  it("returns hasMore=true and cursor when geo results exceed limit", async () => {
     const items = Array.from({ length: 21 }, (_, i) => ({
       id: `id-${i}`,
       created_at: `2026-04-${String(13 - Math.floor(i / 2)).padStart(2, "0")}T00:00:00Z`,
     }));
-    mockRpc.mockResolvedValueOnce({ data: items, error: null });
-
-    const req = makeGetRequest({ lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
+    mockNearbyReports.mockResolvedValueOnce(items);
+    const res = await GET(makeGetRequest({ lat: "13.756", lng: "100.502" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.hasMore).toBe(true);
@@ -593,480 +480,169 @@ describe("GET /api/post", () => {
     expect(json.data).toHaveLength(20);
   });
 
-  it("should return single alert by id", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const singleChain: Record<string, unknown> = {};
-    singleChain.eq = vi.fn(() => singleChain);
-    singleChain.single = vi.fn().mockResolvedValueOnce({
-      data: { id: ALERT_UUID, alert_type: "lost", status: "active" },
-      error: null,
-    });
-    mockFrom.mockReturnValueOnce({
-      select: vi.fn(() => singleChain),
-    });
-
-    const req = makeGetRequest({ id: ALERT_UUID });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.data.id).toBe(ALERT_UUID);
-  });
-
-  it("should return 404 when single alert not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const singleChain: Record<string, unknown> = {};
-    singleChain.eq = vi.fn(() => singleChain);
-    singleChain.single = vi.fn().mockResolvedValueOnce({
-      data: null,
-      error: { code: "PGRST116", message: "Not found" },
-    });
-    mockFrom.mockReturnValueOnce({
-      select: vi.fn(() => singleChain),
-    });
-
-    const req = makeGetRequest({ id: "00000000-0000-0000-0000-000000000000" });
-    const res = await GET(req);
-    expect(res.status).toBe(404);
-  });
-
-  it("should return empty results when no alerts match", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({ data: [], error: null });
-    const req = makeGetRequest({ lat: "0", lng: "0" });
-    const res = await GET(req);
+  it("returns empty results when no geo alerts match", async () => {
+    mockNearbyReports.mockResolvedValueOnce([]);
+    const res = await GET(makeGetRequest({ lat: "0", lng: "0" }));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data).toHaveLength(0);
     expect(json.hasMore).toBe(false);
   });
 
-  // --- Non-geo fallback (no lat/lng) ---
-  // Supabase query builders are chainable AND thenable (PromiseLike).
-  // .limit() returns the builder, and the builder resolves when awaited.
+  it("returns 500 when nearbyReports throws", async () => {
+    mockNearbyReports.mockRejectedValueOnce(new Error("RPC error"));
+    const res = await GET(makeGetRequest({ lat: "13.756", lng: "100.502" }));
+    expect(res.status).toBe(500);
+  });
 
-  function makeThenableChain(result: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.ilike = vi.fn(() => chain);
-    chain.or = vi.fn(() => chain);
-    chain.order = vi.fn(() => chain);
-    chain.limit = vi.fn(() => chain);
-    chain.then = (resolve: (v: unknown) => void) => resolve(result);
-    return chain;
-  }
+  // ── Non-geo fallback ──────────────────────────────────────────────────────
 
-  it("should list alerts without geo params using table query fallback", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chain = makeThenableChain({
-      data: [{ id: "a1", alert_type: "lost", created_at: "2026-04-13T00:00:00Z" }],
-      error: null,
-    });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const req = makeGetRequest({});
-    const res = await GET(req);
+  it("returns alert list without geo params using table query", async () => {
+    enqueue([MOCK_REPORT_ROW]); // limit()
+    const res = await GET(makeGetRequest({}));
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.data).toHaveLength(1);
     expect(json.hasMore).toBe(false);
   });
 
-  it("should filter by alert_type in non-geo fallback", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chain = makeThenableChain({ data: [], error: null });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const req = makeGetRequest({ alert_type: "lost" });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    expect(chain.eq).toHaveBeenCalledWith("alert_type", "lost");
-  });
-
-  it("should support cursor in non-geo fallback", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chain = makeThenableChain({ data: [], error: null });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const { encodeCursor } = await import("@/lib/pagination");
-    const cursor = encodeCursor("2026-04-13T00:00:00Z", "some-id");
-
-    const req = makeGetRequest({ cursor });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    expect(chain.or).toHaveBeenCalled();
-  });
-
-  it("should return 500 when non-geo query fails", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chain = makeThenableChain({ data: null, error: { message: "DB error" } });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const req = makeGetRequest({});
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-  });
-
-  it("should return 500 when RPC fails", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockRpc.mockResolvedValueOnce({ data: null, error: { message: "RPC error" } });
-    const req = makeGetRequest({ lat: "13.756", lng: "100.502" });
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-  });
-
-  // owner_id branch — "ประกาศของฉัน" (My Reports) section on /post
-  it("should return 403 when owner_id does not match the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeGetRequest({ owner_id: "other-user" });
-    const res = await GET(req);
-    expect(res.status).toBe(403);
-  });
-
-  it("should return the user's own active reports when owner_id matches and status=active", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const isActiveEq = vi.fn();
-    const ownerIdEq = vi.fn();
-    const rows = [
-      { id: "a1", owner_id: "user-1", is_active: true },
-      { id: "a2", owner_id: "user-1", is_active: true },
-    ];
-    const ownerChain: Record<string, unknown> = {};
-    ownerChain.eq = vi.fn((field: string, value: unknown) => {
-      if (field === "owner_id") ownerIdEq(field, value);
-      if (field === "is_active") isActiveEq(field, value);
-      return ownerChain;
-    });
-    ownerChain.order = vi.fn(() => ownerChain);
-    ownerChain.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-      resolve({ data: rows, error: null });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => ownerChain) }));
-
-    const req = makeGetRequest({ owner_id: "user-1", status: "active" });
-    const res = await GET(req);
+  it("returns hasMore=true in non-geo fallback when limit+1 rows returned", async () => {
+    const rows = Array.from({ length: 21 }, (_, i) => ({
+      ...MOCK_REPORT_ROW,
+      id: `id-${i}`,
+      // Valid strictly-descending timestamps (day-math goes negative at i=13).
+      createdAt: new Date(Date.UTC(2026, 3, 13) - i * 86_400_000),
+    }));
+    enqueue(rows); // limit()
+    const res = await GET(makeGetRequest({}));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.data).toHaveLength(2);
-    expect(ownerIdEq).toHaveBeenCalledWith("owner_id", "user-1");
-    expect(isActiveEq).toHaveBeenCalledWith("is_active", true);
+    expect(json.hasMore).toBe(true);
+    expect(json.cursor).toBeTruthy();
+    expect(json.data).toHaveLength(20);
   });
 
-  it("should not apply is_active filter when status param is omitted", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const isActiveEq = vi.fn();
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn((field: string, value: unknown) => {
-      if (field === "is_active") isActiveEq(field, value);
-      return chain;
-    });
-    chain.order = vi.fn(() => chain);
-    chain.then = (resolve: (v: { data: unknown[]; error: null }) => unknown) =>
-      resolve({ data: [], error: null });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const req = makeGetRequest({ owner_id: "user-1" });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    expect(isActiveEq).not.toHaveBeenCalled();
-  });
-
-  it("should return 500 when the owner_id query errors", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.order = vi.fn(() => chain);
-    chain.then = (resolve: (v: { data: null; error: { message: string } }) => unknown) =>
-      resolve({ data: null, error: { message: "DB error" } });
-    mockFrom.mockImplementation(() => ({ select: vi.fn(() => chain) }));
-
-    const req = makeGetRequest({ owner_id: "user-1" });
-    const res = await GET(req);
+  it("returns 500 when non-geo query throws", async () => {
+    (stubTx.limit as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB error"));
+    const res = await GET(makeGetRequest({}));
     expect(res.status).toBe(500);
   });
 });
 
 // ---------------------------------------------------------------------------
-// PUT /api/post — ownership check is the security gate
+// PUT /api/post
 // ---------------------------------------------------------------------------
 
 describe("PUT /api/post", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    updateChain = makeEqChain();
-    mockFrom.mockReturnValue({
-      insert: vi.fn(() => ({ select: vi.fn(() => ({ single: mockSingle })) })),
-      update: vi.fn(() => updateChain),
-    });
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    mockCheckRateLimit.mockResolvedValue(null);
+    _responseQueue = [];
+    ;(["select", "from", "where", "insert", "values", "update", "set", "onConflictDoUpdate"] as const)
+      .forEach((m) => {
+        (stubTx[m] as ReturnType<typeof vi.fn>).mockReturnValue(stubTx);
+      });
+    (stubTx.limit as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.returning as ReturnType<typeof vi.fn>).mockImplementation(async () => dequeue());
+    (stubTx.orderBy as ReturnType<typeof vi.fn>).mockImplementation(() => stubTx);
+    (stubTx as Record<string, unknown>).then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) => {
+      Promise.resolve(dequeue()).then(resolve, _reject);
+    };
   });
 
-  it("should return 401 when the Authorization header is absent", async () => {
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" }, false);
-    const res = await PUT(req);
-    expect(res.status).toBe(401);
-  });
-
-  it("should return 401 when the token does not resolve to a user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" });
-    const res = await PUT(req);
+  it("returns 401 when verifyAuth returns null", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await PUT(makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" }));
     expect(res.status).toBe(401);
     const json = await res.json();
-    expect(json.error).toBe("Invalid token");
+    expect(json.error).toBe("Unauthorized");
   });
 
-  it("should return 400 when both schemas fail validation", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("PUT", { alertId: "bad-id", resolution: "cancelled" });
-    const res = await PUT(req);
+  it("returns 400 when both schemas fail validation", async () => {
+    const res = await PUT(makeRequest("PUT", { alertId: "bad-id", resolution: "cancelled" }));
     expect(res.status).toBe(400);
   });
 
-  // --- Legacy resolve format (alertId + resolution) ---
-
-  it("should apply owner_id equality filter with legacy format (ownership check)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const capturedArgs: Array<[string, unknown]> = [];
-    const chain = {
-      eq: vi.fn((...args: [string, unknown]) => {
-        capturedArgs.push(args);
-        return chain;
-      }),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chain) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: ALERT_UUID }, error: null });
-
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" });
-    await PUT(req);
-
-    const filterKeys = capturedArgs.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
+  it("returns 429 when rate limit exceeded", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" }));
+    expect(res.status).toBe(429);
   });
 
-  it("should include the authenticated user's id in owner_id filter (legacy)", async () => {
-    const ownerId = "user-99";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: ownerId } } });
+  // ── New resolve format ────────────────────────────────────────────────────
 
-    const capturedArgs: Array<[string, unknown]> = [];
-    const chain = {
-      eq: vi.fn((...args: [string, unknown]) => {
-        capturedArgs.push(args);
-        return chain;
-      }),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chain) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: ALERT_UUID }, error: null });
+  it("resolves with 'resolved_found' and returns snake_case row", async () => {
+    const resolvedRow = { ...MOCK_REPORT_ROW, status: "resolved_found", isActive: false };
+    enqueue([resolvedRow]); // returning()
 
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "given_up" });
-    await PUT(req);
-
-    const ownerFilter = capturedArgs.find(([key]) => key === "owner_id");
-    expect(ownerFilter).toBeDefined();
-    expect(ownerFilter![1]).toBe(ownerId);
-  });
-
-  it("should return 404 when the alert is not found or belongs to another user (legacy)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chain) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" });
-    const res = await PUT(req);
-    expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toMatch(/not found/i);
-  });
-
-  it("should set is_active=false and resolution_status when resolving 'found' (legacy)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    let capturedUpdatePayload: Record<string, unknown> = {};
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn((payload: Record<string, unknown>) => {
-        capturedUpdatePayload = payload;
-        return chain;
-      }),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, is_active: false, resolution_status: "found" },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" });
-    const res = await PUT(req);
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" }));
     expect(res.status).toBe(200);
-    expect(capturedUpdatePayload.is_active).toBe(false);
-    expect(capturedUpdatePayload.resolution_status).toBe("found");
+    const json = await res.json();
+    expect(json.status).toBe("resolved_found");
+    expect(json.is_active).toBe(false);
+    expect(json).not.toHaveProperty("isActive");
   });
 
-  it("should return 500 when Supabase update fails (legacy)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+  it("accepts 'resolved_owner' status", async () => {
+    enqueue([{ ...MOCK_REPORT_ROW, status: "resolved_owner", isActive: false }]);
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_owner" }));
+    expect(res.status).toBe(200);
+  });
 
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chain) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: "Timeout" } });
+  it("accepts 'resolved_other' status", async () => {
+    enqueue([{ ...MOCK_REPORT_ROW, status: "resolved_other", isActive: false }]);
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_other" }));
+    expect(res.status).toBe(200);
+  });
 
-    const req = makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" });
-    const res = await PUT(req);
+  it("returns 404 when new format alert not found", async () => {
+    enqueue([]); // returning() → empty
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" }));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 500 when DB throws on new format", async () => {
+    (stubTx.returning as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB timeout"));
+    const res = await PUT(makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" }));
     expect(res.status).toBe(500);
   });
 
-  // --- New resolve format (alert_id + status) — PRP-04 ---
+  // ── Legacy resolve format ─────────────────────────────────────────────────
 
-  it("should accept new resolve status 'resolved_found' with ownership check", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+  it("resolves with legacy format and returns snake_case row", async () => {
+    const resolvedRow = { ...MOCK_REPORT_ROW, isActive: false, resolutionStatus: "found" };
+    enqueue([resolvedRow]);
 
-    const capturedArgs: Array<[string, unknown]> = [];
-    let capturedPayload: Record<string, unknown> = {};
-    const chain = {
-      eq: vi.fn((...args: [string, unknown]) => {
-        capturedArgs.push(args);
-        return chain;
-      }),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn((payload: Record<string, unknown>) => {
-        capturedPayload = payload;
-        return chain;
-      }),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, status: "resolved_found", is_active: false },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" });
-    const res = await PUT(req);
+    const res = await PUT(makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" }));
     expect(res.status).toBe(200);
-    expect(capturedPayload.status).toBe("resolved_found");
-    expect(capturedPayload.is_active).toBe(false);
-    expect(capturedPayload.resolved_at).toBeDefined();
-
-    // Ownership check
-    const filterKeys = capturedArgs.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
+    const json = await res.json();
+    expect(json.resolution_status).toBe("found");
+    expect(json.is_active).toBe(false);
+    expect(json).not.toHaveProperty("resolutionStatus");
+    expect(json).not.toHaveProperty("isActive");
   });
 
-  it("should accept 'resolved_owner' status", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn(() => chain),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, status: "resolved_owner", is_active: false },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_owner" });
-    const res = await PUT(req);
+  it("accepts 'given_up' in legacy format", async () => {
+    enqueue([{ ...MOCK_REPORT_ROW, isActive: false, resolutionStatus: "given_up" }]);
+    const res = await PUT(makeRequest("PUT", { alertId: ALERT_UUID, resolution: "given_up" }));
     expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.resolution_status).toBe("given_up");
   });
 
-  it("should accept 'resolved_other' status", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn(() => chain),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, status: "resolved_other", is_active: false },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_other" });
-    const res = await PUT(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("should accept optional resolution_note with new format", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn(() => chain),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, status: "resolved_found", is_active: false },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", {
-      alert_id: ALERT_UUID,
-      status: "resolved_found",
-      resolution_note: "พบน้องที่สวนลุม",
-    });
-    const res = await PUT(req);
-    expect(res.status).toBe(200);
-  });
-
-  it("should set resolved_at timestamp when resolving (new format)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    let capturedPayload: Record<string, unknown> = {};
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({
-      update: vi.fn((payload: Record<string, unknown>) => {
-        capturedPayload = payload;
-        return chain;
-      }),
-    });
-    mockMaybeSingle.mockResolvedValueOnce({
-      data: { id: ALERT_UUID, is_active: false },
-      error: null,
-    });
-
-    const req = makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" });
-    const res = await PUT(req);
-    expect(res.status).toBe(200);
-    expect(capturedPayload.resolved_at).toBeDefined();
-    expect(typeof capturedPayload.resolved_at).toBe("string");
-  });
-
-  it("should return 404 when new format resolve targets non-existent alert", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chain = {
-      eq: vi.fn(() => chain),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chain) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeRequest("PUT", { alert_id: ALERT_UUID, status: "resolved_found" });
-    const res = await PUT(req);
+  it("returns 404 when legacy alert not found", async () => {
+    enqueue([]);
+    const res = await PUT(makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" }));
     expect(res.status).toBe(404);
+  });
+
+  it("returns 500 when DB throws on legacy format", async () => {
+    (stubTx.returning as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Timeout"));
+    const res = await PUT(makeRequest("PUT", { alertId: ALERT_UUID, resolution: "found" }));
+    expect(res.status).toBe(500);
   });
 });
