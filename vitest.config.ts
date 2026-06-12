@@ -24,6 +24,9 @@ export default defineConfig({
         "app/api/profile/route.ts",
         // OG image route uses Edge runtime + ImageResponse — not testable in jsdom.
         "app/api/og/**",
+        // DB schema declarations + pool wrappers — integration-tested against
+        // real Postgres (gated on DATABASE_URL_TEST), unreachable from jsdom.
+        "lib/db/**",
       ],
       thresholds: {
         statements: 90,
