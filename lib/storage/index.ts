@@ -50,7 +50,11 @@ export type Bucket =
   | "pet-photos"
   | "user-photos"
   | "report-media"
-  | "feedback-images";
+  | "feedback-images"
+  // 5th bucket beyond the grilled Module-3 spec: app/api/voice/route.ts
+  // stores SOS voice memos here (existed only in hosted Supabase). Lead
+  // amendment 2026-06-12, parity-first; revisit before Phase 4 migration.
+  | "voice-recordings";
 
 // ---------------------------------------------------------------------------
 // Upload options — mirrors Supabase storage options for call-site compat.
@@ -96,6 +100,8 @@ function resolveBucketName(bucket: Bucket): string {
       return requireEnv("S3_BUCKET_REPORT_MEDIA");
     case "feedback-images":
       return requireEnv("S3_BUCKET_FEEDBACK_IMAGES");
+    case "voice-recordings":
+      return requireEnv("S3_BUCKET_VOICE_RECORDINGS");
   }
 }
 

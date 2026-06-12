@@ -101,10 +101,12 @@ services:
         mc mb --ignore-existing local/user-photos
         mc mb --ignore-existing local/report-media
         mc mb --ignore-existing local/feedback-images
+        mc mb --ignore-existing local/voice-recordings
         mc anonymous set download local/pet-photos
         mc anonymous set download local/user-photos
         mc anonymous set download local/report-media
         mc anonymous set download local/feedback-images
+        mc anonymous set download local/voice-recordings
 
 volumes:
   pgdata:

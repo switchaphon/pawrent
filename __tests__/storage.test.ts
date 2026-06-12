@@ -81,6 +81,7 @@ function setEnv(overrides: Partial<Record<string, string>> = {}) {
   process.env.S3_BUCKET_USER_PHOTOS = "user-photos";
   process.env.S3_BUCKET_REPORT_MEDIA = "report-media";
   process.env.S3_BUCKET_FEEDBACK_IMAGES = "feedback-images";
+  process.env.S3_BUCKET_VOICE_RECORDINGS = "voice-recordings";
   Object.assign(process.env, overrides);
 }
 
@@ -93,6 +94,7 @@ function clearStorageEnv() {
   delete process.env.S3_BUCKET_USER_PHOTOS;
   delete process.env.S3_BUCKET_REPORT_MEDIA;
   delete process.env.S3_BUCKET_FEEDBACK_IMAGES;
+  delete process.env.S3_BUCKET_VOICE_RECORDINGS;
 }
 
 /** Build a minimal mock GetObject response with a transformToByteArray body. */
@@ -143,6 +145,11 @@ describe("lib/storage (unit — mocked S3 client)", () => {
     it("constructs the correct URL for feedback-images bucket", () => {
       const url = getPublicUrl("feedback-images", "anonymous_1234.png");
       expect(url).toBe("http://localhost:9000/feedback-images/anonymous_1234.png");
+    });
+
+    it("constructs the correct URL for voice-recordings bucket (5th, lead amendment)", () => {
+      const url = getPublicUrl("voice-recordings", "alerts/abc/memo.webm");
+      expect(url).toBe("http://localhost:9000/voice-recordings/alerts/abc/memo.webm");
     });
 
     it("trims a trailing slash from S3_PUBLIC_URL", () => {
