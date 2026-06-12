@@ -1,19 +1,21 @@
-import { createApiClient } from "@/lib/supabase-api";
-import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod/v4";
+import { verifyAuth } from "@/lib/auth";
+import {
+  query,
+  pets,
+  diaryEntries,
+  healthEvents,
+  vaccinations,
+  parasiteLogs,
+  petWeightLogs,
+  petMilestones,
+} from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 
 const limiter = createRateLimiter(20, "1 m");
-
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ? { user, supabase } : null;
-}
 
 const enrichSchema = z.object({
   event_type: z.enum([
@@ -29,76 +31,136 @@ const enrichSchema = z.object({
   caption: z.string().max(2000).optional(),
 });
 
-// Map event_type to the table that holds the record
-const EVENT_TABLE_MAP: Record<string, { table: string; petIdColumn: string }> = {
-  grooming: { table: "health_events", petIdColumn: "pet_id" },
-  vet_visit: { table: "health_events", petIdColumn: "pet_id" },
-  vaccination: { table: "vaccinations", petIdColumn: "pet_id" },
-  parasite_log: { table: "parasite_logs", petIdColumn: "pet_id" },
-  weight_log: { table: "pet_weight_logs", petIdColumn: "pet_id" },
-  milestone: { table: "pet_milestones", petIdColumn: "pet_id" },
-};
+function mapDiaryEntry(row: typeof diaryEntries.$inferSelect) {
+  return {
+    id: row.id,
+    pet_id: row.petId,
+    user_id: row.userId,
+    title: row.title,
+    caption: row.caption,
+    mood: row.mood,
+    photo_urls: row.photoUrls,
+    linked_event_type: row.linkedEventType,
+    linked_event_id: row.linkedEventId,
+    created_at: row.createdAt,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Resolve the pet_id for a given event_type + event_id.
+// Returns null if the event does not exist.
+// We query the correct Drizzle table based on event_type.
+// ---------------------------------------------------------------------------
+async function resolveEventPetId(
+  tx: Tx,
+  eventType: string,
+  eventId: string
+): Promise<string | null> {
+  switch (eventType) {
+    case "grooming":
+    case "vet_visit": {
+      const rows = await tx
+        .select({ petId: healthEvents.petId })
+        .from(healthEvents)
+        .where(eq(healthEvents.id, eventId))
+        .limit(1);
+      return rows[0]?.petId ?? null;
+    }
+    case "vaccination": {
+      const rows = await tx
+        .select({ petId: vaccinations.petId })
+        .from(vaccinations)
+        .where(eq(vaccinations.id, eventId))
+        .limit(1);
+      return rows[0]?.petId ?? null;
+    }
+    case "parasite_log": {
+      const rows = await tx
+        .select({ petId: parasiteLogs.petId })
+        .from(parasiteLogs)
+        .where(eq(parasiteLogs.id, eventId))
+        .limit(1);
+      return rows[0]?.petId ?? null;
+    }
+    case "weight_log": {
+      const rows = await tx
+        .select({ petId: petWeightLogs.petId })
+        .from(petWeightLogs)
+        .where(eq(petWeightLogs.id, eventId))
+        .limit(1);
+      return rows[0]?.petId ?? null;
+    }
+    case "milestone": {
+      const rows = await tx
+        .select({ petId: petMilestones.petId })
+        .from(petMilestones)
+        .where(eq(petMilestones.id, eventId))
+        .limit(1);
+      return rows[0]?.petId ?? null;
+    }
+    default:
+      return null;
+  }
+}
 
 /**
  * POST /api/diary/enrich
+ *
  * Create a diary_entries row that links to an existing health event.
  * Verifies the event belongs to one of the authenticated user's pets.
+ * Output shape is identical to POST /api/diary.
  */
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const parsed = enrichSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
   const { event_type, event_id, photo_urls, caption } = parsed.data;
-  const mapping = EVENT_TABLE_MAP[event_type];
-  if (!mapping) {
-    return NextResponse.json({ error: "Unknown event_type" }, { status: 400 });
+
+  try {
+    const inserted = await query(auth.userId, async (tx: Tx) => {
+      // Resolve which pet this event belongs to
+      const petId = await resolveEventPetId(tx, event_type, event_id);
+      if (!petId) return "event_not_found" as const;
+
+      // Verify the pet belongs to the authenticated user
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "event_not_found" as const;
+
+      const rows = await tx
+        .insert(diaryEntries)
+        .values({
+          petId,
+          userId: auth.userId,
+          caption: caption ?? null,
+          photoUrls: photo_urls ?? null,
+          linkedEventType: event_type,
+          linkedEventId: event_id,
+        })
+        .returning();
+      return rows[0] ?? null;
+    });
+
+    if (inserted === "event_not_found") {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+    if (!inserted) {
+      return NextResponse.json({ error: "Failed to create enrichment" }, { status: 500 });
+    }
+    return NextResponse.json(mapDiaryEntry(inserted), { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Failed to create enrichment" }, { status: 500 });
   }
-
-  // Fetch the event and verify it belongs to user's pet via RLS
-  const { data: event } = await auth.supabase
-    .from(mapping.table)
-    .select("id, pet_id")
-    .eq("id", event_id)
-    .maybeSingle();
-
-  if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  }
-
-  // Verify pet ownership
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", event.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
-
-  if (!pet) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  }
-
-  const { data, error } = await auth.supabase
-    .from("diary_entries")
-    .insert({
-      pet_id: event.pet_id,
-      user_id: auth.user.id,
-      caption: caption ?? null,
-      photo_urls: photo_urls ?? null,
-      linked_event_type: event_type,
-      linked_event_id: event_id,
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: "Failed to create enrichment" }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
 }

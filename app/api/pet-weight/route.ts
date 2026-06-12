@@ -1,20 +1,13 @@
-import { createApiClient } from "@/lib/supabase-api";
-import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
-import { weightLogSchema } from "@/lib/validations/health";
+import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod/v4";
+import { verifyAuth } from "@/lib/auth";
+import { query, pets, petWeightLogs } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
+import { weightLogSchema } from "@/lib/validations/health";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 
 const limiter = createRateLimiter(30, "1 m");
-
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ? { user, supabase } : null;
-}
 
 const getWeightQuerySchema = z.object({
   pet_id: z.string().uuid(),
@@ -25,15 +18,23 @@ const getWeightQuerySchema = z.object({
     .optional(),
 });
 
-/**
- * GET /api/pet-weight?pet_id=UUID&limit=12
- * Fetch weight history for a pet (most recent first).
- */
+function mapWeightLog(row: typeof petWeightLogs.$inferSelect) {
+  return {
+    id: row.id,
+    pet_id: row.petId,
+    weight_kg: row.weightKg,
+    measured_at: row.measuredAt,
+    note: row.note,
+    photo_url: row.photoUrl,
+    created_at: row.createdAt,
+  };
+}
+
 export async function GET(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const params = Object.fromEntries(request.nextUrl.searchParams);
@@ -44,79 +45,81 @@ export async function GET(request: NextRequest) {
 
   const { pet_id, limit = 12 } = parsed.data;
 
-  // Verify ownership
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const rows = await query(auth.userId, async (tx: Tx) => {
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, pet_id), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      return tx
+        .select()
+        .from(petWeightLogs)
+        .where(eq(petWeightLogs.petId, pet_id))
+        .orderBy(desc(petWeightLogs.measuredAt))
+        .limit(limit);
+    });
 
-  const { data, error } = await auth.supabase
-    .from("pet_weight_logs")
-    .select("*")
-    .eq("pet_id", pet_id)
-    .order("measured_at", { ascending: false })
-    .limit(limit);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (rows === null) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+    return NextResponse.json(rows.map(mapWeightLog));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
-/**
- * POST /api/pet-weight
- * Add a weight log entry for a pet.
- */
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const parsed = weightLogSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // Verify ownership
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", parsed.data.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const inserted = await query(auth.userId, async (tx: Tx) => {
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, parsed.data.pet_id), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .insert(petWeightLogs)
+        .values({
+          petId: parsed.data.pet_id,
+          weightKg: String(parsed.data.weight_kg),
+          measuredAt: parsed.data.measured_at ?? new Date().toISOString().slice(0, 10),
+          note: parsed.data.note ?? null,
+          photoUrl: parsed.data.photo_url ?? null,
+        })
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("pet_weight_logs")
-    .insert({
-      pet_id: parsed.data.pet_id,
-      weight_kg: parsed.data.weight_kg,
-      measured_at: parsed.data.measured_at ?? new Date().toISOString().slice(0, 10),
-      note: parsed.data.note ?? null,
-      photo_url: parsed.data.photo_url ?? null,
-    })
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (inserted === null) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+    return NextResponse.json(mapWeightLog(inserted));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
-  const body = await request.json();
-  const { id, ...rest } = body;
+  const body = await request.json().catch(() => null);
+  const { id, ...rest } = body ?? {};
   if (!id || typeof id !== "string") {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
@@ -127,66 +130,84 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("pet_weight_logs")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const updated = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: petWeightLogs.petId })
+        .from(petWeightLogs)
+        .where(eq(petWeightLogs.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Weight log not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      const updateValues: Partial<typeof petWeightLogs.$inferInsert> = {};
+      if (parsed.data.weight_kg !== undefined)
+        updateValues.weightKg = String(parsed.data.weight_kg);
+      if (parsed.data.measured_at !== undefined)
+        updateValues.measuredAt = parsed.data.measured_at ?? new Date().toISOString().slice(0, 10);
+      if (parsed.data.note !== undefined) updateValues.note = parsed.data.note ?? null;
+      if (parsed.data.photo_url !== undefined)
+        updateValues.photoUrl = parsed.data.photo_url ?? null;
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const rows = await tx
+        .update(petWeightLogs)
+        .set(updateValues)
+        .where(eq(petWeightLogs.id, id))
+        .returning();
+      return rows[0] ?? null;
+    });
 
-  const { data, error } = await auth.supabase
-    .from("pet_weight_logs")
-    .update(parsed.data)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    if (updated === "not_found") {
+      return NextResponse.json({ error: "Weight log not found" }, { status: 404 });
+    }
+    if (!updated) return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(mapWeightLog(updated));
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
-  // Fetch the record to get its pet_id for ownership check
-  const { data: existing } = await auth.supabase
-    .from("pet_weight_logs")
-    .select("pet_id")
-    .eq("id", id)
-    .maybeSingle();
+  try {
+    const result = await query(auth.userId, async (tx: Tx) => {
+      const existing = await tx
+        .select({ petId: petWeightLogs.petId })
+        .from(petWeightLogs)
+        .where(eq(petWeightLogs.id, id))
+        .limit(1);
+      if (existing.length === 0) return "not_found" as const;
 
-  if (!existing) return NextResponse.json({ error: "Weight log not found" }, { status: 404 });
+      const petRows = await tx
+        .select({ id: pets.id })
+        .from(pets)
+        .where(and(eq(pets.id, existing[0].petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
+      if (petRows.length === 0) return "not_found" as const;
 
-  // Verify the pet belongs to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id")
-    .eq("id", existing.pet_id)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+      await tx.delete(petWeightLogs).where(eq(petWeightLogs.id, id));
+      return "ok" as const;
+    });
 
-  if (!pet) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
-
-  const { error } = await auth.supabase.from("pet_weight_logs").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true });
+    if (result === "not_found") {
+      return NextResponse.json({ error: "Weight log not found" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

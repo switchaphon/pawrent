@@ -1,16 +1,30 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { adminQuery, hospitals } from "@/lib/db/index";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  try {
+    const rows = await adminQuery(async (tx) => tx.select().from(hospitals).limit(100));
 
-  const { data, error } = await supabase.from("hospitals").select("*").limit(100);
+    // Map to snake_case to preserve response shape
+    const data = rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      address: row.address,
+      lat: row.lat,
+      lng: row.lng,
+      phone: row.phone,
+      open_hours: row.openHours,
+      certified: row.certified,
+      specialists: row.specialists,
+      type: row.type,
+      created_at: row.createdAt,
+    }));
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error("[hospitals GET] error:", err instanceof Error ? err.message : "unknown");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

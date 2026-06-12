@@ -1,15 +1,13 @@
 /**
  * Tests for POST /api/line/webhook — postback action=pet_card branch.
  *
- * This file covers lines 56–157 (handlePetCardPostback) which are 0% in the
- * existing api-line-webhook.test.ts because that file cannot add mocks for
- * @supabase/supabase-js and @/lib/line/client without conflicting with its
- * existing import-order constraints.
- *
- * Strategy: we set up clean mocks for @supabase/supabase-js and
- * @/lib/line/client before importing the POST handler so all three layers
- * (webhook validation, Supabase profile/pets lookup, LINE push) can be
- * exercised without a network.
+ * Mock strategy (Drizzle):
+ *   - @/lib/line/webhook: validateSignature + parseWebhookEvents
+ *   - @/lib/db/index: adminQuery intercepted; returns pre-loaded values.
+ *     handlePetCardPostback makes two adminQuery calls:
+ *       call 1 → { id: profileId } | null   (profile lookup)
+ *       call 2 → petRows[]                   (pets for owner)
+ *   - @/lib/line/client: getLineClient → { pushMessage }
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -29,30 +27,37 @@ vi.mock("@/lib/line/webhook", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @supabase/supabase-js — used by handlePetCardPostback's createClient
+// Mock @/lib/db/index — adminQuery
 // ---------------------------------------------------------------------------
-const mockMaybeSingle = vi.fn();
-const mockSupabaseFrom = vi.fn();
+let _adminResponses: unknown[] = [];
+let _adminCallIdx = 0;
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: mockSupabaseFrom,
-  })),
-}));
+function setupAdmin(responses: unknown[]) {
+  _adminResponses = responses;
+  _adminCallIdx = 0;
+}
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (_fn: unknown) => {
+      return _adminResponses[_adminCallIdx++];
+    }),
+  };
+});
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/line/client — the LINE MessagingApiClient
+// Mock @/lib/line/client
 // ---------------------------------------------------------------------------
 const mockPushMessage = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/line/client", () => ({
-  getLineClient: vi.fn(() => ({
-    pushMessage: mockPushMessage,
-  })),
+  getLineClient: vi.fn(() => ({ pushMessage: mockPushMessage })),
 }));
 
-// Import route AFTER all mocks are registered
 import { POST } from "@/app/api/line/webhook/route";
+import { adminQuery } from "@/lib/db/index";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -64,7 +69,6 @@ const PET_ID = "pet-uuid-001";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
 function makeRequest(body: string): NextRequest {
   return new NextRequest("http://localhost:3000/api/line/webhook", {
     method: "POST",
@@ -85,41 +89,22 @@ function makePostbackEvent(data: string) {
   };
 }
 
-/** Build a chainable Supabase query builder that resolves with result */
-function makeChain(result: { data: unknown; error: unknown }) {
-  const chain: Record<string, unknown> = {};
-  chain.select = vi.fn(() => chain);
-  chain.eq = vi.fn(() => chain);
-  chain.order = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.maybeSingle = vi.fn().mockResolvedValue(result);
-  // Make it directly awaitable for list queries (pets)
-  chain.then = (resolve: (v: unknown) => void, reject?: (e: unknown) => void) =>
-    Promise.resolve(result).then(resolve, reject);
-  return chain;
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-
 describe("POST /api/line/webhook — postback action=pet_card", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Signature validation always passes in this suite
     mockValidateSignature.mockReturnValue(true);
-    // Env vars
     process.env.LINE_CHANNEL_SECRET = "test-secret";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
     process.env.NEXT_PUBLIC_APP_URL = "https://pawrent.app";
     process.env.NEXT_PUBLIC_LIFF_ID = "1234567890-abcdefgh";
     process.env.LINE_CHANNEL_ACCESS_TOKEN = "test-access-token";
+    setupAdmin([]);
   });
 
-  it("should return 200 and skip push when no profile matches the LINE user", async () => {
-    // Profile lookup → null (LINE user not registered in pawrent)
-    mockSupabaseFrom.mockReturnValue(makeChain({ data: null, error: null }));
+  it("returns 200 and skips push when no profile matches the LINE user", async () => {
+    setupAdmin([null]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     const res = await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -128,13 +113,8 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should return 200 and skip push when the user has no pets (empty array)", async () => {
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: [], error: null });
-    });
+  it("returns 200 and skips push when the user has no pets (empty array)", async () => {
+    setupAdmin([{ id: PROFILE_ID }, []]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     const res = await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -143,13 +123,8 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should return 200 and skip push when the pets query returns null", async () => {
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: null, error: null });
-    });
+  it("returns 200 and skips push when pets query returns null", async () => {
+    setupAdmin([{ id: PROFILE_ID }, null]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     const res = await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -158,14 +133,9 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should push a Flex carousel to LINE when profile and pets are found", async () => {
-    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrent_id: "PAW001", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+  it("pushes a Flex carousel to LINE when profile and pets are found", async () => {
+    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrentId: "PAW001", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     const res = await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -182,14 +152,9 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(arg.messages[0].contents.type).toBe("carousel");
   });
 
-  it("should include the pet card PNG URL in the bubble hero image", async () => {
-    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrent_id: "PAW001", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+  it("includes the pet card PNG URL in the bubble hero image", async () => {
+    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrentId: "PAW001", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -204,14 +169,9 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(heroUrl).toContain("side=front");
   });
 
-  it("should use the LIFF URL for pet action buttons when NEXT_PUBLIC_LIFF_ID is set", async () => {
-    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrent_id: "PAW001", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+  it("uses LIFF URL for pet action buttons when NEXT_PUBLIC_LIFF_ID is set", async () => {
+    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrentId: "PAW001", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -224,23 +184,16 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
       }>;
     };
     const buttons = arg.messages[0].contents.contents[0].footer.contents;
-    // Primary "ดูรายละเอียด" button should use liff.line.me
     expect(buttons[0].action.uri).toContain("liff.line.me");
     expect(buttons[0].action.uri).toContain(`/pets/${PET_ID}`);
-    // "แชร์" button should include share param
     expect(buttons[1].action.uri).toContain("share=card");
   });
 
-  it("should fall back to NEXT_PUBLIC_APP_URL when NEXT_PUBLIC_LIFF_ID is absent", async () => {
+  it("falls back to NEXT_PUBLIC_APP_URL when NEXT_PUBLIC_LIFF_ID is absent", async () => {
     delete process.env.NEXT_PUBLIC_LIFF_ID;
 
-    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrent_id: "PAW001", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrentId: "PAW001", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -257,18 +210,13 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(buttons[0].action.uri).toContain("pawrent.app");
   });
 
-  it("should include one carousel bubble per pet", async () => {
+  it("includes one carousel bubble per pet", async () => {
     const mockPets = [
-      { id: "pet-1", name: "บุญมี", pawrent_id: "PAW001", photo_url: null },
-      { id: "pet-2", name: "น้องขาว", pawrent_id: "PAW002", photo_url: null },
-      { id: "pet-3", name: "สมชาย", pawrent_id: "PAW003", photo_url: null },
+      { id: "pet-1", name: "บุญมี", pawrentId: "PAW001", photoUrl: null },
+      { id: "pet-2", name: "น้องขาว", pawrentId: "PAW002", photoUrl: null },
+      { id: "pet-3", name: "สมชาย", pawrentId: "PAW003", photoUrl: null },
     ];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -280,17 +228,16 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(arg.messages[0].altText).toContain("3");
   });
 
-  it("should not call handlePetCardPostback when postback data is not action=pet_card", async () => {
+  it("does not call handlePetCardPostback when postback data is not action=pet_card", async () => {
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=something_else")]);
 
     const res = await POST(makeRequest(JSON.stringify({ events: [] })));
 
     expect(res.status).toBe(200);
-    expect(mockSupabaseFrom).not.toHaveBeenCalled();
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should not call handlePetCardPostback when postback.data is undefined", async () => {
+  it("does not call handlePetCardPostback when postback.data is undefined", async () => {
     mockParseWebhookEvents.mockReturnValue([
       { type: "postback", source: { userId: LINE_USER_ID }, postback: {} },
     ]);
@@ -301,7 +248,7 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should not call handlePetCardPostback when the postback property is absent", async () => {
+  it("does not call handlePetCardPostback when postback property is absent", async () => {
     mockParseWebhookEvents.mockReturnValue([
       { type: "postback", source: { userId: LINE_USER_ID } },
     ]);
@@ -312,14 +259,9 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(mockPushMessage).not.toHaveBeenCalled();
   });
 
-  it("should include the pet name and pawrent_id in the bubble body text", async () => {
-    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrent_id: "PAW-XYZ-001", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+  it("includes pet name and pawrentId in bubble body text", async () => {
+    const mockPets = [{ id: PET_ID, name: "บุญมี", pawrentId: "PAW-XYZ-001", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
 
     await POST(makeRequest(JSON.stringify({ events: [] })));
@@ -338,15 +280,10 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
     expect(bodyContents[1].text).toBe("PAW-XYZ-001");
   });
 
-  it("should address the push message to the LINE user who sent the postback", async () => {
+  it("addresses push message to the LINE user who sent the postback", async () => {
     const differentUserId = "U-different-user-999";
-    const mockPets = [{ id: PET_ID, name: "น้องขาว", pawrent_id: "PAW002", photo_url: null }];
-    let callCount = 0;
-    mockSupabaseFrom.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return makeChain({ data: { id: PROFILE_ID }, error: null });
-      return makeChain({ data: mockPets, error: null });
-    });
+    const mockPets = [{ id: PET_ID, name: "น้องขาว", pawrentId: "PAW002", photoUrl: null }];
+    setupAdmin([{ id: PROFILE_ID }, mockPets]);
     mockParseWebhookEvents.mockReturnValue([
       {
         type: "postback",
@@ -360,5 +297,80 @@ describe("POST /api/line/webhook — postback action=pet_card", () => {
 
     const arg = mockPushMessage.mock.calls[0]?.[0] as { to: string };
     expect(arg.to).toBe(differentUserId);
+  });
+
+  // ── adminQuery callback execution (inner function coverage) ────────────────
+
+  it("exercises profile-lookup adminQuery callback via pass-through tx stub", async () => {
+    // The route's handlePetCardPostback first callback:
+    //   tx.select({id}).from(profiles).where(eq(profiles.lineUserId, lineUserId)).limit(1)
+    // where().limit() must resolve to [] (no profile → early return, no push).
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // Call 1: profile lookup — pass through to callback with stub tx
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
+
+    const res = await POST(makeRequest(JSON.stringify({ events: [] })));
+    expect(res.status).toBe(200);
+    // profile not found → handlePetCardPostback returns early → no push
+    expect(mockPushMessage).not.toHaveBeenCalled();
+  });
+
+  it("exercises pet-query adminQuery callback via pass-through tx stub (empty pets)", async () => {
+    // Call 1: profile lookup — returns a valid profile row so we proceed to pets query
+    // Call 2: pets query — pass through to callback with stub tx that returns []
+    // Loosened: pass-through impls use an untyped stub tx, not PgTransaction.
+    const mocked = vi.mocked(adminQuery) as unknown as ReturnType<typeof vi.fn>;
+
+    // Call 1: profile lookup returns profile via stub tx
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue(Promise.resolve([{ id: PROFILE_ID }])),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    // Call 2: pets query — pass through to callback; returns [] so no carousel
+    mocked.mockImplementationOnce(async (fn: (tx: unknown) => unknown) => {
+      const stubTx = {
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue(Promise.resolve([])),
+              }),
+            }),
+          }),
+        }),
+      };
+      return fn(stubTx);
+    });
+
+    mockParseWebhookEvents.mockReturnValue([makePostbackEvent("action=pet_card")]);
+
+    const res = await POST(makeRequest(JSON.stringify({ events: [] })));
+    expect(res.status).toBe(200);
+    // pets = [] → handlePetCardPostback returns early → no push
+    expect(mockPushMessage).not.toHaveBeenCalled();
   });
 });

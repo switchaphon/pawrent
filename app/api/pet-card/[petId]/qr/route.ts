@@ -1,5 +1,7 @@
 import QRCode from "qrcode";
-import { createClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
+import { adminQuery, pets } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 
@@ -28,23 +30,21 @@ export async function GET(
   const rateLimited = await checkRateLimit(limiter, `qr:${ipKey}`);
   if (rateLimited) return rateLimited;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const petRow = await adminQuery(async (tx: Tx) => {
+    const rows = await tx
+      .select({ pawrentId: pets.pawrentId })
+      .from(pets)
+      .where(eq(pets.id, petId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
 
-  const { data: pet } = await supabase
-    .from("pets")
-    .select("pawrent_id")
-    .eq("id", petId)
-    .maybeSingle();
-
-  if (!pet) {
+  if (!petRow) {
     return new Response("Pet not found", { status: 404 });
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://pawrent.app";
-  const targetUrl = `${appUrl}/p/${pet.pawrent_id}`;
+  const targetUrl = `${appUrl}/p/${petRow.pawrentId}`;
 
   const pngBuffer = await QRCode.toBuffer(targetUrl, {
     type: "png",

@@ -10,8 +10,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import QRCode from "qrcode";
-import { createApiClient } from "@/lib/supabase-api";
+import { verifyAuth } from "@/lib/auth";
 import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
+import { query, petReports } from "@/lib/db/index";
+import { eq } from "drizzle-orm";
 
 const shareCardLimiter = createRateLimiter(10, "1 m");
 
@@ -76,36 +78,52 @@ export async function GET(
   { params }: { params: Promise<{ alertId: string }> }
 ): Promise<NextResponse> {
   // Auth
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) {
+  const auth = await verifyAuth(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-  }
-
   // Rate limit
-  const rateLimited = await checkRateLimit(shareCardLimiter, user.id);
+  const rateLimited = await checkRateLimit(shareCardLimiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   // Fetch alert
   const { alertId } = await params;
-  const { data: alert, error } = await supabase
-    .from("pet_reports")
-    .select("*")
-    .eq("id", alertId)
-    .single();
 
-  if (error || !alert) {
-    return NextResponse.json({ error: "Alert not found" }, { status: 404 });
+  let alertData: AlertData;
+  try {
+    const row = await query(auth.userId, async (tx) => {
+      const rows = await tx.select().from(petReports).where(eq(petReports.id, alertId)).limit(1);
+      return rows[0] ?? null;
+    });
+
+    if (!row) {
+      return NextResponse.json({ error: "Alert not found" }, { status: 404 });
+    }
+
+    // Map Drizzle camelCase to the AlertData shape used by generateShareCard
+    alertData = {
+      id: row.id,
+      owner_id: row.ownerId,
+      pet_name: row.petName,
+      pet_species: row.petSpecies,
+      pet_breed: row.petBreed,
+      pet_color: row.petColor,
+      lost_date: row.lostDate,
+      location_description: row.locationDescription,
+      reward_amount: row.rewardAmount ?? 0,
+      reward_note: row.rewardNote,
+      contact_phone: row.contactPhone,
+      photo_urls: row.photoUrls ?? [],
+      pet_photo_url: row.petPhotoUrl,
+      description: row.description,
+      status: row.status ?? "active",
+      alert_type: row.alertType ?? "lost",
+    };
+  } catch (err) {
+    console.error("[share-card GET] db error:", err instanceof Error ? err.message : "unknown");
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  const alertData = alert as AlertData;
 
   try {
     const jpegBuffer = await generateShareCard(alertData);
@@ -128,7 +146,6 @@ async function generateShareCard(alert: AlertData): Promise<Buffer> {
   const height = 1350;
 
   const headerText = escapeXml(getSpeciesHeader(alert.pet_species));
-  const petName = escapeXml(alert.pet_name || "ไม่ระบุชื่อ");
   const lostDate = escapeXml(formatThaiDate(alert.lost_date));
   const location = alert.location_description ? escapeXml(alert.location_description) : "";
   const rewardText =

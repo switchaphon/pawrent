@@ -1,18 +1,18 @@
-import { createApiClient } from "@/lib/supabase-api";
-import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq, sql } from "drizzle-orm";
+import { verifyAuth } from "@/lib/auth";
+import {
+  query,
+  pets,
+  petWeightLogs,
+  vaccinations,
+  parasiteLogs,
+  diaryEntries,
+} from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
+import { createRateLimiter, checkRateLimit } from "@/lib/rate-limit";
 
 const limiter = createRateLimiter(30, "1 m");
-
-async function getAuthUser(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader) return null;
-  const supabase = createApiClient(authHeader);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user ? { user, supabase } : null;
-}
 
 export interface CompletionItems {
   basic: boolean;
@@ -47,70 +47,87 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ petId: string }> }
 ) {
-  const auth = await getAuthUser(request);
+  const auth = await verifyAuth(request);
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rateLimited = await checkRateLimit(limiter, auth.user.id);
+  const rateLimited = await checkRateLimit(limiter, auth.userId);
   if (rateLimited) return rateLimited;
 
   const { petId } = await params;
 
-  // Fetch pet — must belong to the authenticated user
-  const { data: pet } = await auth.supabase
-    .from("pets")
-    .select("id, name, breed, date_of_birth, sex, photo_url, microchip_number")
-    .eq("id", petId)
-    .eq("owner_id", auth.user.id)
-    .maybeSingle();
+  try {
+    const result = await query(auth.userId, async (tx: Tx) => {
+      // Fetch pet — must belong to authenticated user
+      const petRows = await tx
+        .select({
+          id: pets.id,
+          name: pets.name,
+          breed: pets.breed,
+          dateOfBirth: pets.dateOfBirth,
+          sex: pets.sex,
+          photoUrl: pets.photoUrl,
+          microchipNumber: pets.microchipNumber,
+        })
+        .from(pets)
+        .where(and(eq(pets.id, petId), eq(pets.ownerId, auth.userId)))
+        .limit(1);
 
-  if (!pet) {
-    return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+      const pet = petRows[0] ?? null;
+      if (!pet) return null;
+
+      // Count auxiliary records in parallel — EXISTS-style limit(1) count
+      const [weightRows, vacRows, parasiteRows, diaryRows] = await Promise.all([
+        tx
+          .select({ id: petWeightLogs.id })
+          .from(petWeightLogs)
+          .where(eq(petWeightLogs.petId, petId))
+          .limit(1),
+        tx
+          .select({ id: vaccinations.id })
+          .from(vaccinations)
+          .where(eq(vaccinations.petId, petId))
+          .limit(1),
+        tx
+          .select({ id: parasiteLogs.id })
+          .from(parasiteLogs)
+          .where(eq(parasiteLogs.petId, petId))
+          .limit(1),
+        tx
+          .select({ id: diaryEntries.id })
+          .from(diaryEntries)
+          .where(eq(diaryEntries.petId, petId))
+          .limit(1),
+      ]);
+
+      return { pet, weightRows, vacRows, parasiteRows, diaryRows };
+    });
+
+    if (!result) return NextResponse.json({ error: "Pet not found" }, { status: 404 });
+
+    const { pet, weightRows, vacRows, parasiteRows, diaryRows } = result;
+
+    const items: CompletionItems = {
+      basic: Boolean(pet.name && pet.breed && pet.dateOfBirth && pet.sex),
+      photo: Boolean(pet.photoUrl),
+      microchip: Boolean(pet.microchipNumber),
+      weight: weightRows.length > 0,
+      vaccination: vacRows.length > 0,
+      parasite: parasiteRows.length > 0,
+      diary: diaryRows.length > 0,
+    };
+
+    const score =
+      (items.basic ? 20 : 0) +
+      (items.photo ? 10 : 0) +
+      (items.microchip ? 10 : 0) +
+      (items.weight ? 15 : 0) +
+      (items.vaccination ? 15 : 0) +
+      (items.parasite ? 15 : 0) +
+      (items.diary ? 15 : 0);
+
+    const body: CompletionResponse = { score, items };
+    return NextResponse.json(body);
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  // Run all auxiliary checks in parallel — service role not needed; anon client
-  // respects RLS via the user's auth header.
-  const [weightResult, vaccinationResult, parasiteResult, diaryResult] = await Promise.all([
-    auth.supabase
-      .from("pet_weight_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("pet_id", petId)
-      .limit(1),
-    auth.supabase
-      .from("vaccinations")
-      .select("id", { count: "exact", head: true })
-      .eq("pet_id", petId)
-      .limit(1),
-    auth.supabase
-      .from("parasite_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("pet_id", petId)
-      .limit(1),
-    auth.supabase
-      .from("diary_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("pet_id", petId)
-      .limit(1),
-  ]);
-
-  const items: CompletionItems = {
-    basic: Boolean(pet.name && pet.breed && pet.date_of_birth && pet.sex),
-    photo: Boolean(pet.photo_url),
-    microchip: Boolean(pet.microchip_number),
-    weight: (weightResult.count ?? 0) > 0,
-    vaccination: (vaccinationResult.count ?? 0) > 0,
-    parasite: (parasiteResult.count ?? 0) > 0,
-    diary: (diaryResult.count ?? 0) > 0,
-  };
-
-  const score =
-    (items.basic ? 20 : 0) +
-    (items.photo ? 10 : 0) +
-    (items.microchip ? 10 : 0) +
-    (items.weight ? 15 : 0) +
-    (items.vaccination ? 15 : 0) +
-    (items.parasite ? 15 : 0) +
-    (items.diary ? 15 : 0);
-
-  const body: CompletionResponse = { score, items };
-  return NextResponse.json(body);
 }

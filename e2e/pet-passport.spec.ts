@@ -1,11 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Pet Passport page", () => {
-  test("passport route loads without crash for unauthenticated user", async ({ page }) => {
-    // Without auth, the server component redirects to "/"
-    await page.goto("/pets/some-id/passport");
-    // Should redirect to home (LIFF login) — no 500 error
-    await expect(page).not.toHaveURL(/\/passport/);
+  test("passport route is public — renders without redirect for anonymous visitor", async ({
+    page,
+  }) => {
+    // Decision #21: passport is a public share page — no auth gate, no redirect.
+    // Unknown-but-valid uuid → not-found UI streams in; URL must stay on /passport.
+    await page.goto("/pets/00000000-0000-0000-0000-000000000000/passport");
+    await expect(page).toHaveURL(/\/passport/);
     await expect(page.locator("body")).toBeVisible();
   });
 

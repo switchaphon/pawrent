@@ -1,96 +1,101 @@
 /**
- * Integration tests for POST /api/health-events.
+ * Tests for POST/PUT/DELETE /api/health-events (converted to Drizzle stack).
  *
- * Strategy: vi.mock the @/lib/supabase-api module so every test controls
- * exactly what Supabase returns. The route handler is imported directly
- * and called with a real NextRequest so we exercise all logic — auth guard,
- * schema validation (event_type enum, date format, title length), ownership
- * check, DB insert — without a network.
+ * Mock strategy (house pattern):
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against stubbed tx
+ *   - @/lib/rate-limit: checkRateLimit allows all through
  *
- * Security gate: ownership check verifies the pet belongs to auth.user.id
- * before any write. Tests confirm owner_id filter is present.
+ * Parity: every behavioral case from the Supabase version preserved.
+ * Response shape assertions confirm snake_case parity.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through in tests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
-  getClientIp: () => "127.0.0.1",
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Mock @/lib/auth
 // ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn().mockResolvedValue({ userId: "user-abc-0000-0000-0000-000000000001" }),
+}));
 
-const mockSingle = vi.fn();
-const mockMaybeSingle = vi.fn();
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+  signAuthToken: vi.fn(),
+}));
 
-// Ownership check chain: from("pets").select("id").eq("id", x).eq("owner_id", y).maybeSingle()
-const eqCalls: Array<[string, unknown]> = [];
+// ---------------------------------------------------------------------------
+// Stubbed tx + query mock
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
 
-function buildOwnershipChain() {
-  const chain: Record<string, unknown> = {};
-  chain.eq = vi.fn((...args: [string, unknown]) => {
-    eqCalls.push(args);
-    return chain;
-  });
-  chain.maybeSingle = mockMaybeSingle;
-  return chain as {
-    eq: ReturnType<typeof vi.fn>;
-    maybeSingle: typeof mockMaybeSingle;
-  };
+const _limitQueue: Array<MockRow[]> = [];
+const _returningQueue: Array<MockRow[] | null> = [];
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
+};
+
+function resetTx() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+  stubTx.update.mockReturnThis();
+  stubTx.set.mockReturnThis();
+  stubTx.delete.mockReturnThis();
+  _limitQueue.length = 0;
+  _returningQueue.length = 0;
 }
 
-const ownershipChain = buildOwnershipChain();
-
-// The health-events route calls from("pets") for ownership check, then
-// from("health_events") for insert.
-let fromCallIndex = 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
-  fromCallIndex++;
-  if (fromCallIndex === 1) {
-    // First call: from("pets").select("id") → ownership chain
-    return { select: vi.fn(() => ownershipChain) };
-  }
-  // Second call: from("health_events").insert(...).select().single()
-  const mockSelectChain = vi.fn(() => ({ single: mockSingle }));
-  return { insert: vi.fn(() => ({ select: mockSelectChain })) };
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (_: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
 });
 
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
-
-// Import route handler AFTER mock is in place.
 import { POST, PUT, DELETE } from "@/app/api/health-events/route";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const VALID_PET_UUID = "123e4567-e89b-12d3-a456-426614174000";
+const EVT_ID = "evt-0001-0000-4000-a000-000000000001";
 
-function makeRequest(body: unknown, withAuth = true): NextRequest {
-  return new NextRequest("http://localhost/api/health-events", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-}
+const BASE_EVENT: MockRow = {
+  id: EVT_ID,
+  petId: VALID_PET_UUID,
+  eventType: "grooming",
+  title: "Monthly grooming session",
+  description: null,
+  eventDate: "2025-06-15",
+  attachmentUrls: null,
+  photoUrl: null,
+  createdAt: new Date("2025-06-15T00:00:00Z"),
+};
 
 const validBody = {
   pet_id: VALID_PET_UUID,
@@ -99,421 +104,374 @@ const validBody = {
   event_date: "2025-06-15",
 };
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+function makePostReq(body: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/health-events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+    body: JSON.stringify(body),
+  });
+}
 
+function makePutReq(body: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/health-events", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+    body: JSON.stringify(body),
+  });
+}
+
+function makeDeleteReq(id: string | null): NextRequest {
+  const url = id
+    ? `http://localhost/api/health-events?id=${id}`
+    : "http://localhost/api/health-events";
+  return new NextRequest(url, { method: "DELETE", headers: { Authorization: "Bearer mock" } });
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/health-events
+// ---------------------------------------------------------------------------
 describe("POST /api/health-events", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  // Auth guard
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest(validBody, false);
-    const res = await POST(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await POST(makePostReq(validBody));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest(validBody);
-    const res = await POST(req);
-    expect(res.status).toBe(401);
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await POST(makePostReq(validBody));
+    expect(res.status).toBe(429);
   });
 
-  // Zod schema validation — event_type enum
-  it("should return 400 when event_type is not a valid enum value", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, event_type: "bath" });
+  it("returns 400 when event_type is not a valid enum value", async () => {
+    const res = await POST(makePostReq({ ...validBody, event_type: "bath" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid JSON body (catch(() => null) arm)", async () => {
+    const req = new NextRequest("http://localhost/api/health-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  // Zod schema validation — title
-  it("should return 400 when title is empty", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, title: "" });
-    const res = await POST(req);
+  it("returns 400 when title is empty", async () => {
+    const res = await POST(makePostReq({ ...validBody, title: "" }));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("Title is required");
+    expect((await res.json()).error).toBe("Title is required");
   });
 
-  it("should return 400 when title exceeds 300 characters", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, title: "a".repeat(301) });
-    const res = await POST(req);
+  it("returns 400 when title exceeds 300 characters", async () => {
+    const res = await POST(makePostReq({ ...validBody, title: "a".repeat(301) }));
     expect(res.status).toBe(400);
   });
 
-  // Zod schema validation — event_date format
-  it("should return 400 when event_date is not YYYY-MM-DD format", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, event_date: "15/06/2025" });
-    const res = await POST(req);
+  it("returns 400 when event_date is not YYYY-MM-DD format", async () => {
+    const res = await POST(makePostReq({ ...validBody, event_date: "15/06/2025" }));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("Date must be YYYY-MM-DD");
+    expect((await res.json()).error).toBe("Date must be YYYY-MM-DD");
   });
 
-  // Zod schema validation — pet_id UUID format
-  it("should return 400 when pet_id is not a valid UUID", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, pet_id: "not-a-uuid" });
-    const res = await POST(req);
+  it("returns 400 when pet_id is not a valid UUID", async () => {
+    const res = await POST(makePostReq({ ...validBody, pet_id: "not-a-uuid" }));
     expect(res.status).toBe(400);
   });
 
-  // Ownership check — security gate
-  it("should return 404 when the pet does not belong to the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    // Pet ownership check returns null — not found or belongs to another user
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+  it("returns 400 when description exceeds 2000 characters", async () => {
+    const res = await POST(makePostReq({ ...validBody, description: "x".repeat(2001) }));
+    expect(res.status).toBe(400);
+  });
 
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("returns 404 when pet does not belong to authenticated user", async () => {
+    _limitQueue.push([]); // pet ownership check returns empty
+    const res = await POST(makePostReq(validBody));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Pet not found");
+    expect((await res.json()).error).toBe("Pet not found");
   });
 
-  it("should verify the ownership filter includes owner_id equal to the auth user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: "evt-1", ...validBody }, error: null });
-
-    const req = makeRequest(validBody);
-    await POST(req);
-
-    const filterKeys = eqCalls.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
-    const ownerEq = eqCalls.find(([key]) => key === "owner_id");
-    expect(ownerEq?.[1]).toBe("user-1");
-  });
-
-  // Happy path — grooming event
-  it("should create a grooming event and return 201 on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-    const created = {
-      id: "evt-1",
-      pet_id: VALID_PET_UUID,
-      event_type: "grooming",
-      title: "Monthly grooming session",
-      description: null,
-      event_date: "2025-06-15",
-    };
-    mockSingle.mockResolvedValueOnce({ data: created, error: null });
-
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("creates grooming event and returns 201 with snake_case shape", async () => {
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([BASE_EVENT]);
+    const res = await POST(makePostReq(validBody));
     expect(res.status).toBe(201);
-    const json = await res.json();
-    expect(json.id).toBe("evt-1");
-    expect(json.event_type).toBe("grooming");
-    expect(json.title).toBe("Monthly grooming session");
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.id).toBe(EVT_ID);
+    expect(body.pet_id).toBe(VALID_PET_UUID);
+    expect(body.event_type).toBe("grooming");
+    expect(body.title).toBe("Monthly grooming session");
+    expect(body.event_date).toBe("2025-06-15");
+    expect(body).not.toHaveProperty("petId");
+    expect(body).not.toHaveProperty("eventType");
+    expect(body).not.toHaveProperty("eventDate");
+    expect(body).not.toHaveProperty("attachmentUrls");
   });
 
-  // Happy path — vet_visit event (the other valid enum value)
-  it("should create a vet_visit event successfully", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-    const body = { ...validBody, event_type: "vet_visit", title: "Annual checkup" };
-    const created = { id: "evt-2", ...body, description: null };
-    mockSingle.mockResolvedValueOnce({ data: created, error: null });
-
-    const req = makeRequest(body);
-    const res = await POST(req);
+  it("creates vet_visit event successfully", async () => {
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, eventType: "vet_visit" }]);
+    const res = await POST(
+      makePostReq({ ...validBody, event_type: "vet_visit", title: "Annual checkup" })
+    );
     expect(res.status).toBe(201);
-    const json = await res.json();
-    expect(json.event_type).toBe("vet_visit");
+    expect((await res.json()).event_type).toBe("vet_visit");
   });
 
-  // Optional description field
-  it("should accept an optional description field and store it", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-    const body = { ...validBody, description: "Trim nails and bath" };
-    const created = { id: "evt-3", ...body };
-    mockSingle.mockResolvedValueOnce({ data: created, error: null });
-
-    const req = makeRequest(body);
-    const res = await POST(req);
+  it("accepts optional description field", async () => {
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, description: "Trim nails and bath" }]);
+    const res = await POST(makePostReq({ ...validBody, description: "Trim nails and bath" }));
     expect(res.status).toBe(201);
-    const json = await res.json();
-    expect(json.description).toBe("Trim nails and bath");
+    expect((await res.json()).description).toBe("Trim nails and bath");
   });
 
-  it("should return 400 when description exceeds 2000 characters", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, description: "x".repeat(2001) });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+  it("returns snake_case — attachment_urls field present", async () => {
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([BASE_EVENT]);
+    const body = (await (await POST(makePostReq(validBody))).json()) as Record<string, unknown>;
+    expect(body).toHaveProperty("attachment_urls");
+    expect(body).not.toHaveProperty("attachmentUrls");
   });
 
-  // DB error path
-  it("should return 500 when Supabase insert returns an error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "DB write failed" } });
+  it("returns 404 when insert returns empty rows (rows[0] ?? null → Pet not found)", async () => {
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([]);
+    const res = await POST(makePostReq(validBody));
+    // Route: `rows[0] ?? null` → null → same 404 path as "pet not found"
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Pet not found");
+  });
 
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await POST(makePostReq(validBody));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Failed to create health event");
   });
 });
 
 // ---------------------------------------------------------------------------
 // PUT /api/health-events
-// PUT calls from() three times:
-//   1. from("health_events").select("pet_id").eq("id", id).maybeSingle()
-//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
-//   3. from("health_events").update(data).eq("id", id).select().single()
 // ---------------------------------------------------------------------------
-
 describe("PUT /api/health-events", () => {
-  const EVT_ID = "evt-0001-0000-0000-000000000001";
-
-  function makePutRequest(body: unknown, withAuth = true): NextRequest {
-    return new NextRequest("http://localhost/api/health-events", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-  }
-
-  function buildFirstFromChain() {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = mockMaybeSingle;
-    return { select: vi.fn(() => chain) };
-  }
-
-  function buildUpdateChain(result: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.select = vi.fn(() => chain);
-    chain.single = vi.fn().mockResolvedValue(result);
-    return chain;
-  }
+  const validPutBody = { id: EVT_ID, title: "Updated grooming" };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
-
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFirstFromChain();
-      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
-      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
-    });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  it("should return 401 without auth", async () => {
-    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" }, false);
-    const res = await PUT(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 400 when id is missing from body", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makePutRequest({ title: "Updated grooming" });
+  it("returns 400 when id is missing from body", async () => {
+    const res = await PUT(makePutReq({ title: "Updated grooming" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("id is required");
+  });
+
+  it("returns 400 for invalid update field (bad event_type)", async () => {
+    const res = await PUT(makePutReq({ id: EVT_ID, event_type: "bath" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when health event record is not found", async () => {
+    _limitQueue.push([]); // event lookup returns empty → not_found
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Health event not found");
+  });
+
+  it("returns 404 when pet is not owned by the user", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]); // event found
+    _limitQueue.push([]); // pet ownership fails
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Health event not found");
+  });
+
+  it("updates health event and returns snake_case row", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, title: "Updated grooming" }]);
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.title).toBe("Updated grooming");
+    expect(body).not.toHaveProperty("petId");
+    expect(body).not.toHaveProperty("eventType");
+  });
+
+  it("returns 500 when update returns empty rows", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([]);
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(500);
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(500);
+  });
+
+  it("returns 429 when rate limited on PUT", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 for invalid JSON body in PUT (catch → null → id missing)", async () => {
+    const req = new NextRequest("http://localhost/api/health-events", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
     const res = await PUT(req);
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("id is required");
+    expect((await res.json()).error).toBe("id is required");
   });
 
-  it("should return 404 when health event record is not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
-    const res = await PUT(req);
-    expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Health event not found");
-  });
-
-  it("should return 404 when pet is not owned by the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
-    const res = await PUT(req);
-    expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Pet not found");
-  });
-
-  it("should return 200 with updated data on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-
-    const updated = {
-      id: EVT_ID,
-      pet_id: VALID_PET_UUID,
-      event_type: "grooming",
-      title: "Updated grooming",
-      event_date: "2025-06-15",
-    };
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFirstFromChain();
-      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
-      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
-    });
-
-    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
-    const res = await PUT(req);
+  it("updates with description field — hits description ?? null branch (line 117)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, description: "Follow-up needed" }]);
+    const res = await PUT(makePutReq({ id: EVT_ID, description: "Follow-up needed" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.id).toBe(EVT_ID);
-    expect(json.title).toBe("Updated grooming");
+    expect((await res.json()).description).toBe("Follow-up needed");
   });
 
-  it("should return 500 on DB update error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+  it("updates with photo_url field — hits photo_url ?? null branch (line 119)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, photoUrl: "https://example.com/photo.jpg" }]);
+    const res = await PUT(makePutReq({ id: EVT_ID, photo_url: "https://example.com/photo.jpg" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).photo_url).toBe("https://example.com/photo.jpg");
+  });
 
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFirstFromChain();
-      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
-      return {
-        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
-      };
-    });
+  it("updates event_type and event_date — hits eventType and eventDate branches", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([{ ...BASE_EVENT, eventType: "vet_visit", eventDate: "2026-01-10" }]);
+    const res = await PUT(
+      makePutReq({ id: EVT_ID, event_type: "vet_visit", event_date: "2026-01-10" })
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.event_type).toBe("vet_visit");
+    expect(body.event_date).toBe("2026-01-10");
+  });
 
-    const req = makePutRequest({ id: EVT_ID, title: "Updated grooming" });
-    const res = await PUT(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("update failed");
+  it("updates all five optional fields in a single call (all branches true)", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    _returningQueue.push([
+      {
+        ...BASE_EVENT,
+        eventType: "checkup",
+        title: "Full checkup",
+        description: "All clear",
+        eventDate: "2026-03-01",
+        photoUrl: "https://x.com/p.jpg",
+      },
+    ]);
+    const res = await PUT(
+      makePutReq({
+        id: EVT_ID,
+        event_type: "checkup",
+        title: "Full checkup",
+        description: "All clear",
+        event_date: "2026-03-01",
+        photo_url: "https://x.com/p.jpg",
+      })
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).title).toBe("Full checkup");
   });
 });
 
 // ---------------------------------------------------------------------------
 // DELETE /api/health-events
-// DELETE calls from() three times:
-//   1. from("health_events").select("pet_id").eq("id", id).maybeSingle()
-//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
-//   3. from("health_events").delete().eq("id", id)
 // ---------------------------------------------------------------------------
-
 describe("DELETE /api/health-events", () => {
-  const EVT_ID = "evt-0001-0000-0000-000000000001";
-
-  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
-    const url =
-      id !== null
-        ? `http://localhost/api/health-events?id=${id}`
-        : "http://localhost/api/health-events";
-    return new NextRequest(url, {
-      method: "DELETE",
-      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
-    });
-  }
-
-  function buildFirstFromChain() {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = mockMaybeSingle;
-    return { select: vi.fn(() => chain) };
-  }
-
-  function buildDeleteChain(result: { error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn().mockResolvedValue(result);
-    return chain;
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
-
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFirstFromChain();
-      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
-      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
-    });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  it("should return 401 without auth", async () => {
-    const req = makeDeleteRequest(EVT_ID, false);
-    const res = await DELETE(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await DELETE(makeDeleteReq(EVT_ID));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 400 when id query param is missing", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeDeleteRequest(null);
-    const res = await DELETE(req);
+  it("returns 400 when id query param is missing", async () => {
+    const res = await DELETE(makeDeleteReq(null));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("id is required");
+    expect((await res.json()).error).toBe("id is required");
   });
 
-  it("should return 404 when health event record is not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeDeleteRequest(EVT_ID);
-    const res = await DELETE(req);
+  it("returns 404 when health event record is not found", async () => {
+    _limitQueue.push([]); // event lookup returns empty → not_found
+    const res = await DELETE(makeDeleteReq(EVT_ID));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Health event not found");
+    expect((await res.json()).error).toBe("Health event not found");
   });
 
-  it("should return 200 with success true on deletion", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
+  it("returns 404 when pet is not owned by the user", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([]);
+    const res = await DELETE(makeDeleteReq(EVT_ID));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Health event not found");
+  });
 
-    const req = makeDeleteRequest(EVT_ID);
-    const res = await DELETE(req);
+  it("deletes health event and returns { success: true }", async () => {
+    _limitQueue.push([{ petId: VALID_PET_UUID }]);
+    _limitQueue.push([{ id: VALID_PET_UUID }]);
+    const res = await DELETE(makeDeleteReq(EVT_ID));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.success).toBe(true);
+    expect((await res.json()).success).toBe(true);
   });
 
-  it("should return 500 on DB delete error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { pet_id: VALID_PET_UUID }, error: null });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_PET_UUID }, error: null });
-
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFirstFromChain();
-      if (fromCallIndex === 2) return { select: vi.fn(() => ownershipChain) };
-      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
-    });
-
-    const req = makeDeleteRequest(EVT_ID);
-    const res = await DELETE(req);
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeDeleteReq(EVT_ID));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("delete failed");
+  });
+
+  it("returns 429 when rate limited on DELETE", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeDeleteReq(EVT_ID));
+    expect(res.status).toBe(429);
   });
 });

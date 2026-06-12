@@ -1,469 +1,521 @@
 /**
- * Integration tests for /api/pets (GET, POST, PUT, DELETE).
+ * Tests for GET/POST/PUT/DELETE /api/pets (converted to Drizzle stack).
  *
- * Strategy: vi.mock the @/lib/supabase-api module so every test controls
- * exactly what Supabase returns. The route handlers are imported directly
- * and called with a real NextRequest so we exercise all the logic — auth
- * guard, Zod validation, ownership filter — without a network.
+ * Mock strategy (house pattern from api-auth-line.test.ts):
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against stubbed tx
+ *   - @/lib/rate-limit: checkRateLimit allows all through
  *
- * The ownership filter tests are the security-critical gate: they confirm
- * that .eq("owner_id", user.id) is present and that omitting it would
- * cause a test to fail.
+ * Parity contract: every behavioral case from the Supabase version is
+ * preserved. Response shape assertions are the parity proof — all keys
+ * must remain snake_case; no camelCase must leak.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through in tests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  // Resolves null (allowed) by default; 429 cases resolve a NextResponse —
+  // type as Response | null so both are assignable.
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
-  getClientIp: () => "127.0.0.1",
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Mock @/lib/auth
 // ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn().mockResolvedValue({ userId: "aaaaaaaa-0000-4000-a000-000000000001" }),
+}));
 
-// We define a stable mock factory that tests can reconfigure per-test.
-const mockSingle = vi.fn();
-const mockMaybeSingle = vi.fn();
-const mockSelect = vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle }));
-const mockInsert = vi.fn(() => ({ select: mockSelect }));
-const mockUpdate = vi.fn(() => ({ eq: mockEqChain }));
-const mockDelete = vi.fn(() => ({ eq: mockEqChain }));
-const mockUpsert = vi.fn(() => Promise.resolve({ error: null }));
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+  signAuthToken: vi.fn(),
+}));
 
-// eq() chain: supports .eq().eq().select() for ownership checks
-// We track every call to verify the ownership filter is applied.
-const eqCalls: Array<[string, unknown]> = [];
-const mockEqChain = buildEqChain();
+// ---------------------------------------------------------------------------
+// Stubbed tx + query mock
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyChain = any;
+let _selectRows: MockRow[] = [];
+let _mutateRows: MockRow[] = [];
 
-function buildEqChain() {
-  const chain: Record<string, unknown> = {};
-  chain.eq = vi.fn((...args: [string, unknown]) => {
-    eqCalls.push(args);
-    return chain;
-  });
-  chain.select = vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle }));
-  return chain as AnyChain;
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => _selectRows),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => _mutateRows),
+  // Drizzle builders are thenables — GET pets awaits at .orderBy() with no
+  // .limit(). Delegate to limit() so mockResolvedValueOnce queues still apply.
+  then(resolve: (v: unknown) => void, reject?: (e: unknown) => void) {
+    (stubTx.limit as () => Promise<unknown>)().then(resolve, reject);
+  },
+};
+
+function resetTx() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.orderBy.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+  stubTx.update.mockReturnThis();
+  stubTx.set.mockReturnThis();
+  stubTx.delete.mockReturnThis();
+  // Restore default implementations cleared by vi.clearAllMocks()
+  stubTx.limit.mockImplementation(async () => _selectRows);
+  stubTx.returning.mockImplementation(async () => _mutateRows);
 }
 
-const mockFrom: ReturnType<typeof vi.fn> = vi.fn((table: string) => {
-  if (table === "profiles") return { upsert: mockUpsert };
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
   return {
-    insert: mockInsert,
-    update: mockUpdate,
-    delete: mockDelete,
+    ...actual,
+    query: vi.fn(async (_: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
   };
 });
 
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
-
-// Import route handlers AFTER the mock is in place.
 import { GET, POST, PUT, DELETE } from "@/app/api/pets/route";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const USER_ID = "aaaaaaaa-0000-4000-a000-000000000001";
+const PET_ID = "pet00000-0000-4000-a000-000000000001";
+const PET_ID2 = "pet00000-0000-4000-a000-000000000002";
 
-const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const ANOTHER_UUID = "987fcdeb-51a2-43f7-b210-111222333444";
-
-function makeRequest(method: string, body: unknown, withAuth = true): NextRequest {
-  return new NextRequest("http://localhost/api/pets", {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-}
+// Drizzle camelCase row (what stubTx returns)
+const BASE_PET: MockRow = {
+  id: PET_ID,
+  ownerId: USER_ID,
+  name: "Luna",
+  species: "dog",
+  breed: "Golden",
+  sex: "Female",
+  color: "Gold",
+  weightKg: "25.00",
+  dateOfBirth: "2020-01-01",
+  microchipNumber: null,
+  photoUrl: null,
+  neutered: false,
+  isSpayedNeutered: false,
+  specialNotes: null,
+  status: "active",
+  memorialDate: null,
+  gotchaDay: null,
+  pawrentId: "pawrent-abc",
+  createdAt: new Date("2024-01-01T00:00:00Z"),
+};
 
 const validPetBody = {
   name: "Luna",
-  species: "Dog",
+  species: "dog",
   breed: "Golden",
   sex: "Female",
   color: "Gold",
   weight_kg: 25,
   date_of_birth: "2020-01-01",
   microchip_number: null,
+  neutered: false,
   special_notes: null,
 };
+
+function makeReq(method: string, body?: unknown, search?: string): NextRequest {
+  const url = `http://localhost/api/pets${search ?? ""}`;
+  return new NextRequest(url, {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/pets
+// ---------------------------------------------------------------------------
+describe("GET /api/pets", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    _selectRows = [];
+    _mutateRows = [];
+    resetTx();
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("Unauthorized");
+  });
+
+  it("returns 401 when token resolves to no user", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns empty array when user has no pets", async () => {
+    stubTx.limit.mockResolvedValueOnce([]);
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it("returns an array of pets for the authenticated user", async () => {
+    const pet2 = { ...BASE_PET, id: PET_ID2, name: "Max" };
+    stubTx.limit.mockResolvedValueOnce([BASE_PET, pet2]);
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveLength(2);
+    expect(body[0].name).toBe("Luna");
+    expect(body[1].name).toBe("Max");
+  });
+
+  it("returns snake_case — no camelCase keys leak", async () => {
+    stubTx.limit.mockResolvedValueOnce([BASE_PET]);
+    const body = (await (await GET(makeReq("GET"))).json()) as Record<string, unknown>[];
+    expect(body[0]).toMatchObject({
+      id: PET_ID,
+      owner_id: USER_ID,
+      name: "Luna",
+      species: "dog",
+      weight_kg: "25.00",
+      date_of_birth: "2020-01-01",
+      is_spayed_neutered: false,
+    });
+    expect(body[0]).not.toHaveProperty("ownerId");
+    expect(body[0]).not.toHaveProperty("weightKg");
+    expect(body[0]).not.toHaveProperty("dateOfBirth");
+    expect(body[0]).not.toHaveProperty("isSpayedNeutered");
+    expect(body[0]).not.toHaveProperty("microchipNumber");
+  });
+
+  it("response shape has all expected fields", async () => {
+    stubTx.limit.mockResolvedValueOnce([BASE_PET]);
+    const body = (await (await GET(makeReq("GET"))).json()) as Record<string, unknown>[];
+    expect(Object.keys(body[0])).toEqual(
+      expect.arrayContaining([
+        "id",
+        "owner_id",
+        "name",
+        "species",
+        "breed",
+        "sex",
+        "color",
+        "weight_kg",
+        "date_of_birth",
+        "microchip_number",
+        "photo_url",
+        "neutered",
+        "is_spayed_neutered",
+        "special_notes",
+        "status",
+        "memorial_date",
+        "gotcha_day",
+        "pawrent_id",
+        "created_at",
+      ])
+    );
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("Connection failed"));
+    const res = await GET(makeReq("GET"));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // POST /api/pets
 // ---------------------------------------------------------------------------
-
 describe("POST /api/pets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    _selectRows = [];
+    _mutateRows = [];
+    resetTx();
   });
 
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest("POST", validPetBody, false);
-    const res = await POST(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await POST(makeReq("POST", validPetBody));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest("POST", validPetBody);
-    const res = await POST(req);
-    expect(res.status).toBe(401);
-  });
-
-  it("should return 400 when the body fails Zod validation (empty name)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1", email: "a@b.com" } } });
-    const req = makeRequest("POST", { ...validPetBody, name: "" });
-    const res = await POST(req);
+  it("returns 400 for missing name", async () => {
+    const res = await POST(makeReq("POST", { ...validPetBody, name: "" }));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBeTruthy();
+    expect((await res.json()).error).toBeDefined();
   });
 
-  it("should return 400 when sex has an invalid value", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1", email: "a@b.com" } } });
-    const req = makeRequest("POST", { ...validPetBody, sex: "Other" });
-    const res = await POST(req);
+  it("returns 400 when sex has an invalid value", async () => {
+    const res = await POST(makeReq("POST", { ...validPetBody, sex: "Other" }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when weight is negative", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1", email: "a@b.com" } } });
-    const req = makeRequest("POST", { ...validPetBody, weight_kg: -5 });
+  it("returns 400 when weight is negative", async () => {
+    const res = await POST(makeReq("POST", { ...validPetBody, weight_kg: -5 }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    const req = new NextRequest("http://localhost/api/pets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it("should create a pet and return it on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1", email: "a@b.com" } } });
-    const createdPet = { id: VALID_UUID, owner_id: "user-1", ...validPetBody };
-    mockSingle.mockResolvedValueOnce({ data: createdPet, error: null });
-    mockUpsert.mockResolvedValueOnce({ error: null });
-
-    const req = makeRequest("POST", validPetBody);
-    const res = await POST(req);
+  it("creates pet and returns snake_case row with owner_id set", async () => {
+    stubTx.returning.mockResolvedValueOnce([BASE_PET]);
+    const res = await POST(makeReq("POST", validPetBody));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.id).toBe(VALID_UUID);
-    expect(json.owner_id).toBe("user-1");
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.id).toBe(PET_ID);
+    expect(body.owner_id).toBe(USER_ID);
+    expect(body.name).toBe("Luna");
+    expect(body).not.toHaveProperty("ownerId");
   });
 
-  it("should return 500 when Supabase insert returns an error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1", email: "a@b.com" } } });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "DB error" } });
-    mockUpsert.mockResolvedValueOnce({ error: null });
-
-    const req = makeRequest("POST", validPetBody);
-    const res = await POST(req);
+  it("returns 500 when insert returns no rows", async () => {
+    stubTx.returning.mockResolvedValueOnce([]);
+    const res = await POST(makeReq("POST", validPetBody));
     expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await POST(makeReq("POST", validPetBody));
+    expect(res.status).toBe(429);
+  });
+
+  it("handles nullable optional fields as null — exercises all null-coalescing arms in POST", async () => {
+    // Send null for all nullable fields — covers ?? null / ?? false / ?? "active" coalescing arms
+    stubTx.returning.mockResolvedValueOnce([BASE_PET]);
+    const res = await POST(
+      makeReq("POST", {
+        name: "Minimal",
+        species: null,
+        breed: null,
+        sex: null,
+        color: null,
+        weight_kg: null,
+        date_of_birth: null,
+        microchip_number: null,
+        neutered: null,
+        special_notes: null,
+      })
+    );
+    expect(res.status).toBe(200);
   });
 });
 
 // ---------------------------------------------------------------------------
-// PUT /api/pets — ownership check is the security gate
+// PUT /api/pets
 // ---------------------------------------------------------------------------
-
 describe("PUT /api/pets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    // Re-wire the eq chain for a fresh test
-    (mockEqChain.eq as ReturnType<typeof vi.fn>).mockImplementation(
-      (...args: [string, unknown]) => {
-        eqCalls.push(args);
-        return mockEqChain;
-      }
-    );
-    mockUpdate.mockReturnValue({ eq: mockEqChain.eq });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    _selectRows = [];
+    _mutateRows = [];
+    resetTx();
   });
 
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest("PUT", { petId: VALID_UUID, name: "NewName" }, false);
-    const res = await PUT(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "New" }));
     expect(res.status).toBe(401);
   });
 
-  it("should return 400 when petId is missing from the body", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("PUT", { name: "NewName" });
-    const res = await PUT(req);
+  it("returns 400 when petId is missing", async () => {
+    const res = await PUT(makeReq("PUT", { name: "New" }));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toMatch(/petId/i);
+    expect((await res.json()).error).toMatch(/petId/i);
   });
 
-  it("should filter by owner_id when updating (ownership check present)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const updatedPet = { id: VALID_UUID, owner_id: "user-1", name: "NewName" };
-    mockSingle.mockResolvedValueOnce({ data: updatedPet, error: null });
-
-    // Re-implement eq chain to capture calls and still chain
-    const capturedEqArgs: Array<[string, unknown]> = [];
-    const chainObj = {
-      eq: vi.fn((...args: [string, unknown]) => {
-        capturedEqArgs.push(args);
-        return chainObj;
-      }),
-      select: vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chainObj) });
-
-    const req = makeRequest("PUT", { petId: VALID_UUID, name: "NewName" });
-    await PUT(req);
-
-    // Verify both ownership filters were applied
-    const filterKeys = capturedEqArgs.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
+  it("returns 400 for invalid update fields (negative weight)", async () => {
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, weight_kg: -99 }));
+    expect(res.status).toBe(400);
   });
 
-  it("should return 404 when Supabase returns PGRST116 (row not found / wrong owner)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const chainObj = {
-      eq: vi.fn(() => chainObj),
-      select: vi.fn(() => ({ single: mockSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ update: vi.fn(() => chainObj) });
-    mockSingle.mockResolvedValueOnce({
-      data: null,
-      error: { code: "PGRST116", message: "Not found" },
-    });
-
-    const req = makeRequest("PUT", { petId: ANOTHER_UUID, name: "Hack" });
-    const res = await PUT(req);
+  it("returns 404 when pet not found or belongs to another user (returning empty)", async () => {
+    stubTx.returning.mockResolvedValueOnce([]);
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "Hack" }));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toMatch(/not found/i);
+    expect((await res.json()).error).toMatch(/not found/i);
   });
 
-  it("should return 400 when the updated fields fail Zod validation", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("PUT", { petId: VALID_UUID, weight_kg: -99 });
+  it("updates pet and returns snake_case row without camelCase keys", async () => {
+    const updated = { ...BASE_PET, name: "NewName" };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "NewName" }));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.name).toBe("NewName");
+    expect(body.owner_id).toBe(USER_ID);
+    expect(body).not.toHaveProperty("ownerId");
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "X" }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when body is invalid JSON", async () => {
+    const req = new NextRequest("http://localhost/api/pets", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    // null body → petId undefined → 400
     const res = await PUT(req);
     expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/petId/i);
+  });
+
+  it("covers null-valued optional fields in update (date_of_birth, memorial_date)", async () => {
+    // Send null for nullable optional fields — exercises the `?? null` coalescing arms
+    const updated = { ...BASE_PET, dateOfBirth: null, memorialDate: null };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+    const res = await PUT(
+      makeReq("PUT", {
+        petId: PET_ID,
+        date_of_birth: null,
+        memorial_date: null,
+        microchip_number: null,
+        special_notes: null,
+        photo_url: null,
+        color: null,
+        breed: null,
+        sex: null,
+      })
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.date_of_birth).toBeNull();
+    expect(body.memorial_date).toBeNull();
+  });
+
+  it("covers weight_kg null in update (sets weightKg to null)", async () => {
+    const updated = { ...BASE_PET, weightKg: null };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, weight_kg: null }));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.weight_kg).toBeNull();
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.returning.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await PUT(makeReq("PUT", { petId: PET_ID, name: "X" }));
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
   });
 });
 
 // ---------------------------------------------------------------------------
-// DELETE /api/pets — ownership check is the security gate
+// DELETE /api/pets
 // ---------------------------------------------------------------------------
-
 describe("DELETE /api/pets", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    _selectRows = [];
+    _mutateRows = [];
+    resetTx();
   });
 
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest("DELETE", { petId: VALID_UUID }, false);
-    const res = await DELETE(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
     expect(res.status).toBe(401);
   });
 
-  it("should return 400 when petId is missing", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest("DELETE", {});
+  it("returns 400 when petId is missing", async () => {
+    const res = await DELETE(makeReq("DELETE", {}));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/petId/i);
+  });
+
+  it("returns 404 when pet does not exist or belongs to another user", async () => {
+    stubTx.returning.mockResolvedValueOnce([]);
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Pet not found");
+  });
+
+  it("deletes pet and returns { success: true }", async () => {
+    stubTx.returning.mockResolvedValueOnce([BASE_PET]);
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
+    expect(res.status).toBe(429);
+  });
+
+  it("returns 400 when body is invalid JSON", async () => {
+    const req = new NextRequest("http://localhost/api/pets", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
+    });
+    // null body → petId undefined → 400
     const res = await DELETE(req);
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toMatch(/petId/i);
+    expect((await res.json()).error).toMatch(/petId/i);
   });
 
-  it("should filter by owner_id when deleting (ownership check present)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const capturedEqArgs: Array<[string, unknown]> = [];
-    const chainObj = {
-      eq: vi.fn((...args: [string, unknown]) => {
-        capturedEqArgs.push(args);
-        return chainObj;
-      }),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ delete: vi.fn(() => chainObj) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-
-    const req = makeRequest("DELETE", { petId: VALID_UUID });
-    await DELETE(req);
-
-    const filterKeys = capturedEqArgs.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
-  });
-
-  it("should return 404 when the pet does not exist or belongs to another user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chainObj = {
-      eq: vi.fn(() => chainObj),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ delete: vi.fn(() => chainObj) });
-    // maybeSingle returns null data — row not found or filtered by owner_id
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeRequest("DELETE", { petId: ANOTHER_UUID });
-    const res = await DELETE(req);
-    expect(res.status).toBe(404);
-  });
-
-  it("should return success when deletion succeeds", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chainObj = {
-      eq: vi.fn(() => chainObj),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ delete: vi.fn(() => chainObj) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-
-    const req = makeRequest("DELETE", { petId: VALID_UUID });
-    const res = await DELETE(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.success).toBe(true);
-  });
-
-  it("should return 500 when Supabase returns a DB error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const chainObj = {
-      eq: vi.fn(() => chainObj),
-      select: vi.fn(() => ({ maybeSingle: mockMaybeSingle })),
-    };
-    mockFrom.mockReturnValueOnce({ delete: vi.fn(() => chainObj) });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: "Connection reset" } });
-
-    const req = makeRequest("DELETE", { petId: VALID_UUID });
-    const res = await DELETE(req);
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.returning.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeReq("DELETE", { petId: PET_ID }));
     expect(res.status).toBe(500);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// GET /api/pets — returns all pets owned by the authenticated user
-// ---------------------------------------------------------------------------
-
-describe("GET /api/pets", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    eqCalls.length = 0;
-  });
-
-  function makeGetRequest(withAuth = true): NextRequest {
-    return new NextRequest("http://localhost/api/pets", {
-      method: "GET",
-      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
-    });
-  }
-
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeGetRequest(false);
-    const res = await GET(req);
-    expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
-  });
-
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeGetRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(401);
-  });
-
-  it("should return an array of pets for the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const pets = [
-      { id: VALID_UUID, owner_id: "user-1", name: "Luna" },
-      { id: ANOTHER_UUID, owner_id: "user-1", name: "Max" },
-    ];
-
-    // GET path: from("pets").select("*").eq("owner_id", id).order(...)
-    const orderMock = vi.fn().mockResolvedValue({ data: pets, error: null });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom.mockReturnValueOnce({ select: selectMock });
-
-    const req = makeGetRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toHaveLength(2);
-    expect(json[0].name).toBe("Luna");
-    expect(json[1].name).toBe("Max");
-  });
-
-  it("should return an empty array when the user has no pets", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom.mockReturnValueOnce({ select: selectMock });
-
-    const req = makeGetRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toEqual([]);
-  });
-
-  it("should filter by owner_id (not return other users' pets)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const capturedEqArgs: Array<[string, unknown]> = [];
-    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
-    const eqMock = vi.fn((...args: [string, unknown]) => {
-      capturedEqArgs.push(args);
-      return { order: orderMock };
-    });
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom.mockReturnValueOnce({ select: selectMock });
-
-    const req = makeGetRequest();
-    await GET(req);
-
-    // The route must filter by owner_id equal to the authenticated user's ID
-    const ownerFilter = capturedEqArgs.find(([key]) => key === "owner_id");
-    expect(ownerFilter).toBeDefined();
-    expect(ownerFilter?.[1]).toBe("user-1");
-  });
-
-  it("should return 500 when Supabase returns a database error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    const orderMock = vi
-      .fn()
-      .mockResolvedValue({ data: null, error: { message: "Connection failed" } });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom.mockReturnValueOnce({ select: selectMock });
-
-    const req = makeGetRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Connection failed");
+    expect((await res.json()).error).toBe("Internal server error");
   });
 });

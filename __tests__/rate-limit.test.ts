@@ -1,39 +1,108 @@
-/**
- * Unit tests for lib/rate-limit.ts
- *
- * Mocks @upstash/redis and @upstash/ratelimit to prevent real HTTP calls.
- * Tests the utility functions: createRateLimiter, getClientIp, checkRateLimit.
- */
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-// ---------------------------------------------------------------------------
-// Mock @upstash/redis — prevent real HTTP calls
-// ---------------------------------------------------------------------------
-const mockLimit = vi.fn();
+const redisMock = vi.hoisted(() => {
+  type ZsetEntry = { score: number; member: string };
+  type RedisInstance = {
+    url: string;
+    options: Record<string, unknown>;
+    zsets: Map<string, ZsetEntry[]>;
+    expires: Map<string, number>;
+    eval: ReturnType<typeof vi.fn>;
+    connect: ReturnType<typeof vi.fn>;
+  };
 
-vi.mock("@upstash/redis", () => {
   return {
-    Redis: class MockRedis {
-      constructor() {}
-    },
+    instances: [] as RedisInstance[],
   };
 });
 
-vi.mock("@upstash/ratelimit", () => {
-  class MockRatelimit {
-    constructor() {}
-    limit = mockLimit;
-    static slidingWindow() {
-      return "sliding-window-algorithm";
+vi.mock("ioredis", () => {
+  class MockRedis {
+    url: string;
+    options: Record<string, unknown>;
+    zsets = new Map<string, { score: number; member: string }[]>();
+    expires = new Map<string, number>();
+    eval = vi.fn(
+      async (
+        _script: string,
+        _keys: number,
+        key: string,
+        nowArg: string,
+        windowArg: string,
+        requestsArg: string,
+        member: string
+      ) => {
+        const now = Number(nowArg);
+        const windowMs = Number(windowArg);
+        const requests = Number(requestsArg);
+        const cutoff = now - windowMs;
+        const existing = this.zsets.get(key) ?? [];
+        const active = existing.filter((entry) => entry.score > cutoff);
+
+        this.zsets.set(key, active);
+
+        if (active.length < requests) {
+          const withoutDuplicate = active.filter((entry) => entry.member !== member);
+          withoutDuplicate.push({ score: now, member });
+          withoutDuplicate.sort((a, b) => a.score - b.score);
+          this.zsets.set(key, withoutDuplicate);
+          this.expires.set(key, windowMs);
+          return [1, now + windowMs];
+        }
+
+        return [0, (active[0]?.score ?? now) + windowMs];
+      }
+    );
+    connect = vi.fn();
+
+    constructor(url: string, options: Record<string, unknown>) {
+      this.url = url;
+      this.options = options;
+      redisMock.instances.push(this);
     }
   }
-  return { Ratelimit: MockRatelimit };
+
+  return { default: MockRedis };
 });
 
-// Import after mocks are set up
-import { getClientIp, checkRateLimit, createRateLimiter } from "@/lib/rate-limit";
+import { checkRateLimit, createRateLimiter, getClientIp } from "@/lib/rate-limit";
+
+describe("createRateLimiter", () => {
+  it("creates a lazy ioredis singleton without connecting on import", () => {
+    const redis = redisMock.instances[0];
+
+    expect(redis.url).toBe(process.env.REDIS_URL ?? "redis://localhost:6379");
+    expect(redis.options).toMatchObject({
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+    });
+    expect(redis.connect).not.toHaveBeenCalled();
+  });
+
+  it("parses supported duration units into milliseconds for keys", async () => {
+    await createRateLimiter(1, "250 ms").limit("ms-user");
+    await createRateLimiter(1, "2 s").limit("s-user");
+    await createRateLimiter(1, "3 m").limit("m-user");
+    await createRateLimiter(1, "4 h").limit("h-user");
+    await createRateLimiter(1, "5 d").limit("d-user");
+
+    const keys = [...redisMock.instances[0].zsets.keys()];
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "ratelimit:ms-user:250",
+        "ratelimit:s-user:2000",
+        "ratelimit:m-user:180000",
+        "ratelimit:h-user:14400000",
+        "ratelimit:d-user:432000000",
+      ])
+    );
+  });
+
+  it("rejects invalid duration strings", () => {
+    expect(() => createRateLimiter(1, "1 minute" as never)).toThrow("Invalid rate limit window");
+  });
+});
 
 describe("getClientIp", () => {
   it("should extract IP from x-real-ip header", () => {
@@ -74,21 +143,21 @@ describe("getClientIp", () => {
 });
 
 describe("checkRateLimit", () => {
-  const limiter = createRateLimiter(5, "1 m");
+  const limiter = { limit: vi.fn() };
 
   beforeEach(() => {
-    mockLimit.mockReset();
+    limiter.limit.mockReset();
   });
 
   it("should return null when under the rate limit", async () => {
-    mockLimit.mockResolvedValue({ success: true, reset: Date.now() + 60000 });
+    limiter.limit.mockResolvedValue({ success: true, reset: Date.now() + 60000 });
 
     const result = await checkRateLimit(limiter, "user-123");
     expect(result).toBeNull();
   });
 
   it("should return 429 response when rate limit exceeded", async () => {
-    mockLimit.mockResolvedValue({ success: false, reset: Date.now() + 30000 });
+    limiter.limit.mockResolvedValue({ success: false, reset: Date.now() + 30000 });
 
     const result = await checkRateLimit(limiter, "user-123");
     expect(result).not.toBeNull();
@@ -99,8 +168,8 @@ describe("checkRateLimit", () => {
   });
 
   it("should include Retry-After header on 429 response", async () => {
-    const resetTime = Date.now() + 45000; // 45 seconds from now
-    mockLimit.mockResolvedValue({ success: false, reset: resetTime });
+    const resetTime = Date.now() + 45000;
+    limiter.limit.mockResolvedValue({ success: false, reset: resetTime });
 
     const result = await checkRateLimit(limiter, "user-123");
     expect(result).not.toBeNull();
@@ -113,8 +182,7 @@ describe("checkRateLimit", () => {
   });
 
   it("should set Retry-After to at least 1 second", async () => {
-    // Edge case: reset is very close to now
-    mockLimit.mockResolvedValue({ success: false, reset: Date.now() + 100 });
+    limiter.limit.mockResolvedValue({ success: false, reset: Date.now() + 100 });
 
     const result = await checkRateLimit(limiter, "user-123");
     const retryAfter = parseInt(result!.headers.get("Retry-After")!, 10);
@@ -122,9 +190,68 @@ describe("checkRateLimit", () => {
   });
 
   it("should pass the identifier to the limiter", async () => {
-    mockLimit.mockResolvedValue({ success: true, reset: Date.now() + 60000 });
+    limiter.limit.mockResolvedValue({ success: true, reset: Date.now() + 60000 });
 
     await checkRateLimit(limiter, "specific-user-id");
-    expect(mockLimit).toHaveBeenCalledWith("specific-user-id");
+    expect(limiter.limit).toHaveBeenCalledWith("specific-user-id");
+  });
+});
+
+describe("ZSET sliding window", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    redisMock.instances[0].zsets.clear();
+    redisMock.instances[0].expires.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("allows N requests and blocks N+1", async () => {
+    const limiter = createRateLimiter(2, "1 s");
+
+    await expect(limiter.limit("user-a")).resolves.toMatchObject({
+      success: true,
+    });
+    await expect(limiter.limit("user-a")).resolves.toMatchObject({
+      success: true,
+    });
+    await expect(limiter.limit("user-a")).resolves.toMatchObject({
+      success: false,
+    });
+  });
+
+  it("cleans expired entries so the window can reset", async () => {
+    const limiter = createRateLimiter(1, "1 s");
+
+    expect(await limiter.limit("user-b")).toMatchObject({ success: true });
+    vi.setSystemTime(2_001);
+
+    expect(await limiter.limit("user-b")).toMatchObject({ success: true });
+    expect(redisMock.instances[0].zsets.get("ratelimit:user-b:1000")).toHaveLength(1);
+  });
+
+  it("computes blocked reset from the oldest active entry", async () => {
+    const limiter = createRateLimiter(2, "1 s");
+
+    expect(await limiter.limit("user-c")).toMatchObject({ success: true });
+    vi.setSystemTime(1_100);
+    expect(await limiter.limit("user-c")).toMatchObject({ success: true });
+    vi.setSystemTime(1_200);
+
+    await expect(limiter.limit("user-c")).resolves.toEqual({
+      success: false,
+      reset: 2_000,
+    });
+  });
+
+  it("uses a key that includes the identifier and window milliseconds", async () => {
+    const limiter = createRateLimiter(1, "1 m");
+
+    await limiter.limit("same-user");
+
+    expect(redisMock.instances[0].zsets.has("ratelimit:same-user:60000")).toBe(true);
   });
 });

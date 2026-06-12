@@ -1,82 +1,92 @@
-/**
- * Authenticated E2E tests — requires test credentials.
- *
- * These tests use the storageState saved by auth.setup.ts.
- * They will be SKIPPED if E2E_TEST_EMAIL / E2E_TEST_PASSWORD are not set.
- *
- * To run:
- *   E2E_TEST_EMAIL=test@example.com E2E_TEST_PASSWORD=password npx playwright test e2e/authenticated-flows.spec.ts
- */
-
 import { test, expect } from "@playwright/test";
+import fs from "fs";
+import path from "path";
 
-// Skip all tests if no test credentials
-test.beforeEach(async () => {
-  if (!process.env.E2E_TEST_EMAIL || !process.env.E2E_TEST_PASSWORD) {
-    test.skip();
-  }
-});
+const tokenFile = path.join(__dirname, ".auth", "token.json");
 
-test.use({
-  storageState: "e2e/.auth/user.json",
-});
+test.describe("authenticated API flows", () => {
+  let token: string;
 
-test.describe("Authenticated user flows", () => {
-  test("can access /pets page after login", async ({ page }) => {
-    await page.goto("/pets");
-    await expect(page).toHaveURL(/\/pets/);
-    // D2 thai header: "น้องของฉัน" or empty-state CTA "เพิ่มน้อง"
-    await expect(page.getByText(/น้องของฉัน|เพิ่มน้อง/)).toBeVisible({ timeout: 10000 });
+  test.beforeAll(() => {
+    if (!fs.existsSync(tokenFile)) {
+      test.skip(true, "no auth token — E2E_TEST_MODE off");
+      return;
+    }
+    token = JSON.parse(fs.readFileSync(tokenFile, "utf-8")).access_token;
   });
 
-  test("can access /profile page", async ({ page }) => {
-    await page.goto("/profile");
-    await expect(page).toHaveURL(/\/profile/);
-    await expect(page.locator('input[type="email"], [data-testid="profile"]')).toBeVisible({
-      timeout: 10000,
+  // ── Auth gate ────────────────────────────────────────────────────────────────
+
+  test("GET /api/pets returns 200 with valid JWT", async ({ request }) => {
+    const res = await request.get("/api/pets", {
+      headers: { Authorization: `Bearer ${token}` },
     });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
   });
 
-  test("can navigate between pages via bottom nav", async ({ page }) => {
-    await page.goto("/");
-    const nav = page.locator("nav");
-    await expect(nav).toBeVisible({ timeout: 10000 });
-
-    // Navigate to สัตว์เลี้ยง (pets tab)
-    await nav.getByText("สัตว์เลี้ยง").click();
-    await expect(page).toHaveURL(/\/pets/);
-
-    // Navigate to ฟีด (post feed — replaces hospital tab)
-    await nav.getByText("ฟีด").click();
-    await expect(page).toHaveURL(/\/post/);
+  test("GET /api/pets without token returns 401", async ({ request }) => {
+    const res = await request.get("/api/pets");
+    expect(res.status()).toBe(401);
   });
 
-  test("report shortcut is visible on home and routes to post/lost", async ({ page }) => {
-    await page.goto("/");
-    // Home quick-actions primary CTA → /post/lost wizard
-    const reportShortcut = page.getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/).first();
-    await expect(reportShortcut).toBeVisible({ timeout: 10000 });
+  // ── Profile ──────────────────────────────────────────────────────────────────
+
+  test("GET /api/profile returns 200 with user fields", async ({ request }) => {
+    const res = await request.get("/api/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    // 200 if profile row exists, 404 if new user has no profile yet — both are valid auth states
+    expect([200, 404]).toContain(res.status());
+    if (res.status() === 200) {
+      const body = await res.json();
+      expect(body).toHaveProperty("id");
+      expect(body).toHaveProperty("line_user_id");
+    }
   });
 
-  test("report shortcut links to /post/lost page", async ({ page }) => {
-    await page.goto("/");
-    await page
-      .getByText(/แจ้งสัตว์เลี้ยงหาย|แจ้งน้องหาย/)
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/post\/lost/);
+  // ── Pet CRUD round-trip ───────────────────────────────────────────────────────
+
+  test("POST /api/pets creates a pet then DELETE removes it", async ({ request }) => {
+    // Create
+    const createRes = await request.post("/api/pets", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        name: "E2E Test Pet",
+        species: "dog",
+        breed: null,
+        sex: null,
+        color: null,
+        weight_kg: null,
+        date_of_birth: null,
+        microchip_number: null,
+        neutered: false,
+        special_notes: null,
+        status: "active",
+      },
+    });
+    expect(createRes.status()).toBe(200);
+    const created = await createRes.json();
+    expect(created).toHaveProperty("id");
+    expect(created.name).toBe("E2E Test Pet");
+
+    // Clean up — DELETE requires { petId } in body
+    const deleteRes = await request.delete("/api/pets", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { petId: created.id },
+    });
+    expect(deleteRes.status()).toBe(200);
+    const deleted = await deleteRes.json();
+    expect(deleted.success).toBe(true);
   });
-});
 
-test.describe("Pet CRUD flow", () => {
-  test("can open the create pet form", async ({ page }) => {
-    await page.goto("/pets");
-    // D2 empty state "เพิ่มน้อง" button (or circular selector "เพิ่ม" tile)
-    const addButton = page.getByRole("button", { name: /เพิ่มน้อง|เพิ่ม/ });
-    await expect(addButton.first()).toBeVisible({ timeout: 10000 });
-    await addButton.first().click();
+  // ── Public route (no auth) ────────────────────────────────────────────────────
 
-    // Form opens — look for pet name input (label or data-testid)
-    await expect(page.getByLabel(/pet name|ชื่อน้อง/i)).toBeVisible({ timeout: 5000 });
+  test("GET /api/hospitals returns 200 without auth", async ({ request }) => {
+    const res = await request.get("/api/hospitals");
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
   });
 });

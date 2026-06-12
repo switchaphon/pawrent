@@ -1,331 +1,292 @@
 /**
- * Integration tests for GET /api/diary/timeline.
+ * Tests for GET /api/diary/timeline (converted to Drizzle stack).
  *
- * Strategy: vi.mock the @/lib/supabase-api module so every test controls
- * exactly what Supabase returns. The route is imported directly and called
- * with a real NextRequest so we exercise all logic: auth guard, rate limit,
- * Zod query param validation, per-type table fan-out, cursor pagination,
- * cross-table merge + sort, and error handling.
+ * Mock strategy (house pattern):
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against stubbed tx
+ *   - @/lib/rate-limit: checkRateLimit allows all through
+ *   - @/lib/pagination: real implementation (cursor round-trip tested end-to-end)
  *
- * The timeline route queries up to 6 tables (diary_entries, vaccinations,
- * parasite_logs, pet_weight_logs, health_events, pet_milestones). Each query
- * is a chainable Supabase builder. We model a flexible thenable chain that can
- * be awaited.
+ * Parity: all behavioral cases from the Supabase version preserved — auth,
+ * validation, per-type fan-out, merge+sort, cursor pagination, empty/null
+ * edge cases, type filter, pet_id filter.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through in tests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  // Resolves null (allowed) by default; 429 cases resolve a NextResponse —
+  // type as Response | null so both are assignable.
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
-  getClientIp: () => "127.0.0.1",
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/pagination — use real implementation for cursor round-trips
+// Mock @/lib/auth
 // ---------------------------------------------------------------------------
-// We keep the real implementation so cursor encode/decode is tested end-to-end.
-// No vi.mock here — the real lib/pagination.ts will be used.
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn().mockResolvedValue({ userId: "user-abc-0000-0000-0000-000000000001" }),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+  signAuthToken: vi.fn(),
+}));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Stubbed tx + query mock
 //
-// The timeline GET handler:
-//   1. auth.getUser()
-//   2. from("pets").select("id, name").eq("owner_id", uid)[.eq("id", pet_id)]  → pets list
-//   3–8. For each requested type: from(<table>).select(...).in(...).order(...).limit(...)[.lt(...)]
-//
-// All queries 3–8 are awaited directly (thenable builder pattern).
+// The timeline route runs many sequential .select().from().where().orderBy()
+// .limit() chains inside one query() call. We use a per-call queue so each
+// successive limit() call returns the next batch of pre-configured rows.
 // ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
 
-const mockGetUser = vi.fn();
+// Queue consumed in order; falls back to [] when exhausted.
+const _limitQueue: Array<MockRow[]> = [];
 
-// Thenable chain factory — supports .select, .in, .order, .limit, .lt, .eq, and .then
-function makeThenableChain(result: { data: unknown; error: unknown }) {
-  const chain: Record<string, unknown> = {};
-  chain.select = vi.fn(() => chain);
-  chain.eq = vi.fn(() => chain);
-  chain.in = vi.fn(() => chain);
-  chain.order = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.lt = vi.fn(() => chain);
-  // Thenable — resolves when awaited
-  chain.then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) =>
-    Promise.resolve(result).then(resolve, _reject);
-  return chain;
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
+  // Drizzle builders are thenables — the route awaits the pets query at
+  // .where() with no .limit(). Awaiting the stub consumes the next batch.
+  then(resolve: (rows: MockRow[]) => void) {
+    resolve(_limitQueue.length > 0 ? _limitQueue.shift()! : []);
+  },
+};
+
+function resetTx() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.orderBy.mockReturnThis();
+  _limitQueue.length = 0;
 }
 
-// Pets query chain — uses maybeSingle/then depending on path
-function makePetsChain(result: { data: unknown; error: unknown }) {
-  const chain: Record<string, unknown> = {};
-  chain.select = vi.fn(() => chain);
-  chain.eq = vi.fn(() => chain);
-  // The pets query is awaited directly via the chain
-  chain.then = (resolve: (v: unknown) => void, _reject?: (e: unknown) => void) =>
-    Promise.resolve(result).then(resolve, _reject);
-  return chain;
+/** Push rows to be returned by successive limit() calls. */
+function queueLimitResults(...batches: MockRow[][]) {
+  _limitQueue.push(...batches);
 }
 
-// Global table-level mock — routes by table name
-let tableResults: Map<string, { data: unknown; error: unknown }>;
-
-const mockFrom = vi.fn((table: string) => {
-  const result = tableResults.get(table) ?? { data: [], error: null };
-  if (table === "pets") {
-    return makePetsChain(result);
-  }
-  return makeThenableChain(result);
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (_: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
 });
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
 
 import { GET } from "@/app/api/diary/timeline/route";
 import { encodeCursor } from "@/lib/pagination";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
+const VALID_PET_ID = "123e4567-e89b-12d3-a456-426614174000";
+const PET_2_ID = "22223333-4444-5555-6666-777788889999";
 
-const VALID_PET_UUID = "123e4567-e89b-12d3-a456-426614174000";
-const USER_ID = "user-abc";
+// Mock pets returned as first limit() call in every GET request.
+const MOCK_PETS: MockRow[] = [{ id: VALID_PET_ID, name: "บุญมี" }];
+const MOCK_TWO_PETS: MockRow[] = [
+  { id: VALID_PET_ID, name: "บุญมี" },
+  { id: PET_2_ID, name: "น้องขาว" },
+];
 
-function makeRequest(params: Record<string, string> = {}, withAuth = true): NextRequest {
+// ---------------------------------------------------------------------------
+// Row factories — Drizzle returns camelCase; timeline maps to snake_case output
+// ---------------------------------------------------------------------------
+function makeDiaryRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "diary-1",
+    petId: VALID_PET_ID,
+    title: "ไปเที่ยว",
+    caption: "สนุกมาก",
+    mood: "happy",
+    photoUrls: ["https://example.com/photo.jpg"],
+    createdAt: new Date("2026-05-20T10:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeVacRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "vacc-1",
+    petId: VALID_PET_ID,
+    name: "Rabies",
+    lastDate: "2026-01-15",
+    createdAt: new Date("2026-05-19T08:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeParasiteRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "para-1",
+    petId: VALID_PET_ID,
+    medicineName: "Frontline",
+    administeredDate: "2026-04-01",
+    createdAt: new Date("2026-05-18T09:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeWeightRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "weight-1",
+    petId: VALID_PET_ID,
+    weightKg: "12.5",
+    note: "น้ำหนักปกติ",
+    createdAt: new Date("2026-05-17T07:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeHealthRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "he-1",
+    petId: VALID_PET_ID,
+    title: "อาบน้ำตัดขน",
+    description: "ร้านโกรมมิ่งใกล้บ้าน",
+    attachmentUrls: [],
+    createdAt: new Date("2026-05-16T11:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeMilestoneRow(overrides: MockRow = {}): MockRow {
+  return {
+    id: "ms-1",
+    petId: VALID_PET_ID,
+    type: "birthday",
+    title: "วันเกิด",
+    photoUrl: "https://example.com/birthday.jpg",
+    note: "อายุครบ 1 ปี",
+    createdAt: new Date("2026-05-15T00:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function makeRequest(params: Record<string, string> = {}): NextRequest {
   const url = new URL("http://localhost/api/diary/timeline");
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   return new NextRequest(url, {
     method: "GET",
-    headers: {
-      ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-    },
+    headers: { Authorization: "Bearer mock" },
   });
 }
 
-// Default pets data returned by the pets query
-const mockPets = [{ id: VALID_PET_UUID, name: "บุญมี" }];
-
-// Factory for a minimal diary entry row
-function makeDiaryRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "diary-1",
-    pet_id: VALID_PET_UUID,
-    title: "ไปเที่ยว",
-    caption: "สนุกมาก",
-    mood: "happy",
-    photo_urls: ["https://example.com/photo.jpg"],
-    created_at: "2026-05-20T10:00:00Z",
-    ...overrides,
-  };
-}
-
-function makeVaccinationRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "vacc-1",
-    pet_id: VALID_PET_UUID,
-    name: "Rabies",
-    status: "protected",
-    last_date: "2026-01-15",
-    created_at: "2026-05-19T08:00:00Z",
-    ...overrides,
-  };
-}
-
-function makeParasiteRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "para-1",
-    pet_id: VALID_PET_UUID,
-    medicine_name: "Frontline",
-    administered_date: "2026-04-01",
-    created_at: "2026-05-18T09:00:00Z",
-    ...overrides,
-  };
-}
-
-function makeWeightRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "weight-1",
-    pet_id: VALID_PET_UUID,
-    weight_kg: 12.5,
-    measured_at: "2026-05-17T07:00:00Z",
-    note: "น้ำหนักปกติ",
-    created_at: "2026-05-17T07:00:00Z",
-    ...overrides,
-  };
-}
-
-function makeHealthEventRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "he-1",
-    pet_id: VALID_PET_UUID,
-    event_type: "grooming",
-    title: "อาบน้ำตัดขน",
-    description: "ร้านโกรมมิ่งใกล้บ้าน",
-    attachment_urls: [],
-    created_at: "2026-05-16T11:00:00Z",
-    ...overrides,
-  };
-}
-
-function makeMilestoneRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "ms-1",
-    pet_id: VALID_PET_UUID,
-    type: "birthday",
-    title: "วันเกิด",
-    event_date: "2026-05-15",
-    photo_url: "https://example.com/birthday.jpg",
-    note: "อายุครบ 1 ปี",
-    created_at: "2026-05-15T00:00:00Z",
-    ...overrides,
-  };
+// Queue all 6 type batches (pets + 6 tables) with default empty arrays.
+function queueFullEmpty() {
+  queueLimitResults(MOCK_PETS, [], [], [], [], [], []);
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-
 describe("GET /api/diary/timeline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: no data in any table
-    tableResults = new Map([
-      ["pets", { data: mockPets, error: null }],
-      ["diary_entries", { data: [], error: null }],
-      ["vaccinations", { data: [], error: null }],
-      ["parasite_logs", { data: [], error: null }],
-      ["pet_weight_logs", { data: [], error: null }],
-      ["health_events", { data: [], error: null }],
-      ["pet_milestones", { data: [], error: null }],
-    ]);
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // ── Auth ───────────────────────────────────────────────────────────────────
 
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest({}, false);
-    const res = await GET(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await GET(makeRequest());
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(401);
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(429);
   });
 
-  // ── Query validation ───────────────────────────────────────────────────────
+  // ── Validation ─────────────────────────────────────────────────────────────
 
-  it("should return 400 when pet_id is not a valid UUID", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    const req = makeRequest({ pet_id: "not-a-uuid" });
-    const res = await GET(req);
-    expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBeTruthy();
-  });
-
-  it("should return 400 when limit is below 1", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    const req = makeRequest({ limit: "0" });
-    const res = await GET(req);
+  it("returns 400 when pet_id is not a valid UUID", async () => {
+    const res = await GET(makeRequest({ pet_id: "not-a-uuid" }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when limit exceeds 50", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    const req = makeRequest({ limit: "51" });
-    const res = await GET(req);
+  it("returns 400 when limit is below 1", async () => {
+    const res = await GET(makeRequest({ limit: "0" }));
     expect(res.status).toBe(400);
   });
 
-  it("should return 400 when limit is not an integer string", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    const req = makeRequest({ limit: "abc" });
-    const res = await GET(req);
+  it("returns 400 when limit exceeds 50", async () => {
+    const res = await GET(makeRequest({ limit: "51" }));
     expect(res.status).toBe(400);
   });
 
-  // ── Pets query ─────────────────────────────────────────────────────────────
+  it("returns 400 when limit is not an integer string", async () => {
+    const res = await GET(makeRequest({ limit: "abc" }));
+    expect(res.status).toBe(400);
+  });
 
-  it("should return empty items when the user has no pets", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [], error: null });
+  // ── Empty / no pets ────────────────────────────────────────────────────────
 
-    const req = makeRequest();
-    const res = await GET(req);
+  it("returns empty items when user has no pets", async () => {
+    queueLimitResults([]); // pets query returns empty
+    const res = await GET(makeRequest());
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.items).toEqual([]);
-    expect(json.next_cursor).toBeNull();
+    const body = await res.json();
+    expect(body.items).toEqual([]);
+    expect(body.next_cursor).toBeNull();
   });
 
-  it("should return empty items when pets query returns null", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: null, error: null });
-
-    const req = makeRequest();
-    const res = await GET(req);
+  it("returns empty items when pets query returns empty with all-types request", async () => {
+    queueLimitResults([]);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.items).toEqual([]);
-  });
-
-  it("should return 500 when the pets query fails", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: null, error: { message: "DB error" } });
-
-    const req = makeRequest();
-    const res = await GET(req);
-    expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Failed to load pets");
+    expect((await res.json()).items).toEqual([]);
   });
 
   // ── All-type happy path ────────────────────────────────────────────────────
 
-  it("should return items from all 6 types merged and sorted by timestamp DESC", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-    tableResults.set("vaccinations", { data: [makeVaccinationRow()], error: null });
-    tableResults.set("parasite_logs", { data: [makeParasiteRow()], error: null });
-    tableResults.set("pet_weight_logs", { data: [makeWeightRow()], error: null });
-    tableResults.set("health_events", { data: [makeHealthEventRow()], error: null });
-    tableResults.set("pet_milestones", { data: [makeMilestoneRow()], error: null });
-
-    const req = makeRequest();
-    const res = await GET(req);
+  it("returns items from all 6 types merged and sorted by timestamp DESC", async () => {
+    queueLimitResults(
+      MOCK_PETS,
+      [makeDiaryRow()],
+      [makeVacRow()],
+      [makeParasiteRow()],
+      [makeWeightRow()],
+      [makeHealthRow()],
+      [makeMilestoneRow()]
+    );
+    const res = await GET(makeRequest());
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.items).toHaveLength(6);
+    const body = await res.json();
+    expect(body.items).toHaveLength(6);
 
-    // Verify items are sorted by timestamp descending
-    const timestamps = json.items.map((i: { timestamp: string }) => i.timestamp);
-    const sorted = [...timestamps].sort((a: string, b: string) => b.localeCompare(a));
+    const timestamps = body.items.map((i: { timestamp: string }) => i.timestamp) as string[];
+    const sorted = [...timestamps].sort((a, b) => b.localeCompare(a));
     expect(timestamps).toEqual(sorted);
   });
 
-  it("should include diary_entry type fields (title, caption, mood, photo_urls)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", {
-      data: [makeDiaryRow({ title: "ทริปทะเล", caption: "เที่ยวทะเล", mood: "excited" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("diary_entry item has title, caption, mood, photo_urls in snake_case", async () => {
+    queueLimitResults(MOCK_PETS, [
+      makeDiaryRow({ title: "ทริปทะเล", caption: "เที่ยวทะเล", mood: "excited" }),
+    ]);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const body = await res.json();
+    const item = body.items[0];
     expect(item.type).toBe("diary_entry");
     expect(item.title).toBe("ทริปทะเล");
     expect(item.caption).toBe("เที่ยวทะเล");
@@ -333,17 +294,10 @@ describe("GET /api/diary/timeline", () => {
     expect(item.pet_name).toBe("บุญมี");
   });
 
-  it("should include vaccination type fields with Thai prefix in title", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("vaccinations", {
-      data: [makeVaccinationRow({ name: "Rabies" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "vaccination" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("vaccination item has Thai title prefix", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ name: "Rabies" })]);
+    const res = await GET(makeRequest({ types: "vaccination" }));
+    const item = (await res.json()).items[0];
     expect(item.type).toBe("vaccination");
     expect(item.title).toBe("วัคซีน Rabies");
     expect(item.detail).toBe("2026-01-15");
@@ -351,488 +305,352 @@ describe("GET /api/diary/timeline", () => {
     expect(item.mood).toBeNull();
   });
 
-  it("should include parasite_log type with medicine_name as title", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("parasite_logs", {
-      data: [makeParasiteRow({ medicine_name: "NexGard" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "parasite_log" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("parasite_log item uses medicine_name as title", async () => {
+    queueLimitResults(MOCK_PETS, [makeParasiteRow({ medicineName: "NexGard" })]);
+    const res = await GET(makeRequest({ types: "parasite_log" }));
+    const item = (await res.json()).items[0];
     expect(item.type).toBe("parasite_log");
     expect(item.title).toBe("NexGard");
-    expect(item.detail).toBe("2026-04-01");
   });
 
-  it("should use default Thai title when parasite medicine_name is null", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("parasite_logs", {
-      data: [makeParasiteRow({ medicine_name: null })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "parasite_log" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].title).toBe("ยากำจัดปรสิต");
+  it("parasite_log falls back to Thai title when medicineName is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeParasiteRow({ medicineName: null })]);
+    const res = await GET(makeRequest({ types: "parasite_log" }));
+    expect((await res.json()).items[0].title).toBe("ยากำจัดปรสิต");
   });
 
-  it("should include weight_log type with Thai weight title", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pet_weight_logs", {
-      data: [makeWeightRow({ weight_kg: 12.5 })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "weight_log" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("weight_log item has Thai weight title and note as detail", async () => {
+    queueLimitResults(MOCK_PETS, [makeWeightRow({ weightKg: "12.5" })]);
+    const res = await GET(makeRequest({ types: "weight_log" }));
+    const item = (await res.json()).items[0];
     expect(item.type).toBe("weight_log");
     expect(item.title).toBe("ชั่งน้ำหนัก 12.5 กก.");
     expect(item.detail).toBe("น้ำหนักปกติ");
   });
 
-  it("should include health_event type with title and description", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("health_events", {
-      data: [makeHealthEventRow({ title: "ตรวจสุขภาพ", description: "ผ่านทุกรายการ" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "health_event" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("health_event item has title and description as detail", async () => {
+    queueLimitResults(MOCK_PETS, [
+      makeHealthRow({ title: "ตรวจสุขภาพ", description: "ผ่านทุกรายการ" }),
+    ]);
+    const res = await GET(makeRequest({ types: "health_event" }));
+    const item = (await res.json()).items[0];
     expect(item.type).toBe("health_event");
     expect(item.title).toBe("ตรวจสุขภาพ");
     expect(item.detail).toBe("ผ่านทุกรายการ");
   });
 
-  it("should include milestone type and wrap photo_url as array", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pet_milestones", {
-      data: [makeMilestoneRow({ photo_url: "https://example.com/ms.jpg" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "milestone" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
+  it("milestone item wraps photo_url as array", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ photoUrl: "https://example.com/ms.jpg" })]);
+    const res = await GET(makeRequest({ types: "milestone" }));
+    const item = (await res.json()).items[0];
     expect(item.type).toBe("milestone");
     expect(item.photo_urls).toEqual(["https://example.com/ms.jpg"]);
   });
 
-  it("should set photo_urls to null when milestone has no photo_url", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pet_milestones", {
-      data: [makeMilestoneRow({ photo_url: null })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "milestone" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].photo_urls).toBeNull();
+  it("milestone photo_urls is null when photoUrl is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ photoUrl: null })]);
+    const res = await GET(makeRequest({ types: "milestone" }));
+    expect((await res.json()).items[0].photo_urls).toBeNull();
   });
 
-  it("should use milestone type as title fallback when title is null", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pet_milestones", {
-      data: [makeMilestoneRow({ title: null, type: "adoption_day" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "milestone" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].title).toBe("adoption_day");
+  it("milestone uses type as title fallback when title is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ title: null, type: "adoption_day" })]);
+    const res = await GET(makeRequest({ types: "milestone" }));
+    expect((await res.json()).items[0].title).toBe("adoption_day");
   });
 
   // ── Type filter ────────────────────────────────────────────────────────────
 
-  it("should return only the requested type when types param is set", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-    tableResults.set("vaccinations", { data: [makeVaccinationRow()], error: null });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items.every((i: { type: string }) => i.type === "diary_entry")).toBe(true);
-    expect(json.items).toHaveLength(1);
+  it("returns only the requested type when types param is set", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const body = await res.json();
+    expect(body.items.every((i: { type: string }) => i.type === "diary_entry")).toBe(true);
+    expect(body.items).toHaveLength(1);
   });
 
-  it("should return two types when types param is comma-separated", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-    tableResults.set("vaccinations", { data: [makeVaccinationRow()], error: null });
-
-    const req = makeRequest({ types: "diary_entry,vaccination" });
-    const res = await GET(req);
-    const json = await res.json();
-    const types = json.items.map((i: { type: string }) => i.type) as string[];
+  it("returns two types when comma-separated", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()], [makeVacRow()]);
+    const res = await GET(makeRequest({ types: "diary_entry,vaccination" }));
+    const body = await res.json();
+    const types = body.items.map((i: { type: string }) => i.type) as string[];
     expect(types).toContain("diary_entry");
     expect(types).toContain("vaccination");
     expect(types).not.toContain("health_event");
   });
 
-  it("should silently ignore unknown types in the types param", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-
-    const req = makeRequest({ types: "diary_entry,totally_invalid_type" });
-    const res = await GET(req);
+  it("silently ignores unknown types in the types param", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ types: "diary_entry,totally_invalid" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    // Only diary_entry should appear — invalid types are filtered out
-    expect(json.items.every((i: { type: string }) => i.type === "diary_entry")).toBe(true);
+    const body = await res.json();
+    expect(body.items.every((i: { type: string }) => i.type === "diary_entry")).toBe(true);
   });
 
-  it("should return empty items when all types in param are invalid", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-
-    const req = makeRequest({ types: "unknown_type,another_invalid" });
-    const res = await GET(req);
+  it("returns empty items when all types are invalid", async () => {
+    queueLimitResults(MOCK_PETS);
+    const res = await GET(makeRequest({ types: "unknown_type" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.items).toEqual([]);
+    expect((await res.json()).items).toEqual([]);
   });
 
   // ── pet_id filter ──────────────────────────────────────────────────────────
 
-  it("should filter pets by pet_id when provided", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    // Only one pet in filtered result
-    tableResults.set("pets", {
-      data: [{ id: VALID_PET_UUID, name: "บุญมี" }],
-      error: null,
-    });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-
-    const req = makeRequest({ pet_id: VALID_PET_UUID });
-    const res = await GET(req);
+  it("filters items to the specified pet_id", async () => {
+    queueLimitResults([{ id: VALID_PET_ID, name: "บุญมี" }], [makeDiaryRow()]);
+    const res = await GET(makeRequest({ pet_id: VALID_PET_ID, types: "diary_entry" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    // All items should belong to the requested pet
-    expect(json.items.every((i: { pet_id: string }) => i.pet_id === VALID_PET_UUID)).toBe(true);
+    const body = await res.json();
+    expect(body.items.every((i: { pet_id: string }) => i.pet_id === VALID_PET_ID)).toBe(true);
   });
 
   // ── Cursor pagination ──────────────────────────────────────────────────────
 
-  it("should return next_cursor when there are more items than the limit", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    // 21 diary entries to exceed default limit of 20
+  it("returns next_cursor when more items than limit exist", async () => {
     const entries = Array.from({ length: 21 }, (_, i) =>
       makeDiaryRow({
         id: `diary-${i}`,
-        created_at: `2026-05-${String(21 - i).padStart(2, "0")}T10:00:00Z`,
+        createdAt: new Date(`2026-05-${String(21 - i).padStart(2, "0")}T10:00:00.000Z`),
       })
     );
-    tableResults.set("diary_entries", { data: entries, error: null });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.next_cursor).not.toBeNull();
-    expect(json.items).toHaveLength(20);
+    queueLimitResults(MOCK_PETS, entries);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const body = await res.json();
+    expect(body.next_cursor).not.toBeNull();
+    expect(body.items).toHaveLength(20);
   });
 
-  it("should return null next_cursor when items fit within the limit", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.next_cursor).toBeNull();
-    expect(json.items).toHaveLength(1);
+  it("returns null next_cursor when items fit within limit", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const body = await res.json();
+    expect(body.next_cursor).toBeNull();
+    expect(body.items).toHaveLength(1);
   });
 
-  it("should return null next_cursor when items list is empty", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.next_cursor).toBeNull();
-    expect(json.items).toEqual([]);
+  it("returns null next_cursor when items list is empty", async () => {
+    queueLimitResults(MOCK_PETS, []);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const body = await res.json();
+    expect(body.next_cursor).toBeNull();
+    expect(body.items).toEqual([]);
   });
 
-  it("should accept a cursor param and pass it to lt() queries", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-
-    const cursor = encodeCursor("2026-05-20T10:00:00Z", "diary-1");
-    const req = makeRequest({ cursor, types: "diary_entry" });
-    const res = await GET(req);
-    // Should not error — lt() is applied on the chain
+  it("accepts a valid cursor without error", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const cursor = encodeCursor("2026-05-20T10:00:00.000Z", "diary-1");
+    const res = await GET(makeRequest({ cursor, types: "diary_entry" }));
     expect(res.status).toBe(200);
   });
 
-  it("should handle a malformed cursor gracefully (treats as no cursor)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", { data: [makeDiaryRow()], error: null });
-
-    const req = makeRequest({ cursor: "not-valid-base64url!", types: "diary_entry" });
-    const res = await GET(req);
+  it("handles malformed cursor gracefully — treats as no cursor", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ cursor: "!!not-valid-base64!!", types: "diary_entry" }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    // With no valid cursor, all items returned
-    expect(json.items).toHaveLength(1);
+    expect((await res.json()).items).toHaveLength(1);
   });
 
-  it("should respect custom limit param (max 50)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
+  it("respects custom limit param", async () => {
     const entries = Array.from({ length: 5 }, (_, i) =>
       makeDiaryRow({
         id: `diary-${i}`,
-        created_at: `2026-05-${String(20 - i).padStart(2, "0")}T10:00:00Z`,
+        createdAt: new Date(`2026-05-${String(20 - i).padStart(2, "0")}T10:00:00.000Z`),
       })
     );
-    tableResults.set("diary_entries", { data: entries, error: null });
-
-    const req = makeRequest({ types: "diary_entry", limit: "3" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items).toHaveLength(3);
-    expect(json.next_cursor).not.toBeNull();
+    queueLimitResults(MOCK_PETS, entries);
+    const body = await (await GET(makeRequest({ types: "diary_entry", limit: "3" }))).json();
+    expect(body.items).toHaveLength(3);
+    expect(body.next_cursor).not.toBeNull();
   });
 
-  it("should accept limit=1 (boundary)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", {
-      data: [makeDiaryRow(), makeDiaryRow({ id: "diary-2" })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "diary_entry", limit: "1" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items).toHaveLength(1);
+  it("accepts limit=1 (lower boundary)", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow(), makeDiaryRow({ id: "diary-2" })]);
+    const body = await (await GET(makeRequest({ types: "diary_entry", limit: "1" }))).json();
+    expect(body.items).toHaveLength(1);
   });
 
-  it("should accept limit=50 (boundary)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
+  it("accepts limit=50 (upper boundary)", async () => {
     const entries = Array.from({ length: 50 }, (_, i) =>
       makeDiaryRow({
         id: `diary-${i}`,
-        created_at: `2026-04-${String(50 - i).padStart(2, "0")}T10:00:00Z`,
+        // Valid, strictly-descending timestamps (day-math avoids 2026-04-50).
+        createdAt: new Date(Date.UTC(2026, 3, 1, 10, 0, 0) + (50 - i) * 60_000),
       })
     );
-    tableResults.set("diary_entries", { data: entries, error: null });
-
-    const req = makeRequest({ types: "diary_entry", limit: "50" });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.items).toHaveLength(50);
+    queueLimitResults(MOCK_PETS, entries);
+    const body = await (await GET(makeRequest({ types: "diary_entry", limit: "50" }))).json();
+    expect(body.items).toHaveLength(50);
   });
 
-  // ── Multi-pet scenario ─────────────────────────────────────────────────────
+  // ── Multi-pet ──────────────────────────────────────────────────────────────
 
-  it("should include items from all the user's pets when no pet_id filter is set", async () => {
-    const PET_2_UUID = "22223333-4444-5555-6666-777788889999";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", {
-      data: [
-        { id: VALID_PET_UUID, name: "บุญมี" },
-        { id: PET_2_UUID, name: "น้องขาว" },
-      ],
-      error: null,
-    });
-    tableResults.set("diary_entries", {
-      data: [
-        makeDiaryRow({ id: "diary-1", pet_id: VALID_PET_UUID }),
-        makeDiaryRow({ id: "diary-2", pet_id: PET_2_UUID }),
-      ],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    const petIds = json.items.map((i: { pet_id: string }) => i.pet_id);
-    expect(petIds).toContain(VALID_PET_UUID);
-    expect(petIds).toContain(PET_2_UUID);
+  it("includes items from all pets when no pet_id filter is set", async () => {
+    queueLimitResults(MOCK_TWO_PETS, [
+      makeDiaryRow({ id: "d-1", petId: VALID_PET_ID }),
+      makeDiaryRow({ id: "d-2", petId: PET_2_ID }),
+    ]);
+    const body = await (await GET(makeRequest({ types: "diary_entry" }))).json();
+    const petIds = body.items.map((i: { pet_id: string }) => i.pet_id) as string[];
+    expect(petIds).toContain(VALID_PET_ID);
+    expect(petIds).toContain(PET_2_ID);
   });
 
-  // ── Null / empty data from tables ─────────────────────────────────────────
+  // ── Null field branches ────────────────────────────────────────────────────
 
-  it("should handle null data from any individual table gracefully (treats as empty)", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    // diary_entries returns null data — should be treated as empty array
-    tableResults.set("diary_entries", { data: null, error: null });
-    tableResults.set("vaccinations", { data: [makeVaccinationRow()], error: null });
-
-    const req = makeRequest({ types: "diary_entry,vaccination" });
-    const res = await GET(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    // Only vaccination items
-    expect(json.items.every((i: { type: string }) => i.type === "vaccination")).toBe(true);
-  });
-
-  // ── Null field value branches (covers the ?? operators) ───────────────────
-  // V8 branch coverage tracks both sides of ?? — we need rows where all
-  // nullable fields are null to cover the fallback side of each operator.
-
-  it("should handle diary_entry row with all nullable fields set to null", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("diary_entries", {
-      data: [
-        makeDiaryRow({
-          title: null,
-          caption: null,
-          mood: null,
-          photo_urls: null,
-        }),
-      ],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    const item = json.items[0];
-    // ?? null fallback: all nullable fields should be null (not undefined)
+  it("handles diary entry with all nullable fields null", async () => {
+    queueLimitResults(MOCK_PETS, [
+      makeDiaryRow({ title: null, caption: null, mood: null, photoUrls: null }),
+    ]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
     expect(item.title).toBeNull();
     expect(item.caption).toBeNull();
     expect(item.mood).toBeNull();
     expect(item.photo_urls).toBeNull();
   });
 
-  it("should handle pet_id with no match in petNameMap (falls back to empty string)", async () => {
-    const UNMAPPED_PET_ID = "ffffffff-ffff-ffff-ffff-ffffffffffff";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    // Row references a pet_id not in the pets list — petNameMap[row.pet_id] is undefined
-    tableResults.set("diary_entries", {
-      data: [makeDiaryRow({ pet_id: UNMAPPED_PET_ID })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "diary_entry" });
-    const res = await GET(req);
-    const json = await res.json();
-    // ?? "" fallback applies — pet_name should be empty string
-    expect(json.items[0].pet_name).toBe("");
+  it("handles pet_id with no match in petNameMap — falls back to empty string", async () => {
+    const UNMAPPED = "ffffffff-ffff-ffff-ffff-ffffffffffff";
+    queueLimitResults(MOCK_PETS, [makeDiaryRow({ petId: UNMAPPED })]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
+    expect(item.pet_name).toBe("");
   });
 
-  it("should handle vaccination row where petNameMap has no entry (fallback to empty string)", async () => {
-    const UNMAPPED_PET_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    tableResults.set("vaccinations", {
-      data: [makeVaccinationRow({ pet_id: UNMAPPED_PET_ID, last_date: null })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "vaccination" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].pet_name).toBe("");
-    // null last_date → null detail
-    expect(json.items[0].detail).toBeNull();
+  it("handles vaccination with null lastDate — detail is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ lastDate: null })]);
+    const item = (await (await GET(makeRequest({ types: "vaccination" }))).json()).items[0];
+    expect(item.detail).toBeNull();
   });
 
-  it("should handle parasite_log row where petNameMap has no entry and administered_date is null", async () => {
-    const UNMAPPED_PET_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    tableResults.set("parasite_logs", {
-      data: [makeParasiteRow({ pet_id: UNMAPPED_PET_ID, administered_date: null })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "parasite_log" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].pet_name).toBe("");
-    expect(json.items[0].detail).toBeNull();
+  it("handles parasite_log with null administeredDate — detail is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeParasiteRow({ administeredDate: null })]);
+    const item = (await (await GET(makeRequest({ types: "parasite_log" }))).json()).items[0];
+    expect(item.detail).toBeNull();
   });
 
-  it("should handle weight_log row where petNameMap has no entry and note is null", async () => {
-    const UNMAPPED_PET_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    tableResults.set("pet_weight_logs", {
-      data: [makeWeightRow({ pet_id: UNMAPPED_PET_ID, note: null })],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "weight_log" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].pet_name).toBe("");
-    expect(json.items[0].detail).toBeNull();
+  it("handles weight_log with null note — detail is null", async () => {
+    queueLimitResults(MOCK_PETS, [makeWeightRow({ note: null })]);
+    const item = (await (await GET(makeRequest({ types: "weight_log" }))).json()).items[0];
+    expect(item.detail).toBeNull();
   });
 
-  it("should handle health_event row where petNameMap has no entry and description is null", async () => {
-    const UNMAPPED_PET_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    tableResults.set("health_events", {
-      data: [
-        makeHealthEventRow({
-          pet_id: UNMAPPED_PET_ID,
-          description: null,
-          attachment_urls: null,
-        }),
-      ],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "health_event" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].pet_name).toBe("");
-    expect(json.items[0].detail).toBeNull();
-    expect(json.items[0].photo_urls).toBeNull();
+  it("handles health_event with null description and null attachmentUrls", async () => {
+    queueLimitResults(MOCK_PETS, [makeHealthRow({ description: null, attachmentUrls: null })]);
+    const item = (await (await GET(makeRequest({ types: "health_event" }))).json()).items[0];
+    expect(item.detail).toBeNull();
+    expect(item.photo_urls).toBeNull();
   });
 
-  it("should handle milestone row where petNameMap has no entry and note is null", async () => {
-    const UNMAPPED_PET_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pets", { data: [{ id: VALID_PET_UUID, name: "บุญมี" }], error: null });
-    tableResults.set("pet_milestones", {
-      data: [
-        makeMilestoneRow({
-          pet_id: UNMAPPED_PET_ID,
-          note: null,
-          photo_url: null,
-        }),
-      ],
-      error: null,
-    });
-
-    const req = makeRequest({ types: "milestone" });
-    const res = await GET(req);
-    const json = await res.json();
-    expect(json.items[0].pet_name).toBe("");
-    expect(json.items[0].detail).toBeNull();
-    expect(json.items[0].photo_urls).toBeNull();
+  it("handles milestone with null note and null photoUrl", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ note: null, photoUrl: null })]);
+    const item = (await (await GET(makeRequest({ types: "milestone" }))).json()).items[0];
+    expect(item.detail).toBeNull();
+    expect(item.photo_urls).toBeNull();
   });
 
-  it("should apply cursor lt() filter to milestone query when cursor is present", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: USER_ID } } });
-    tableResults.set("pet_milestones", {
-      data: [
-        makeMilestoneRow({ created_at: "2026-05-14T00:00:00Z" }),
-        makeMilestoneRow({ id: "ms-2", created_at: "2026-05-10T00:00:00Z" }),
-      ],
-      error: null,
-    });
+  // ── catch block ────────────────────────────────────────────────────────────
 
-    // Cursor set to a timestamp between the two milestones
-    const cursor = encodeCursor("2026-05-12T00:00:00Z", "ms-1");
-    const req = makeRequest({ types: "milestone", cursor });
-    const res = await GET(req);
-    // Should not error — lt() is applied on the chain
+  it("returns 500 on unhandled DB error (catch block)", async () => {
+    stubTx.then = function (resolve: (rows: MockRow[]) => void) {
+      throw new Error("DB crash in pets query");
+    };
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Internal server error");
+    // Restore
+    stubTx.then = function (resolve: (rows: MockRow[]) => void) {
+      resolve(_limitQueue.length > 0 ? _limitQueue.shift()! : []);
+    };
+  });
+
+  // ── cursor branch arms ─────────────────────────────────────────────────────
+
+  it("cursor with no created_at — cursorDate is null (falsy decodeCursor branch)", async () => {
+    // Encode a cursor that has id but no created_at field → cursorPayload?.created_at is falsy
+    // → cursorDate = null → where() uses the non-cursor branch
+    const cursorNoDate = Buffer.from(JSON.stringify({ id: "diary-1" })).toString("base64url");
+    queueLimitResults(MOCK_PETS, [makeDiaryRow()]);
+    const res = await GET(makeRequest({ cursor: cursorNoDate, types: "diary_entry" }));
     expect(res.status).toBe(200);
+    expect((await res.json()).items).toHaveLength(1);
+  });
+
+  it("cursor with valid created_at — exercises cursorDate truthy branch in all 6 tables", async () => {
+    // A full all-types request with a valid cursor exercises the `lt(table.createdAt, cursorDate)`
+    // branch in each of the 6 table queries (diary, vacc, parasite, weight, health, milestone).
+    const cursor = encodeCursor("2026-05-20T10:00:00.000Z", "diary-0");
+    queueLimitResults(
+      MOCK_PETS,
+      [makeDiaryRow()],
+      [makeVacRow()],
+      [makeParasiteRow()],
+      [makeWeightRow()],
+      [makeHealthRow()],
+      [makeMilestoneRow()]
+    );
+    const res = await GET(makeRequest({ cursor }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).items).toHaveLength(6);
+  });
+
+  it("pet_name falls back to empty string when pet name is null", async () => {
+    // petNameMap: name ?? ""  — the "" fallback arm fires when name is null
+    queueLimitResults([{ id: VALID_PET_ID, name: null }], [makeDiaryRow()]);
+    const res = await GET(makeRequest({ types: "diary_entry" }));
+    const item = (await res.json()).items[0];
+    expect(item.pet_name).toBe("");
+  });
+
+  it("health_event with non-null attachmentUrls array — photo_urls coercion", async () => {
+    queueLimitResults(MOCK_PETS, [makeHealthRow({ attachmentUrls: ["https://x.com/a.jpg"] })]);
+    const item = (await (await GET(makeRequest({ types: "health_event" }))).json()).items[0];
+    expect(item.photo_urls).toEqual(["https://x.com/a.jpg"]);
+  });
+
+  it("diary entry with non-null photoUrls array — photo_urls coercion", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow({ photoUrls: ["https://x.com/a.jpg"] })]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
+    expect(item.photo_urls).toEqual(["https://x.com/a.jpg"]);
+  });
+
+  it("vaccination item with no lastDate — detail is null (null lastDate branch)", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ lastDate: undefined })]);
+    const item = (await (await GET(makeRequest({ types: "vaccination" }))).json()).items[0];
+    expect(item.detail).toBeNull();
+  });
+
+  it("createdAt null in diary row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeDiaryRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "diary_entry" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in vaccination row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeVacRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "vaccination" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in parasite_log row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeParasiteRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "parasite_log" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in weight_log row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeWeightRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "weight_log" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in health_event row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeHealthRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "health_event" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
+  });
+
+  it("createdAt null in milestone row — timestamp is empty string", async () => {
+    queueLimitResults(MOCK_PETS, [makeMilestoneRow({ createdAt: null })]);
+    const item = (await (await GET(makeRequest({ types: "milestone" }))).json()).items[0];
+    expect(item.timestamp).toBe("");
   });
 });

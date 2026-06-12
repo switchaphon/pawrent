@@ -1,10 +1,12 @@
-import { createApiClient } from "@/lib/supabase-api";
 import { createRateLimiter, checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { pushWebhookPayloadSchema } from "@/lib/validations/push";
 import { multicastMessage, isQuietHours } from "@/lib/line-messaging";
 import { lostPetFlexMessage } from "@/lib/line-templates/lost-pet-alert";
 import { foundPetFlexMessage } from "@/lib/line-templates/found-pet-alert";
+import { adminQuery, profiles, pushLogs } from "@/lib/db/index";
+import { usersWithinRadius } from "@/lib/db/rpc";
+import { inArray } from "drizzle-orm";
 
 const limiter = createRateLimiter(30, "1 m");
 
@@ -15,14 +17,14 @@ function getLiffId(): string {
 /**
  * POST /api/alerts/push
  *
- * Triggered by Supabase Database Webhook on pet_reports/lost_pet_alerts INSERT.
+ * Triggered by a webhook on pet_reports INSERT.
  * Authenticates via a shared webhook secret (not user auth).
  *
  * Flow:
  * 1. Validate webhook secret
  * 2. Rate limit
  * 3. Validate payload
- * 4. Query nearby users via users_within_radius RPC
+ * 4. Query nearby users via users_within_radius RPC (SECURITY DEFINER — runs in query() user context)
  * 5. Filter by species preference and quiet hours
  * 6. Multicast LINE Flex Message
  * 7. Log to push_logs
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Rate limit
+  // 2. Rate limit (keyed by IP — this is a machine-to-machine webhook, not a user call)
   const ip = getClientIp(request);
   const rateLimited = await checkRateLimit(limiter, `push:${ip}`);
   if (rateLimited) return rateLimited;
@@ -55,49 +57,68 @@ export async function POST(request: NextRequest) {
 
   const payload = result.data;
 
-  // 4. Query nearby users via RPC
-  const supabase = createApiClient(null);
-  const { data: nearbyUsers, error: rpcError } = await supabase.rpc("users_within_radius", {
-    p_lat: payload.lat,
-    p_lng: payload.lng,
-    p_radius_km: 5,
-  });
-
-  if (rpcError) {
+  // 4. Query nearby users via RPC.
+  // usersWithinRadius is SECURITY DEFINER — it bypasses RLS internally. We call it
+  // inside query() so the transaction context is set, but the RPC does its own check.
+  // We use a synthetic system UUID for the session var because this is a webhook context.
+  // The RPC only returns line_user_id strings — no ownership check needed on the result.
+  let nearbyLineUserIds: string[];
+  try {
+    nearbyLineUserIds = await adminQuery(async (tx) =>
+      usersWithinRadius(tx, { lat: payload.lat, lng: payload.lng, radiusKm: 5 })
+    );
+  } catch (err) {
+    console.error(
+      "[alerts/push] usersWithinRadius error:",
+      err instanceof Error ? err.message : "unknown"
+    );
     return NextResponse.json({ error: "Failed to query nearby users" }, { status: 500 });
   }
 
-  if (!nearbyUsers || nearbyUsers.length === 0) {
+  if (nearbyLineUserIds.length === 0) {
     return NextResponse.json({ sent: 0, reason: "no_nearby_users" });
   }
 
-  // 5. Filter by species preference and quiet hours
-  // Fetch full preferences for nearby users
-  const lineUserIds = nearbyUsers.map((u: { line_user_id: string }) => u.line_user_id);
+  // 5. Filter by species preference and quiet hours — fetch full preferences
+  let eligibleUserIds: string[];
+  try {
+    const profileRows = await adminQuery(async (tx) =>
+      tx
+        .select({
+          lineUserId: profiles.lineUserId,
+          pushSpeciesFilter: profiles.pushSpeciesFilter,
+          pushQuietStart: profiles.pushQuietStart,
+          pushQuietEnd: profiles.pushQuietEnd,
+        })
+        .from(profiles)
+        .where(inArray(profiles.lineUserId, nearbyLineUserIds))
+    );
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("line_user_id, push_species_filter, push_quiet_start, push_quiet_end")
-    .in("line_user_id", lineUserIds);
+    eligibleUserIds = profileRows
+      .filter((p) => {
+        // Species filter: if the alert pet species is set, check it
+        if (payload.pet_species && p.pushSpeciesFilter) {
+          const speciesFilter = p.pushSpeciesFilter as string[];
+          if (speciesFilter.length > 0 && !speciesFilter.includes(payload.pet_species)) {
+            return false;
+          }
+        }
 
-  const eligibleUserIds = (profiles ?? [])
-    .filter((p) => {
-      // Species filter: if the alert pet species is set, check it
-      if (payload.pet_species && p.push_species_filter) {
-        const speciesFilter = p.push_species_filter as string[];
-        if (speciesFilter.length > 0 && !speciesFilter.includes(payload.pet_species)) {
+        // Quiet hours filter
+        if (isQuietHours(p.pushQuietStart as string | null, p.pushQuietEnd as string | null)) {
           return false;
         }
-      }
 
-      // Quiet hours filter
-      if (isQuietHours(p.push_quiet_start as string | null, p.push_quiet_end as string | null)) {
-        return false;
-      }
-
-      return true;
-    })
-    .map((p) => p.line_user_id as string);
+        return true;
+      })
+      .map((p) => p.lineUserId as string);
+  } catch (err) {
+    console.error(
+      "[alerts/push] profile filter error:",
+      err instanceof Error ? err.message : "unknown"
+    );
+    eligibleUserIds = [];
+  }
 
   if (eligibleUserIds.length === 0) {
     return NextResponse.json({ sent: 0, reason: "all_filtered" });
@@ -113,7 +134,7 @@ export async function POST(request: NextRequest) {
           breed: payload.pet_breed ?? "",
           sex: payload.pet_sex,
           photoUrl: payload.photo_url,
-          distanceKm: 0, // Will be personalized per-user in future iteration
+          distanceKm: 0,
           lostDate: payload.lost_date ?? "",
           locationDescription: payload.location_description,
           reward: payload.reward_amount,
@@ -134,11 +155,13 @@ export async function POST(request: NextRequest) {
   const sentCount = await multicastMessage(eligibleUserIds, [message]);
 
   // 8. Log push delivery
-  await supabase.from("push_logs").insert({
-    alert_id: payload.alert_id,
-    alert_type: payload.alert_type,
-    recipient_count: sentCount,
-  });
+  await adminQuery(async (tx) =>
+    tx.insert(pushLogs).values({
+      alertId: payload.alert_id,
+      alertType: payload.alert_type,
+      recipientCount: sentCount,
+    })
+  );
 
   return NextResponse.json({ sent: sentCount });
 }

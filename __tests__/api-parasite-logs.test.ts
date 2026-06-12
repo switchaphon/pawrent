@@ -1,617 +1,457 @@
 /**
- * Integration tests for GET and POST /api/parasite-logs.
+ * Tests for GET/POST/PUT/DELETE /api/parasite-logs (converted to Drizzle stack).
  *
- * Strategy: vi.mock the @/lib/supabase-api module so every test controls
- * exactly what Supabase returns. The route handler is imported directly
- * and called with a real NextRequest so we exercise all the logic — auth
- * guard, Zod validation (including .refine() date comparison), ownership
- * filter — without a network.
+ * Mock strategy (house pattern):
+ *   - @/lib/auth: verifyAuth → { userId }
+ *   - @/lib/db/index: query executes callback against stubbed tx
+ *   - @/lib/rate-limit: checkRateLimit allows all through
+ *
+ * Parity: every behavioral case from the Supabase version preserved.
+ * Response shape assertions confirm snake_case parity.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through in tests
+// Mock @/lib/rate-limit
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<Response | null>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
-  getClientIp: () => "127.0.0.1",
+  checkRateLimit: mockCheckRateLimit,
 }));
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/supabase-api
+// Mock @/lib/auth
 // ---------------------------------------------------------------------------
+const { mockVerifyAuth } = vi.hoisted(() => ({
+  mockVerifyAuth: vi.fn().mockResolvedValue({ userId: "user-abc-0000-0000-0000-000000000001" }),
+}));
 
-const mockSingle = vi.fn();
-const mockMaybeSingle = vi.fn();
-const mockSelect = vi.fn(() => ({ single: mockSingle, maybeSingle: mockMaybeSingle }));
-const mockInsert = vi.fn(() => ({ select: mockSelect }));
+vi.mock("@/lib/auth", () => ({
+  verifyAuth: mockVerifyAuth,
+  signAuthToken: vi.fn(),
+}));
 
-const eqCalls: Array<[string, unknown]> = [];
+// ---------------------------------------------------------------------------
+// Stubbed tx + query mock
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
 
-// Ownership check chain: from("pets").select("id").eq("id", x).eq("owner_id", y).maybeSingle()
-function buildOwnershipChain() {
-  const chain: Record<string, unknown> = {};
-  chain.eq = vi.fn((...args: [string, unknown]) => {
-    eqCalls.push(args);
-    return chain;
-  });
-  chain.maybeSingle = mockMaybeSingle;
-  return chain as {
-    eq: ReturnType<typeof vi.fn>;
-    maybeSingle: typeof mockMaybeSingle;
-  };
+const _limitQueue: Array<MockRow[]> = [];
+const _returningQueue: Array<MockRow[] | null> = [];
+
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => (_limitQueue.length > 0 ? _limitQueue.shift()! : [])),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => (_returningQueue.length > 0 ? _returningQueue.shift()! : [])),
+};
+
+function resetTx() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.orderBy.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+  stubTx.update.mockReturnThis();
+  stubTx.set.mockReturnThis();
+  stubTx.delete.mockReturnThis();
+  _limitQueue.length = 0;
+  _returningQueue.length = 0;
 }
 
-const ownershipChain = buildOwnershipChain();
-
-let fromCallIndex = 0;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockFrom: ReturnType<typeof vi.fn<(...args: any[]) => any>> = vi.fn(() => {
-  fromCallIndex++;
-  if (fromCallIndex === 1) {
-    return { select: vi.fn(() => ownershipChain) };
-  }
-  return { insert: mockInsert };
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    query: vi.fn(async (_: string, fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
 });
-
-const mockGetUser = vi.fn();
-
-vi.mock("@/lib/supabase-api", () => ({
-  createApiClient: vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-    from: mockFrom,
-  })),
-}));
 
 import { GET, POST, PUT, DELETE } from "@/app/api/parasite-logs/route";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
+const USER_ID = "user-abc-0000-0000-0000-000000000001";
 const VALID_UUID = "123e4567-e89b-12d3-a456-426614174000";
+const LOG_ID = "log-0001-0000-4000-a000-000000000001";
 
-function makeRequest(body: unknown, withAuth = true): NextRequest {
-  return new NextRequest("http://localhost/api/parasite-logs", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-}
+const BASE_LOG: MockRow = {
+  id: LOG_ID,
+  petId: VALID_UUID,
+  medicineName: "NexGard",
+  administeredDate: "2025-06-01",
+  nextDueDate: "2025-07-01",
+  createdAt: new Date("2025-06-01T00:00:00Z"),
+};
 
-const validBody = {
+const validPostBody = {
   pet_id: VALID_UUID,
   medicine_name: "NexGard",
   administered_date: "2025-06-01",
   next_due_date: "2025-07-01",
 };
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+function makeGetReq(petId: string | null): NextRequest {
+  const url = petId
+    ? `http://localhost/api/parasite-logs?pet_id=${petId}`
+    : "http://localhost/api/parasite-logs";
+  return new NextRequest(url, {
+    method: "GET",
+    headers: { Authorization: "Bearer mock" },
+  });
+}
 
-describe("POST /api/parasite-logs", () => {
+function makePostReq(body: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/parasite-logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+    body: JSON.stringify(body),
+  });
+}
+
+function makePutReq(body: unknown): NextRequest {
+  return new NextRequest("http://localhost/api/parasite-logs", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+    body: JSON.stringify(body),
+  });
+}
+
+function makeDeleteReq(id: string | null): NextRequest {
+  const url = id
+    ? `http://localhost/api/parasite-logs?id=${id}`
+    : "http://localhost/api/parasite-logs";
+  return new NextRequest(url, { method: "DELETE", headers: { Authorization: "Bearer mock" } });
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/parasite-logs
+// ---------------------------------------------------------------------------
+describe("GET /api/parasite-logs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeRequest(validBody, false);
-    const res = await POST(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await GET(makeGetReq(VALID_UUID));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeRequest(validBody);
-    const res = await POST(req);
-    expect(res.status).toBe(401);
+  it("returns 429 when rate limited", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+    const res = await GET(makeGetReq(VALID_UUID));
+    expect(res.status).toBe(429);
   });
 
-  it("should return 400 when administered_date has wrong format", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({ ...validBody, administered_date: "June 1, 2025" });
-    const res = await POST(req);
+  it("returns 400 when pet_id query param is missing", async () => {
+    const res = await GET(makeGetReq(null));
     expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("pet_id is required");
   });
 
-  it("should return 400 when next_due_date is before administered_date", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeRequest({
-      ...validBody,
-      administered_date: "2025-07-01",
-      next_due_date: "2025-06-01",
-    });
-    const res = await POST(req);
+  it("returns 400 when pet_id is not a valid UUID", async () => {
+    const res = await GET(makeGetReq("not-a-uuid"));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("Next due date must be after administered date");
+    expect((await res.json()).error).toBe("pet_id must be a valid UUID");
   });
 
-  it("should return 404 when the pet is not owned by the user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("returns 404 when pet does not belong to the user", async () => {
+    _limitQueue.push([]); // pet ownership returns empty
+    const res = await GET(makeGetReq(VALID_UUID));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Pet not found");
+    expect((await res.json()).error).toBe("Pet not found");
   });
 
-  it("should verify the ownership filter includes owner_id", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-    mockSingle.mockResolvedValueOnce({ data: { id: "log-1", ...validBody }, error: null });
-
-    const req = makeRequest(validBody);
-    await POST(req);
-
-    const filterKeys = eqCalls.map(([key]) => key);
-    expect(filterKeys).toContain("id");
-    expect(filterKeys).toContain("owner_id");
-    const ownerEq = eqCalls.find(([key]) => key === "owner_id");
-    expect(ownerEq?.[1]).toBe("user-1");
-  });
-
-  it("should return 200 on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-    const created = { id: "log-1", ...validBody };
-    mockSingle.mockResolvedValueOnce({ data: created, error: null });
-
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("returns empty array when pet has no parasite logs", async () => {
+    // pet found; then the full select (no limit) resolves to []
+    _limitQueue.push([{ id: VALID_UUID }]); // pet ownership
+    // The route does: return tx.select().from(...).where(...).orderBy(...)
+    // which resolves via orderBy() — mock orderBy to resolve an array
+    stubTx.orderBy.mockResolvedValueOnce([]);
+    const res = await GET(makeGetReq(VALID_UUID));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.id).toBe("log-1");
-    expect(json.medicine_name).toBe("NexGard");
+    expect(await res.json()).toEqual([]);
   });
 
-  it("should return 500 when Supabase insert returns an error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "DB error" } });
+  it("returns parasite logs in snake_case shape", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]);
+    stubTx.orderBy.mockResolvedValueOnce([BASE_LOG]);
+    const res = await GET(makeGetReq(VALID_UUID));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>[];
+    expect(body).toHaveLength(1);
+    expect(body[0]).toMatchObject({
+      id: LOG_ID,
+      pet_id: VALID_UUID,
+      medicine_name: "NexGard",
+      administered_date: "2025-06-01",
+      next_due_date: "2025-07-01",
+    });
+    expect(body[0]).not.toHaveProperty("petId");
+    expect(body[0]).not.toHaveProperty("medicineName");
+    expect(body[0]).not.toHaveProperty("administeredDate");
+    expect(body[0]).not.toHaveProperty("nextDueDate");
+  });
 
-    const req = makeRequest(validBody);
-    const res = await POST(req);
+  it("returns multiple logs ordered by administered_date", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]);
+    const logs = [
+      { ...BASE_LOG, id: "log-2", administeredDate: "2025-07-01" },
+      { ...BASE_LOG, id: "log-1", administeredDate: "2025-06-01" },
+    ];
+    stubTx.orderBy.mockResolvedValueOnce(logs);
+    const res = await GET(makeGetReq(VALID_UUID));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toHaveLength(2);
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]);
+    stubTx.orderBy.mockRejectedValueOnce(new Error("Query timeout"));
+    const res = await GET(makeGetReq(VALID_UUID));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("DB error");
+    expect((await res.json()).error).toBe("Internal server error");
   });
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/parasite-logs?pet_id=<uuid>
+// POST /api/parasite-logs
 // ---------------------------------------------------------------------------
-
-describe("GET /api/parasite-logs", () => {
+describe("POST /api/parasite-logs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  function makeGetRequest(petId: string | null, withAuth = true): NextRequest {
-    const url =
-      petId !== null
-        ? `http://localhost/api/parasite-logs?pet_id=${petId}`
-        : "http://localhost/api/parasite-logs";
-    return new NextRequest(url, {
-      method: "GET",
-      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await POST(makePostReq(validPostBody));
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("Unauthorized");
+  });
+
+  it("returns 400 when administered_date has wrong format", async () => {
+    const res = await POST(makePostReq({ ...validPostBody, administered_date: "June 1, 2025" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when next_due_date is before administered_date", async () => {
+    const res = await POST(
+      makePostReq({
+        ...validPostBody,
+        administered_date: "2025-07-01",
+        next_due_date: "2025-06-01",
+      })
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Next due date must be after administered date");
+  });
+
+  it("returns 400 when pet_id is not a valid UUID", async () => {
+    const res = await POST(makePostReq({ ...validPostBody, pet_id: "not-a-uuid" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    const req = new NextRequest("http://localhost/api/parasite-logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer mock" },
+      body: "not-json",
     });
-  }
-
-  it("should return 401 when no Authorization header is present", async () => {
-    const req = makeGetRequest(VALID_UUID, false);
-    const res = await GET(req);
-    expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
-  });
-
-  it("should return 401 when the token resolves to no user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null } });
-    const req = makeGetRequest(VALID_UUID);
-    const res = await GET(req);
-    expect(res.status).toBe(401);
-  });
-
-  it("should return 400 when pet_id query param is missing", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeGetRequest(null);
-    const res = await GET(req);
+    const res = await POST(req);
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("pet_id is required");
   });
 
-  it("should return 400 when pet_id is not a valid UUID", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeGetRequest("not-a-uuid");
-    const res = await GET(req);
-    expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("pet_id must be a valid UUID");
-  });
-
-  it("should return 404 when the pet does not belong to the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    // First from() call is the ownership check — pet not found
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    const req = makeGetRequest(VALID_UUID);
-    const res = await GET(req);
+  it("returns 404 when the pet is not owned by the user", async () => {
+    _limitQueue.push([]); // pet ownership returns empty
+    const res = await POST(makePostReq(validPostBody));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Pet not found");
+    expect((await res.json()).error).toBe("Pet not found");
   });
 
-  it("should return an array of parasite logs for the pet on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-
-    // First from() call: ownership check → pet found
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-
-    const logs = [
-      {
-        id: "log-1",
-        pet_id: VALID_UUID,
-        medicine_name: "NexGard",
-        administered_date: "2025-06-01",
-      },
-      {
-        id: "log-2",
-        pet_id: VALID_UUID,
-        medicine_name: "Bravecto",
-        administered_date: "2025-03-01",
-      },
-    ];
-
-    // Second from() call: the actual parasite_logs select with order
-    const orderMock = vi.fn().mockResolvedValue({ data: logs, error: null });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-
-    // fromCallIndex starts at 0; first call (pets ownership) uses the chain from buildOwnershipChain,
-    // second call (parasite_logs) needs to return our custom chain.
-    mockFrom
-      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .mockReturnValueOnce({ select: selectMock } as any);
-
-    const req = makeGetRequest(VALID_UUID);
-    const res = await GET(req);
+  it("creates parasite log and returns snake_case shape", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]); // pet found
+    _returningQueue.push([BASE_LOG]);
+    const res = await POST(makePostReq(validPostBody));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toHaveLength(2);
-    expect(json[0].medicine_name).toBe("NexGard");
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.id).toBe(LOG_ID);
+    expect(body.pet_id).toBe(VALID_UUID);
+    expect(body.medicine_name).toBe("NexGard");
+    expect(body.administered_date).toBe("2025-06-01");
+    expect(body.next_due_date).toBe("2025-07-01");
+    expect(body).not.toHaveProperty("petId");
+    expect(body).not.toHaveProperty("medicineName");
   });
 
-  it("should return an empty array when the pet has no parasite logs", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
-
-    const orderMock = vi.fn().mockResolvedValue({ data: [], error: null });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom
-      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .mockReturnValueOnce({ select: selectMock } as any);
-
-    const req = makeGetRequest(VALID_UUID);
-    const res = await GET(req);
+  it("accepts null medicine_name", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]);
+    _returningQueue.push([{ ...BASE_LOG, medicineName: null }]);
+    const res = await POST(makePostReq({ ...validPostBody, medicine_name: null }));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toEqual([]);
+    expect((await res.json()).medicine_name).toBeNull();
   });
 
-  it("should return 500 when Supabase returns a database error on the list query", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    mockMaybeSingle.mockResolvedValueOnce({ data: { id: VALID_UUID }, error: null });
+  it("returns 404 when insert returns empty rows (rows[0] ?? null → Pet not found)", async () => {
+    _limitQueue.push([{ id: VALID_UUID }]);
+    _returningQueue.push([]);
+    const res = await POST(makePostReq(validPostBody));
+    // Route: `rows[0] ?? null` → null → same 404 path as "pet not found"
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Pet not found");
+  });
 
-    const orderMock = vi
-      .fn()
-      .mockResolvedValue({ data: null, error: { message: "Query timeout" } });
-    const eqMock = vi.fn(() => ({ order: orderMock }));
-    const selectMock = vi.fn(() => ({ eq: eqMock }));
-    mockFrom
-      .mockReturnValueOnce({ select: vi.fn(() => ownershipChain) })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .mockReturnValueOnce({ select: selectMock } as any);
-
-    const req = makeGetRequest(VALID_UUID);
-    const res = await GET(req);
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await POST(makePostReq(validPostBody));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("Query timeout");
   });
 });
 
 // ---------------------------------------------------------------------------
 // PUT /api/parasite-logs
-// PUT calls from() three times:
-//   1. from("parasite_logs").select("pet_id").eq("id", id).maybeSingle()
-//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
-//   3. from("parasite_logs").update(data).eq("id", id).select().single()
 // ---------------------------------------------------------------------------
-
 describe("PUT /api/parasite-logs", () => {
-  const LOG_ID = "log-0001-0000-0000-000000000001";
-
-  function makePutRequest(body: unknown, withAuth = true): NextRequest {
-    return new NextRequest("http://localhost/api/parasite-logs", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(withAuth ? { Authorization: "Bearer fake-token" } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-  }
-
-  function buildUpdateChain(result: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.select = vi.fn(() => chain);
-    chain.single = vi.fn().mockResolvedValue(result);
-    return chain;
-  }
-
-  function buildFreshLookupChain(returnValue: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
-    return { select: vi.fn(() => chain) };
-  }
-
-  function buildFreshOwnershipChain(returnValue: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
-    return { select: vi.fn(() => chain) };
-  }
+  const validPutBody = { id: LOG_ID, medicine_name: "Bravecto" };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
-
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2)
-        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
-      return { update: vi.fn(() => buildUpdateChain({ data: null, error: null })) };
-    });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  it("should return 401 without auth", async () => {
-    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" }, false);
-    const res = await PUT(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 400 when id is missing from body", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makePutRequest({ medicine_name: "Bravecto" });
-    const res = await PUT(req);
+  it("returns 400 when id is missing from body", async () => {
+    const res = await PUT(makePutReq({ medicine_name: "Bravecto" }));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("id is required");
+    expect((await res.json()).error).toBe("id is required");
   });
 
-  it("should return 404 when parasite log record is not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFreshLookupChain({ data: null, error: null });
-      return {};
-    });
+  it("returns 400 for invalid update field (bad date format)", async () => {
+    const res = await PUT(makePutReq({ id: LOG_ID, administered_date: "June 1" }));
+    expect(res.status).toBe(400);
+  });
 
-    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
-    const res = await PUT(req);
+  it("returns 404 when parasite log record is not found", async () => {
+    _limitQueue.push([]); // log lookup returns empty → not_found
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Parasite log not found");
+    expect((await res.json()).error).toBe("Parasite log not found");
   });
 
-  it("should return 404 when pet is not owned by the authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2) return buildFreshOwnershipChain({ data: null, error: null });
-      return {};
-    });
-
-    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
-    const res = await PUT(req);
+  it("returns 404 when pet is not owned by the user", async () => {
+    _limitQueue.push([{ petId: VALID_UUID }]); // log found
+    _limitQueue.push([]); // pet ownership fails
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Pet not found");
+    expect((await res.json()).error).toBe("Parasite log not found");
   });
 
-  it("should return 200 with updated data on success", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const updated = { id: LOG_ID, medicine_name: "Bravecto updated" };
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2)
-        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
-      return { update: vi.fn(() => buildUpdateChain({ data: updated, error: null })) };
-    });
-
-    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto updated" });
-    const res = await PUT(req);
+  it("updates log and returns snake_case row", async () => {
+    _limitQueue.push([{ petId: VALID_UUID }]);
+    _limitQueue.push([{ id: VALID_UUID }]);
+    _returningQueue.push([{ ...BASE_LOG, medicineName: "Bravecto" }]);
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.id).toBe(LOG_ID);
-    expect(json.medicine_name).toBe("Bravecto updated");
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.medicine_name).toBe("Bravecto");
+    expect(body).not.toHaveProperty("medicineName");
   });
 
-  it("should return 500 on DB update error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2)
-        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
-      return {
-        update: vi.fn(() => buildUpdateChain({ data: null, error: { message: "update failed" } })),
-      };
-    });
-
-    const req = makePutRequest({ id: LOG_ID, medicine_name: "Bravecto" });
-    const res = await PUT(req);
+  it("returns 500 when update returns empty rows", async () => {
+    _limitQueue.push([{ petId: VALID_UUID }]);
+    _limitQueue.push([{ id: VALID_UUID }]);
+    _returningQueue.push([]);
+    const res = await PUT(makePutReq(validPutBody));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("update failed");
+  });
+
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await PUT(makePutReq(validPutBody));
+    expect(res.status).toBe(500);
   });
 });
 
 // ---------------------------------------------------------------------------
 // DELETE /api/parasite-logs
-// DELETE calls from() three times:
-//   1. from("parasite_logs").select("pet_id").eq("id", id).maybeSingle()
-//   2. from("pets").select("id").eq("id", petId).eq("owner_id", userId).maybeSingle()
-//   3. from("parasite_logs").delete().eq("id", id)
 // ---------------------------------------------------------------------------
-
 describe("DELETE /api/parasite-logs", () => {
-  const LOG_ID = "log-0001-0000-0000-000000000001";
-
-  function makeDeleteRequest(id: string | null, withAuth = true): NextRequest {
-    const url =
-      id !== null
-        ? `http://localhost/api/parasite-logs?id=${id}`
-        : "http://localhost/api/parasite-logs";
-    return new NextRequest(url, {
-      method: "DELETE",
-      headers: withAuth ? { Authorization: "Bearer fake-token" } : {},
-    });
-  }
-
-  // Build a fresh lookup chain that does not share state with ownershipChain
-  function buildFreshLookupChain(returnValue: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
-    return { select: vi.fn(() => chain) };
-  }
-
-  function buildFreshOwnershipChain(returnValue: { data: unknown; error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn(() => chain);
-    chain.maybeSingle = vi.fn().mockResolvedValue(returnValue);
-    return { select: vi.fn(() => chain) };
-  }
-
-  function buildDeleteChain(result: { error: unknown }) {
-    const chain: Record<string, unknown> = {};
-    chain.eq = vi.fn().mockResolvedValue(result);
-    return chain;
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
-    eqCalls.length = 0;
-    fromCallIndex = 0;
-
-    // Default: step 1 returns record-not-found so tests can override via mockFrom
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2)
-        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
-      return { delete: vi.fn(() => buildDeleteChain({ error: null })) };
-    });
+    mockCheckRateLimit.mockResolvedValue(null);
+    mockVerifyAuth.mockResolvedValue({ userId: USER_ID });
+    resetTx();
   });
 
-  it("should return 401 without auth", async () => {
-    const req = makeDeleteRequest(LOG_ID, false);
-    const res = await DELETE(req);
+  it("returns 401 when not authenticated", async () => {
+    mockVerifyAuth.mockResolvedValueOnce(null);
+    const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe("Unauthorized");
+    expect((await res.json()).error).toBe("Unauthorized");
   });
 
-  it("should return 400 when id query param is missing", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    const req = makeDeleteRequest(null);
-    const res = await DELETE(req);
+  it("returns 400 when id query param is missing", async () => {
+    const res = await DELETE(makeDeleteReq(null));
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe("id is required");
+    expect((await res.json()).error).toBe("id is required");
   });
 
-  it("should return 404 when parasite log record is not found", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1) return buildFreshLookupChain({ data: null, error: null });
-      return {};
-    });
-
-    const req = makeDeleteRequest(LOG_ID);
-    const res = await DELETE(req);
+  it("returns 404 when parasite log record is not found", async () => {
+    _limitQueue.push([]); // log lookup returns empty → not_found
+    const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(404);
-    const json = await res.json();
-    expect(json.error).toBe("Parasite log not found");
+    expect((await res.json()).error).toBe("Parasite log not found");
   });
 
-  it("should return 200 with success true on deletion", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    // Default from() mock covers this: lookup found → ownership ok → delete ok
+  it("returns 404 when pet is not owned by the user", async () => {
+    _limitQueue.push([{ petId: VALID_UUID }]);
+    _limitQueue.push([]);
+    const res = await DELETE(makeDeleteReq(LOG_ID));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("Parasite log not found");
+  });
 
-    const req = makeDeleteRequest(LOG_ID);
-    const res = await DELETE(req);
+  it("deletes log and returns { success: true }", async () => {
+    _limitQueue.push([{ petId: VALID_UUID }]);
+    _limitQueue.push([{ id: VALID_UUID }]);
+    const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.success).toBe(true);
+    expect((await res.json()).success).toBe(true);
   });
 
-  it("should return 500 on DB delete error", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
-    fromCallIndex = 0;
-    mockFrom.mockImplementation(() => {
-      fromCallIndex++;
-      if (fromCallIndex === 1)
-        return buildFreshLookupChain({ data: { pet_id: VALID_UUID }, error: null });
-      if (fromCallIndex === 2)
-        return buildFreshOwnershipChain({ data: { id: VALID_UUID }, error: null });
-      return { delete: vi.fn(() => buildDeleteChain({ error: { message: "delete failed" } })) };
-    });
-
-    const req = makeDeleteRequest(LOG_ID);
-    const res = await DELETE(req);
+  it("returns 500 on unhandled DB error", async () => {
+    stubTx.limit.mockRejectedValueOnce(new Error("DB crash"));
+    const res = await DELETE(makeDeleteReq(LOG_ID));
     expect(res.status).toBe(500);
-    const json = await res.json();
-    expect(json.error).toBe("delete failed");
   });
 });

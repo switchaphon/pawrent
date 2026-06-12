@@ -1,130 +1,129 @@
 /**
- * Tests for POST /api/auth/line.
+ * Tests for POST /api/auth/line (de-GoTrue rewrite).
  *
- * Strategy: mock global fetch (LINE API verification), mock @supabase/supabase-js
- * for auth.admin.createUser + profile operations, and mock jose for JWT signing.
+ * Mock strategy:
+ *   - global fetch: LINE id_token verification + avatar image download
+ *   - @/lib/db: vi.mock — adminQuery is intercepted; the callback receives a
+ *     stubbed tx object whose Drizzle-style chain (.select/.from/.where/.limit,
+ *     .update/.set/.where/.returning, .insert/.values/.returning) is pre-wired
+ *     per test via helper functions below.
+ *   - @/lib/storage: vi.mock — upload() returns a configurable URL string.
+ *   - @/lib/auth: vi.mock — signAuthToken returns a stable stub token.
+ *   - @/lib/rate-limit: vi.mock — allow all through.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 // ---------------------------------------------------------------------------
-// Mock @/lib/rate-limit — allow all requests through
+// Mock @/lib/rate-limit — checkRateLimit is a vi.fn() so tests can override it
 // ---------------------------------------------------------------------------
+const { mockCheckRateLimit } = vi.hoisted(() => ({
+  mockCheckRateLimit: vi.fn<() => Promise<null | Response>>().mockResolvedValue(null),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: () => ({}),
-  checkRateLimit: async () => null,
+  checkRateLimit: mockCheckRateLimit,
   getClientIp: () => "127.0.0.1",
 }));
 
 // ---------------------------------------------------------------------------
-// Mock jose — JWT signing
+// Mock @/lib/auth — signAuthToken
 // ---------------------------------------------------------------------------
-vi.mock("jose", () => {
-  class MockSignJWT {
-    setProtectedHeader() {
-      return this;
-    }
-    setSubject() {
-      return this;
-    }
-    setIssuedAt() {
-      return this;
-    }
-    setExpirationTime() {
-      return this;
-    }
-    async sign() {
-      return "mock-supabase-jwt";
-    }
-  }
-  return { SignJWT: MockSignJWT };
-});
-
-// ---------------------------------------------------------------------------
-// Mock Supabase admin client — auth.admin + profile table operations
-// ---------------------------------------------------------------------------
-const {
-  mockCreateUser,
-  mockListUsers,
-  mockUpdateUserById,
-  mockUpsertSingle,
-  mockUpsertSelect,
-  mockUpsert,
-  mockSelectSingle,
-  mockSelectEq,
-  mockSelect,
-  mockStorageUpload,
-  mockStorageGetPublicUrl,
-} = vi.hoisted(() => {
-  const mockUpsertSingle = vi.fn();
-  const mockUpsertSelect = vi.fn(() => ({ single: mockUpsertSingle }));
-  const mockUpsert = vi.fn(() => ({ select: mockUpsertSelect }));
-  const mockSelectSingle = vi.fn();
-  const mockSelectEq = vi.fn(() => ({ single: mockSelectSingle }));
-  const mockSelect = vi.fn(() => ({ eq: mockSelectEq }));
-  const mockCreateUser = vi.fn();
-  const mockListUsers = vi.fn();
-  const mockUpdateUserById = vi.fn();
-  const mockStorageUpload = vi.fn();
-  const mockStorageGetPublicUrl = vi.fn();
-  return {
-    mockCreateUser,
-    mockListUsers,
-    mockUpdateUserById,
-    mockUpsertSingle,
-    mockUpsertSelect,
-    mockUpsert,
-    mockSelectSingle,
-    mockSelectEq,
-    mockSelect,
-    mockStorageUpload,
-    mockStorageGetPublicUrl,
-  };
-});
-
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      admin: {
-        createUser: mockCreateUser,
-        listUsers: mockListUsers,
-        updateUserById: mockUpdateUserById,
-      },
-    },
-    from: vi.fn(() => ({
-      upsert: mockUpsert,
-      select: mockSelect,
-    })),
-    storage: {
-      from: vi.fn(() => ({
-        upload: mockStorageUpload,
-        getPublicUrl: mockStorageGetPublicUrl,
-      })),
-    },
-  })),
+vi.mock("@/lib/auth", () => ({
+  signAuthToken: vi.fn().mockResolvedValue("mock-jwt-token"),
+  verifyAuth: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
-// Mock global fetch for LINE API verification
+// Mock @/lib/storage — upload()
 // ---------------------------------------------------------------------------
-const originalFetch = global.fetch;
+const { mockUpload } = vi.hoisted(() => ({
+  mockUpload: vi.fn(),
+}));
+
+vi.mock("@/lib/storage/index", () => ({
+  upload: mockUpload,
+}));
+
+// ---------------------------------------------------------------------------
+// Mock @/lib/db — adminQuery intercepts the callback and injects a stubbed tx.
+//
+// The tx stub exposes a Drizzle-style fluent chain. Each test configures what
+// the SELECT and INSERT/UPDATE legs return via setSelectResult / setInsertResult
+// / setUpdateResult before calling the route.
+// ---------------------------------------------------------------------------
+type MockRow = Record<string, unknown>;
+
+// Mutable slots that tests fill in before each scenario.
+let _selectRows: MockRow[] = [];
+let _insertRow: MockRow | null = null;
+let _updateRow: MockRow | null = null;
+
+export function setSelectResult(rows: MockRow[]) {
+  _selectRows = rows;
+}
+export function setInsertResult(row: MockRow | null) {
+  _insertRow = row;
+}
+export function setUpdateResult(row: MockRow | null) {
+  _updateRow = row;
+}
+
+// The stubbed tx object mirrors the Drizzle query builder chain used in the
+// route: tx.select().from().where().limit(), tx.update().set().where().returning(),
+// tx.insert().values().returning().
+const stubTx = {
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn(async () => _selectRows),
+  update: vi.fn().mockReturnThis(),
+  set: vi.fn().mockReturnThis(),
+  returning: vi.fn(async () => (_updateRow ? [_updateRow] : _insertRow ? [_insertRow] : [])),
+  insert: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+};
+
+// Reset chain stubs' "this" return between tests.
+function resetTxChain() {
+  stubTx.select.mockReturnThis();
+  stubTx.from.mockReturnThis();
+  stubTx.where.mockReturnThis();
+  stubTx.update.mockReturnThis();
+  stubTx.set.mockReturnThis();
+  stubTx.insert.mockReturnThis();
+  stubTx.values.mockReturnThis();
+}
+
+vi.mock("@/lib/db/index", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/index")>();
+  return {
+    ...actual,
+    adminQuery: vi.fn(async (fn: (tx: typeof stubTx) => Promise<unknown>) => fn(stubTx)),
+  };
+});
 
 import { POST } from "@/app/api/auth/line/route";
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Test data
 // ---------------------------------------------------------------------------
 
-const mockProfile = {
-  id: "uuid-123",
-  line_user_id: "U1234567890",
-  line_display_name: "Test User",
-  avatar_url: "https://example.com/avatar.jpg",
+const BASE_PROFILE: MockRow = {
+  id: "aaaaaaaa-0000-4000-a000-000000000001",
+  lineUserId: "U1234567890",
+  lineDisplayName: "Test User",
+  avatarUrl: "https://cdn.example.com/avatar.jpg",
   email: null,
-  full_name: null,
-  created_at: "2026-01-01T00:00:00Z",
+  fullName: "Test User",
+  createdAt: new Date("2026-01-01T00:00:00Z"),
 };
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function makeRequest(body: unknown): NextRequest {
   return new NextRequest("http://localhost/api/auth/line", {
@@ -134,72 +133,61 @@ function makeRequest(body: unknown): NextRequest {
   });
 }
 
-function mockLineVerifySuccess() {
-  global.fetch = vi.fn().mockResolvedValue({
+function mockLineVerify(overrides: Record<string, unknown> = {}) {
+  global.fetch = vi.fn().mockResolvedValueOnce({
     ok: true,
     json: async () => ({
       sub: "U1234567890",
       name: "Test User",
-      picture: "https://example.com/avatar.jpg",
+      picture: "https://cdn.example.com/avatar.jpg",
       iss: "https://access.line.me",
-      aud: process.env.LINE_CHANNEL_ID,
+      aud: "channel-id",
+      ...overrides,
     }),
   });
 }
 
-function mockLineVerifySuccessWithEmail(email: string) {
-  global.fetch = vi.fn().mockResolvedValue({
+function mockLineVerifyFail() {
+  global.fetch = vi.fn().mockResolvedValueOnce({ ok: false });
+}
+
+/** Chains LINE verify + avatar fetch in order. */
+function mockLineVerifyThenAvatar(overrides: Record<string, unknown> = {}) {
+  const lineResp = {
     ok: true,
     json: async () => ({
       sub: "U1234567890",
       name: "Test User",
-      picture: "https://example.com/avatar.jpg",
-      email,
+      picture: "https://cdn.example.com/avatar.jpg",
       iss: "https://access.line.me",
-      aud: process.env.LINE_CHANNEL_ID,
-    }),
-  });
-}
-
-function mockLineVerifyFailure() {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: false,
-    json: async () => ({ error: "invalid token" }),
-  });
-}
-
-/** Sets up fetch to handle two sequential calls: LINE verify then avatar image download. */
-function mockLineVerifyThenAvatarFetch() {
-  const lineResponse = {
-    ok: true,
-    json: async () => ({
-      sub: "U1234567890",
-      name: "Test User",
-      picture: "https://example.com/avatar.jpg",
-      iss: "https://access.line.me",
-      aud: process.env.LINE_CHANNEL_ID,
+      aud: "channel-id",
+      ...overrides,
     }),
   };
-  const avatarResponse = {
+  const avatarResp = {
     ok: true,
     arrayBuffer: async () => new ArrayBuffer(8),
   };
-  global.fetch = vi.fn().mockResolvedValueOnce(lineResponse).mockResolvedValueOnce(avatarResponse);
+  global.fetch = vi.fn().mockResolvedValueOnce(lineResp).mockResolvedValueOnce(avatarResp);
 }
 
-function mockNewUserFlow() {
-  // Profile lookup returns null (new user)
-  mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-  // auth.admin.createUser succeeds
-  mockCreateUser.mockResolvedValueOnce({
-    data: { user: { id: "uuid-123" } },
-    error: null,
+/** No-picture LINE verify (single fetch only — no avatar download). */
+function mockLineVerifyNoPicture() {
+  global.fetch = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      sub: "U1234567890",
+      name: "Test User",
+      iss: "https://access.line.me",
+      aud: "channel-id",
+      // picture absent
+    }),
   });
-  // Profile upsert succeeds
-  mockUpsertSingle.mockResolvedValueOnce({
-    data: mockProfile,
-    error: null,
-  });
+}
+
+/** LINE verify fetch throws a network error. */
+function mockLineVerifyNetworkError() {
+  global.fetch = vi.fn().mockRejectedValueOnce(new Error("network failure"));
 }
 
 // ---------------------------------------------------------------------------
@@ -207,10 +195,20 @@ function mockNewUserFlow() {
 // ---------------------------------------------------------------------------
 
 describe("POST /api/auth/line", () => {
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore defaults cleared by vi.clearAllMocks()
+    mockCheckRateLimit.mockResolvedValue(null);
     global.fetch = originalFetch;
+    _selectRows = [];
+    _insertRow = null;
+    _updateRow = null;
+    resetTxChain();
   });
+
+  // ── Validation ─────────────────────────────────────────────────────────────
 
   it("returns 400 for missing idToken", async () => {
     const res = await POST(makeRequest({}));
@@ -234,373 +232,251 @@ describe("POST /api/auth/line", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 401 for invalid LINE token", async () => {
-    mockLineVerifyFailure();
+  // ── LINE token verification ─────────────────────────────────────────────────
+
+  it("returns 401 for invalid LINE token (api.line.me returns non-ok)", async () => {
+    mockLineVerifyFail();
     const res = await POST(makeRequest({ idToken: "bad-token" }));
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe("Invalid LINE token");
   });
 
-  it("returns access_token and user for new user", async () => {
-    mockLineVerifySuccess();
-    mockNewUserFlow();
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.access_token).toBe("mock-supabase-jwt");
-    expect(body.user.line_user_id).toBe("U1234567890");
-    expect(body.user.line_display_name).toBe("Test User");
-    expect(mockCreateUser).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "U1234567890@line.local",
-        email_confirm: true,
-      })
-    );
-  });
-
-  it("returns access_token and user for existing user", async () => {
-    mockLineVerifySuccess();
-
-    // Profile lookup returns existing user
-    mockSelectSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, id: "uuid-existing" },
-      error: null,
-    });
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.access_token).toBe("mock-supabase-jwt");
-    expect(body.user.id).toBe("uuid-existing");
-    expect(mockCreateUser).not.toHaveBeenCalled();
-  });
-
-  it("recovers when auth user exists but profile was deleted", async () => {
-    mockLineVerifySuccess();
-
-    // Profile lookup returns null (deleted)
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    // createUser fails — email already exists
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: "A user with this email address has already been registered" },
-    });
-
-    // listUsers returns users; route filters by email
-    mockListUsers.mockResolvedValueOnce({
-      data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
-      error: null,
-    });
-
-    // updateUserById updates metadata with LINE identity
-    mockUpdateUserById.mockResolvedValueOnce({
-      data: { user: { id: "uuid-orphan" } },
-      error: null,
-    });
-
-    // Profile re-creation succeeds
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, id: "uuid-orphan" },
-      error: null,
-    });
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.access_token).toBe("mock-supabase-jwt");
-    expect(body.user.id).toBe("uuid-orphan");
-  });
-
-  it("returns 500 when auth.admin.createUser fails and no existing user found", async () => {
-    mockLineVerifySuccess();
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: "Auth error" },
-    });
-    // listUsers returns users but none match the email
-    mockListUsers.mockResolvedValueOnce({
-      data: { users: [{ id: "uuid-other", email: "other@line.local" }] },
-      error: null,
-    });
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
+  it("returns 500 when LINE verify fetch throws a network error", async () => {
+    mockLineVerifyNetworkError();
+    const res = await POST(makeRequest({ idToken: "anything" }));
+    // Network error bubbles to the outer catch → 500
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe("Failed to create user");
+    expect(body.error).toBe("Internal server error");
   });
 
-  it("returns 500 when profile upsert fails for new user", async () => {
-    mockLineVerifySuccess();
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: { id: "uuid-123" } },
-      error: null,
-    });
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: null,
-      error: { message: "DB error" },
-    });
+  // ── Happy path: new user ────────────────────────────────────────────────────
 
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toBe("Failed to create profile");
-  });
+  it("creates new user with crypto.randomUUID id (no synthetic email)", async () => {
+    mockLineVerifyThenAvatar();
+    mockUpload.mockResolvedValueOnce("https://storage.example.com/avatars/new-uuid.jpg");
 
-  it("recovers when LINE email matches existing auth user from another provider", async () => {
-    mockLineVerifySuccessWithEmail("user@example.com");
-
-    // Profile lookup returns null (new LINE user)
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-
-    // createUser fails — email already registered (from email/password signup)
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: "A user with this email address has already been registered" },
-    });
-
-    // First listUsers (real email) finds the existing user
-    mockListUsers.mockResolvedValueOnce({
-      data: { users: [{ id: "uuid-email-user", email: "user@example.com" }] },
-      error: null,
-    });
-
-    // updateUserById updates metadata with LINE identity
-    mockUpdateUserById.mockResolvedValueOnce({
-      data: { user: { id: "uuid-email-user" } },
-      error: null,
-    });
-
-    // Profile upsert links LINE identity to existing auth user
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: {
-        ...mockProfile,
-        id: "uuid-email-user",
-        email: "user@example.com",
-        full_name: "Test User",
-      },
-      error: null,
-    });
+    const newProfile = {
+      ...BASE_PROFILE,
+      id: "bbbbbbbb-0000-4000-b000-000000000002",
+      avatarUrl: "https://storage.example.com/avatars/new-uuid.jpg",
+    };
+    setInsertResult(newProfile);
+    // Simulate no existing profile found (empty select)
+    stubTx.limit.mockResolvedValueOnce([]);
+    // Insert returning
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.user.id).toBe("uuid-email-user");
-
-    // Verify user_metadata was updated with LINE identity
-    expect(mockUpdateUserById).toHaveBeenCalledWith(
-      "uuid-email-user",
-      expect.objectContaining({
-        user_metadata: {
-          line_user_id: "U1234567890",
-          line_display_name: "Test User",
-          full_name: "Test User",
-          auth_provider: "line",
-        },
-      })
-    );
+    expect(body.access_token).toBe("mock-jwt-token");
+    expect(body.user.id).toBe("bbbbbbbb-0000-4000-b000-000000000002");
+    // No synthetic email
+    expect(body.user.email).toBeNull();
   });
 
-  it("uses real LINE email for new user when available", async () => {
-    mockLineVerifySuccessWithEmail("user@example.com");
-    mockNewUserFlow();
+  it("stores real LINE email when supplied (new user, no synthetic fallback)", async () => {
+    mockLineVerifyThenAvatar({ email: "real@example.com" });
+    mockUpload.mockResolvedValueOnce("https://storage.example.com/avatars/x.jpg");
+
+    const newProfile = {
+      ...BASE_PROFILE,
+      id: "cccccccc-0000-4000-c000-000000000003",
+      email: "real@example.com",
+    };
+    stubTx.limit.mockResolvedValueOnce([]);
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
     expect(res.status).toBe(200);
-    expect(mockCreateUser).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "user@example.com",
-        email_confirm: true,
-      })
-    );
-  });
-
-  it("falls back to synthetic email for new user when LINE email not available", async () => {
-    mockLineVerifySuccess();
-    mockNewUserFlow();
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(200);
-    expect(mockCreateUser).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "U1234567890@line.local",
-        email_confirm: true,
-      })
-    );
-  });
-
-  it("backfills real email for returning user with synthetic email", async () => {
-    mockLineVerifySuccessWithEmail("user@example.com");
-
-    // Profile lookup returns existing user with synthetic email
-    mockSelectSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, id: "uuid-existing", email: null },
-      error: null,
-    });
-
-    // Mock listUsers to find the auth user with synthetic email
-    mockListUsers.mockResolvedValueOnce({
-      data: { users: [{ id: "uuid-existing", email: "u1234567890@line.local" }] },
-      error: null,
-    });
-
-    // Mock updateUserById for email backfill
-    mockUpdateUserById.mockResolvedValueOnce({
-      data: { user: { id: "uuid-existing" } },
-      error: null,
-    });
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(200);
-    expect(mockUpdateUserById).toHaveBeenCalledWith(
-      "uuid-existing",
-      expect.objectContaining({ email: "user@example.com" })
-    );
-  });
-
-  it("returns 500 when profile upsert fails for recovered user", async () => {
-    mockLineVerifySuccess();
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    // createUser fails (email exists)
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: "A user with this email address has already been registered" },
-    });
-    // listUsers returns users; route filters by email
-    mockListUsers.mockResolvedValueOnce({
-      data: { users: [{ id: "uuid-orphan", email: "U1234567890@line.local" }] },
-      error: null,
-    });
-    // updateUserById for metadata
-    mockUpdateUserById.mockResolvedValueOnce({
-      data: { user: { id: "uuid-orphan" } },
-      error: null,
-    });
-    // Profile upsert fails
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: null,
-      error: { message: "DB error" },
-    });
-
-    const res = await POST(makeRequest({ idToken: "valid-token" }));
-    expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error).toBe("Failed to create profile");
+    expect(body.user.email).toBe("real@example.com");
+
+    // Confirm insert was called (stubTx.values is called for INSERT)
+    expect(stubTx.values).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "real@example.com" })
+    );
+    // Confirm NO @line.local string anywhere in the values call
+    const valuesArg = stubTx.values.mock.calls[0][0] as Record<string, unknown>;
+    expect(JSON.stringify(valuesArg)).not.toContain("@line.local");
   });
 
-  // ---------------------------------------------------------------------------
-  // Avatar upload tests (Task 2b+2c)
-  // ---------------------------------------------------------------------------
+  it("avatar re-upload: uses storage URL in new user profile", async () => {
+    const storedUrl = "https://storage.example.com/avatars/uuid.jpg";
+    mockLineVerifyThenAvatar();
+    mockUpload.mockResolvedValueOnce(storedUrl);
 
-  it("uploads avatar to Supabase storage and uses public URL as avatar_url for new user", async () => {
-    mockLineVerifyThenAvatarFetch();
-
-    const supabaseAvatarUrl =
-      "https://supabase.example.com/storage/v1/object/public/user-photos/avatars/uuid-123.jpg";
-    mockStorageUpload.mockResolvedValueOnce({ error: null });
-    mockStorageGetPublicUrl.mockReturnValueOnce({
-      data: { publicUrl: supabaseAvatarUrl },
-    });
-
-    // Profile lookup returns null (new user)
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    // auth.admin.createUser succeeds
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: { id: "uuid-123" } },
-      error: null,
-    });
-    // Profile upsert returns profile with Supabase avatar URL
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, avatar_url: supabaseAvatarUrl },
-      error: null,
-    });
+    const newProfile = { ...BASE_PROFILE, avatarUrl: storedUrl };
+    stubTx.limit.mockResolvedValueOnce([]);
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
     expect(res.status).toBe(200);
-
-    // Storage upload was called with correct path and content type
-    expect(mockStorageUpload).toHaveBeenCalledWith(
-      "avatars/uuid-123.jpg",
+    expect(mockUpload).toHaveBeenCalledWith(
+      "user-photos",
+      expect.stringMatching(/^avatars\/.+\.jpg$/),
       expect.any(Buffer),
       expect.objectContaining({ upsert: true, contentType: "image/jpeg" })
     );
-
-    // The upserted profile uses the Supabase URL, not the LINE CDN URL
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ avatar_url: supabaseAvatarUrl })
-    );
-
     const body = await res.json();
-    expect(body.user.avatar_url).toBe(supabaseAvatarUrl);
+    expect(body.user.avatar_url).toBe(storedUrl);
   });
 
-  it("falls back to LINE CDN URL when storage upload fails", async () => {
-    mockLineVerifyThenAvatarFetch();
+  it("avatar upload failure: falls back to LINE CDN URL", async () => {
+    mockLineVerifyThenAvatar();
+    // upload() throws — reuploadAvatar catches and returns original CDN URL
+    mockUpload.mockRejectedValueOnce(new Error("S3 unavailable"));
 
-    mockStorageUpload.mockResolvedValueOnce({ error: { message: "Upload failed" } });
-
-    // Profile lookup returns null (new user)
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: { id: "uuid-123" } },
-      error: null,
-    });
-    // Profile upsert returns profile with LINE CDN URL (fallback)
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, avatar_url: "https://example.com/avatar.jpg" },
-      error: null,
-    });
+    const lineUrl = "https://cdn.example.com/avatar.jpg";
+    const newProfile = { ...BASE_PROFILE, avatarUrl: lineUrl };
+    stubTx.limit.mockResolvedValueOnce([]);
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
     expect(res.status).toBe(200);
-
-    // getPublicUrl must NOT be called when upload failed
-    expect(mockStorageGetPublicUrl).not.toHaveBeenCalled();
-
-    // Upserted profile falls back to LINE CDN URL
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ avatar_url: "https://example.com/avatar.jpg" })
-    );
+    const body = await res.json();
+    expect(body.user.avatar_url).toBe(lineUrl);
   });
 
-  it("skips avatar upload when lineProfile.picture is undefined", async () => {
-    // LINE verify returns profile without picture
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        sub: "U1234567890",
-        name: "Test User",
-        iss: "https://access.line.me",
-        aud: process.env.LINE_CHANNEL_ID,
-        // picture deliberately absent
-      }),
-    });
+  it("skips avatar upload when LINE profile has no picture", async () => {
+    mockLineVerifyNoPicture();
+    // No second fetch needed — no picture download attempted
 
-    // Profile lookup returns null (new user)
-    mockSelectSingle.mockResolvedValueOnce({ data: null, error: null });
-    mockCreateUser.mockResolvedValueOnce({
-      data: { user: { id: "uuid-123" } },
-      error: null,
-    });
-    mockUpsertSingle.mockResolvedValueOnce({
-      data: { ...mockProfile, avatar_url: null },
-      error: null,
-    });
+    const newProfile = { ...BASE_PROFILE, avatarUrl: null };
+    stubTx.limit.mockResolvedValueOnce([]);
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
 
     const res = await POST(makeRequest({ idToken: "valid-token" }));
     expect(res.status).toBe(200);
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
 
-    // No storage calls when picture is absent
-    expect(mockStorageUpload).not.toHaveBeenCalled();
-    expect(mockStorageGetPublicUrl).not.toHaveBeenCalled();
+  // ── Happy path: returning user ─────────────────────────────────────────────
 
-    // Upsert called without avatar_url (or with undefined/null)
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.not.objectContaining({ avatar_url: expect.stringContaining("http") })
+  it("returning user: skips INSERT, returns existing profile", async () => {
+    mockLineVerify();
+
+    const existing = { ...BASE_PROFILE, id: "dddddddd-0000-4000-d000-000000000004" };
+    stubTx.limit.mockResolvedValueOnce([existing]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.user.id).toBe("dddddddd-0000-4000-d000-000000000004");
+    // INSERT must not be called
+    expect(stubTx.insert).not.toHaveBeenCalled();
+  });
+
+  it("returning user: refreshes display name when it changed", async () => {
+    mockLineVerify({ name: "Updated Name" });
+
+    const existing = { ...BASE_PROFILE, lineDisplayName: "Old Name" };
+    stubTx.limit.mockResolvedValueOnce([existing]);
+    const updated = { ...existing, lineDisplayName: "Updated Name" };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    expect(stubTx.update).toHaveBeenCalled();
+    expect(stubTx.set).toHaveBeenCalledWith(
+      expect.objectContaining({ lineDisplayName: "Updated Name" })
     );
+  });
+
+  it("returning user: backfills email when LINE provides one and column is null", async () => {
+    mockLineVerify({ email: "backfill@example.com" });
+
+    const existing = { ...BASE_PROFILE, email: null };
+    stubTx.limit.mockResolvedValueOnce([existing]);
+    const updated = { ...existing, email: "backfill@example.com" };
+    stubTx.returning.mockResolvedValueOnce([updated]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    expect(stubTx.set).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "backfill@example.com" })
+    );
+    const body = await res.json();
+    expect(body.user.email).toBe("backfill@example.com");
+  });
+
+  it("returning user: no update when name unchanged and email already set", async () => {
+    mockLineVerify({ email: "same@example.com" });
+
+    const existing = { ...BASE_PROFILE, email: "same@example.com" };
+    stubTx.limit.mockResolvedValueOnce([existing]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    // No update triggered — row returned as-is
+    expect(stubTx.update).not.toHaveBeenCalled();
+  });
+
+  // ── Error path: DB failure ─────────────────────────────────────────────────
+
+  it("returns 500 when INSERT returns no rows", async () => {
+    mockLineVerifyThenAvatar();
+    mockUpload.mockResolvedValueOnce("https://storage.example.com/x.jpg");
+
+    stubTx.limit.mockResolvedValueOnce([]);
+    // returning() resolves with empty array → route throws
+    stubTx.returning.mockResolvedValueOnce([]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Internal server error");
+  });
+
+  // ── Response shape contract ────────────────────────────────────────────────
+
+  it("response shape matches contract: access_token + user fields", async () => {
+    mockLineVerifyThenAvatar();
+    mockUpload.mockResolvedValueOnce("https://storage.example.com/avatars/x.jpg");
+
+    const newProfile = {
+      ...BASE_PROFILE,
+      id: "eeeeeeee-0000-4000-e000-000000000005",
+    };
+    stubTx.limit.mockResolvedValueOnce([]);
+    stubTx.returning.mockResolvedValueOnce([newProfile]);
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // Exact field set — client must not notice backend changed
+    expect(body).toHaveProperty("access_token");
+    expect(body).toHaveProperty("user");
+    expect(body.user).toMatchObject({
+      id: expect.any(String),
+      line_user_id: expect.any(String),
+      line_display_name: expect.any(String),
+    });
+    expect(Object.keys(body.user)).toEqual(
+      expect.arrayContaining([
+        "id",
+        "line_user_id",
+        "line_display_name",
+        "avatar_url",
+        "email",
+        "full_name",
+        "created_at",
+      ])
+    );
+  });
+
+  // ── Rate limit (429) ───────────────────────────────────────────────────────
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    const { NextResponse } = await import("next/server");
+    mockCheckRateLimit.mockResolvedValueOnce(
+      NextResponse.json({ error: "Too many requests" }, { status: 429 })
+    );
+
+    const res = await POST(makeRequest({ idToken: "valid-token" }));
+    expect(res.status).toBe(429);
   });
 });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { isNotNull, inArray } from "drizzle-orm";
+import { adminQuery, pets, profiles, petPhotos } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 import { getLineClient } from "@/lib/line/client";
 import { buildCelebrationMessage } from "@/lib/line-templates/celebration";
 
@@ -15,37 +17,54 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
   const today = new Date();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
   const todayMonthDay = `${month}-${day}`;
   const currentYear = today.getFullYear();
 
-  const [{ data: birthdayPets, error: bErr }, { data: gotchaPets, error: gErr }] =
-    await Promise.all([
-      supabase
-        .from("pets")
-        .select("id, name, owner_id, date_of_birth")
-        .not("date_of_birth", "is", null),
-      supabase.from("pets").select("id, name, owner_id, gotcha_day").not("gotcha_day", "is", null),
-    ]);
+  let birthdayPets: { id: string; name: string; ownerId: string; dateOfBirth: string | null }[];
+  let gotchaPets: { id: string; name: string; ownerId: string; gotchaDay: string | null }[];
 
-  if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
-  if (gErr) return NextResponse.json({ error: gErr.message }, { status: 500 });
+  try {
+    [birthdayPets, gotchaPets] = await adminQuery(async (tx: Tx) => {
+      const [bRows, gRows] = await Promise.all([
+        tx
+          .select({
+            id: pets.id,
+            name: pets.name,
+            ownerId: pets.ownerId,
+            dateOfBirth: pets.dateOfBirth,
+          })
+          .from(pets)
+          .where(isNotNull(pets.dateOfBirth)),
+        tx
+          .select({
+            id: pets.id,
+            name: pets.name,
+            ownerId: pets.ownerId,
+            gotchaDay: pets.gotchaDay,
+          })
+          .from(pets)
+          .where(isNotNull(pets.gotchaDay)),
+      ]);
+      return [bRows, gRows] as [typeof bRows, typeof gRows];
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "DB error" },
+      { status: 500 }
+    );
+  }
 
   // Filter to today's month-day
-  const birthdays = (birthdayPets ?? []).filter((p) => {
-    const dob = p.date_of_birth as string;
+  const birthdays = birthdayPets.filter((p) => {
+    const dob = p.dateOfBirth!;
     return dob.slice(5) === todayMonthDay;
   });
 
-  const gotchaDays = (gotchaPets ?? []).filter((p) => {
-    const gd = p.gotcha_day as string;
+  const gotchaDays = gotchaPets.filter((p) => {
+    const gd = p.gotchaDay!;
     return gd.slice(5) === todayMonthDay;
   });
 
@@ -58,29 +77,35 @@ export async function GET(request: NextRequest) {
 
   // Gather owner LINE IDs
   const allOwnerIds = [
-    ...new Set([...birthdays.map((p) => p.owner_id), ...gotchaDays.map((p) => p.owner_id)]),
+    ...new Set([...birthdays.map((p) => p.ownerId), ...gotchaDays.map((p) => p.ownerId)]),
   ];
 
   const allPetIds = [...new Set([...birthdays.map((p) => p.id), ...gotchaDays.map((p) => p.id)])];
 
-  const [{ data: profiles }, { data: photos }] = await Promise.all([
-    supabase.from("profiles").select("id, line_user_id").in("id", allOwnerIds),
-    supabase
-      .from("pet_photos")
-      .select("pet_id, photo_url")
-      .in("pet_id", allPetIds)
-      .order("created_at", { ascending: false })
-      .limit(allPetIds.length * 4),
-  ]);
+  const [ownerRows, photoRows] = await adminQuery(async (tx: Tx) => {
+    return Promise.all([
+      tx
+        .select({ id: profiles.id, lineUserId: profiles.lineUserId })
+        .from(profiles)
+        .where(inArray(profiles.id, allOwnerIds)),
+      tx
+        .select({ petId: petPhotos.petId, photoUrl: petPhotos.photoUrl })
+        .from(petPhotos)
+        .where(inArray(petPhotos.petId, allPetIds))
+        .orderBy(petPhotos.createdAt)
+        .limit(allPetIds.length * 4),
+    ]);
+  });
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.line_user_id]));
+  // Map owner id → LINE user id (snake_case column in response but camelCase from Drizzle)
+  const profileMap = new Map(ownerRows.map((p) => [p.id, p.lineUserId]));
 
   const photoMap = new Map<string, string[]>();
-  for (const photo of photos ?? []) {
-    const existing = photoMap.get(photo.pet_id) ?? [];
+  for (const photo of photoRows) {
+    const existing = photoMap.get(photo.petId) ?? [];
     if (existing.length < 4) {
-      existing.push(photo.photo_url);
-      photoMap.set(photo.pet_id, existing);
+      existing.push(photo.photoUrl);
+      photoMap.set(photo.petId, existing);
     }
   }
 
@@ -91,10 +116,10 @@ export async function GET(request: NextRequest) {
 
   // Send birthday messages
   for (const pet of birthdays) {
-    const lineUserId = profileMap.get(pet.owner_id);
+    const lineUserId = profileMap.get(pet.ownerId);
     if (!lineUserId) continue;
 
-    const dobYear = parseInt((pet.date_of_birth as string).slice(0, 4), 10);
+    const dobYear = parseInt(pet.dateOfBirth!.slice(0, 4), 10);
     const age = currentYear - dobYear;
 
     const message = buildCelebrationMessage({
@@ -117,10 +142,10 @@ export async function GET(request: NextRequest) {
 
   // Send gotcha-day messages
   for (const pet of gotchaDays) {
-    const lineUserId = profileMap.get(pet.owner_id);
+    const lineUserId = profileMap.get(pet.ownerId);
     if (!lineUserId) continue;
 
-    const gotchaYear = parseInt((pet.gotcha_day as string).slice(0, 4), 10);
+    const gotchaYear = parseInt(pet.gotchaDay!.slice(0, 4), 10);
     const years = currentYear - gotchaYear;
 
     const message = buildCelebrationMessage({

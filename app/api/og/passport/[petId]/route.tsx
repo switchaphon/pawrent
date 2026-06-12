@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { eq } from "drizzle-orm";
+import { adminQuery, pets, vaccinations } from "@/lib/db/index";
+import type { Tx } from "@/lib/db/index";
 
 // Edge runtime exceeds the 1MB plan limit (bundle ~1.15MB with @supabase/supabase-js
 // + next/og). Use Node.js serverless instead — 50MB limit, slower cold start.
@@ -18,29 +20,43 @@ export async function GET(
 ) {
   const { petId } = await params;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const [petRow, vaccineRows] = await adminQuery(async (tx: Tx) => {
+    return Promise.all([
+      tx
+        .select({
+          id: pets.id,
+          name: pets.name,
+          species: pets.species,
+          breed: pets.breed,
+          dateOfBirth: pets.dateOfBirth,
+          photoUrl: pets.photoUrl,
+        })
+        .from(pets)
+        .where(eq(pets.id, petId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+      tx
+        .select({ id: vaccinations.id, status: vaccinations.status })
+        .from(vaccinations)
+        .where(eq(vaccinations.petId, petId)),
+    ]);
+  });
 
-  const { data: pet } = await supabase
-    .from("pets")
-    .select("id, name, species, breed, date_of_birth, photo_url")
-    .eq("id", petId)
-    .maybeSingle();
-
-  if (!pet) {
+  if (!petRow) {
     return new Response("Pet not found", { status: 404 });
   }
 
-  // Vaccine status summary
-  const { data: vaccines } = await supabase
-    .from("vaccinations")
-    .select("id, status")
-    .eq("pet_id", petId);
+  // Vaccine status summary — map Drizzle camelCase back to the shape used in JSX below
+  const pet = {
+    name: petRow.name,
+    species: petRow.species,
+    breed: petRow.breed,
+    date_of_birth: petRow.dateOfBirth,
+    photo_url: petRow.photoUrl,
+  };
 
-  const protectedCount = vaccines?.filter((v) => v.status === "protected").length ?? 0;
-  const totalVaccines = vaccines?.length ?? 0;
+  const protectedCount = vaccineRows.filter((v) => v.status === "protected").length;
+  const totalVaccines = vaccineRows.length;
 
   const age = pet.date_of_birth ? calculateAge(pet.date_of_birth) : null;
 
